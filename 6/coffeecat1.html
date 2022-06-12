@@ -1,0 +1,88 @@
+<html>
+    <head>
+    <script src="../remove.js"></script>
+    </head>
+    <body id='woe'>
+        <canvas style="display:hidden" id="myCanvas"></canvas>
+        <script>
+            let canvas = document.getElementById("myCanvas");
+            let a = canvas.getContext("2d");
+            canvas.width = window.innerWidth-20;
+            canvas.height = window.innerHeight-20;
+            qx=[];
+            qy=[];
+            qr=[];
+            qg=[];
+            qb=[];
+            z=0;
+            z1=0;
+            qz=30;
+            qo=50;
+            var mx;
+            var my;
+            akd=1;
+            akdq=0;
+            let mouse = {
+                x : 0,
+                y : 0,
+            }
+            function rd(min,max){
+                return Math.floor(Math.random()*(max-min+1))+min;
+            };
+            window.addEventListener('mousemove',(event) => {
+                mx = event.pageX-8;
+                my = event.pageY-7;
+            })
+            const draw = () =>{
+                //先清掉cvanvas目前繪製的圖形
+                if(akd==1){
+                  a.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                //開始作畫
+                a.strokeStyle="rgba(255,0,0)";
+                if(z%5==0){
+                    a.moveTo(mx,my);
+                    qx[z/5%qz]=mx+rd(-qo,qo);
+                    qy[z/5%qz]=my+rd(-qo,qo);
+                    qr[z/5%qz]=rd(0,255);
+                    qg[z/5%qz]=rd(0,255);
+                    qb[z/5%qz]=rd(0,255);
+                    a.lineTo(qx[z/5%qz],qy[z/5%qz]);
+                }
+                if(z<qz){
+                    z1=z;
+                }
+                else{
+                    z1=qz-1;
+                }
+                for(k=0;k<z1;k++){
+                    a.beginPath();
+                    a.strokeStyle="rgba("+qr[k]+","+qg[k]+","+qb[k]+",0.5)";
+                    a.moveTo(mx,my);
+                    a.lineTo(qx[k],qy[k]);
+                    a.stroke();
+                }
+                z++;
+            }
+            var key = document.getElementById("woe");
+            key.onkeydown=f;  //注册keydown事件处理函数
+            key.onkeyup=f;  //注册keyup事件处理函数
+            key.onkeypress= f;  //注册keypress事件处理函数
+            function f(){
+              var e = e || window.event;  //标准化事件处理
+              if(e.keyCode==32){
+                a.clearRect(0, 0, canvas.width, canvas.height);
+              }
+              if(e.keyCode==65){
+                akdq++;
+                if(akdq/2>1){
+                    akd*=-1;
+                    akdq=0;
+                }
+              }
+            }
+            setInterval('f()',0)
+            setInterval('draw()',0)
+        </script>
+    </body>
+</html>

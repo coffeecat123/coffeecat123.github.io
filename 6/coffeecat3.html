@@ -1,0 +1,68 @@
+<html>
+    <head>
+        <script src="../remove.js"></script>
+        <style>
+            canvas{
+                position:absolute;
+                z-index:2;
+            }
+            body{
+                background:rgb(72, 157, 255);
+            }
+        </style>
+    </head>
+    <body>
+        <div name="op" style="font-size:1.2cm">width:<i id="demo1"></i></div>
+        <div name="op" style="font-size:1.2cm">height:<i id="demo2"></i></div>
+        <canvas style="display:hidden" id="myCanvas"></canvas>
+        <script>
+            function ail(){
+              w=window.innerWidth|| document.documentElement.clientWidth|| document.body.clientWidth;
+              h=window.innerHeight|| document.documentElement.clientHeight|| document.body.clientHeight;
+              document.getElementById("demo1").textContent=w;
+              document.getElementById("demo2").textContent=h;
+            }
+            let canvas = document.getElementById("myCanvas");
+            let a = canvas.getContext("2d");
+            canvas.width = window.innerWidth-30;
+            canvas.height = window.innerHeight*2;
+            qx=[];
+            qy=[];
+            qr=[];
+            qg=[];
+            qb=[];
+            z=0;
+            z1=0;
+            qz=50;
+            mx=0
+            my=0
+            let mouse = {
+                x : 0,
+                y : 0,
+            }
+			function createPat(){
+				var bg = cxt.createPattern(imgs,"no-repeat");
+				a.fillStyle = bg;
+				a.fillRect(0,0,can.width,can.height);
+			}
+            function rd(min,max){
+                return Math.floor(Math.random()*(max-min+1))+min;
+            };
+            window.addEventListener('mousemove',(event) => {
+                mx = event.pageX-8;
+                my = event.pageY-7;
+            })
+            function az(){
+                a.clearRect(0, 0, canvas.width, canvas.height);
+                a.fillStyle = "#fff"
+                for(i=0;i<100;i++){
+                    a.beginPath();
+                    a.arc(rd(0,canvas.width),rd(0,canvas.height),rd(1,2),0,Math.PI*2);
+                    a.fill()
+                }
+            }
+            setInterval('az()',0)
+            setInterval('ail()',0)
+        </script>
+    </body>
+</html>

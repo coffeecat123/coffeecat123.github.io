@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>?</title>
+    <script src="../remove.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+        <style>
+            * {
+              padding: 0;
+              margin: 0;
+              font-family: 'IBM Plex Sans', sans-serif;
+            }
+            .QRWrapper {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+            }
+            input#qr-text {
+                font-size: 18px;
+                padding: 10px 20px;
+                outline: 0;
+                border: 1px solid #0f62fe;
+                min-width: 320px;
+            }
+            button.qr-btn {
+                background-color: #0f62fe;
+                border: 1px solid transparent;
+                color: #fff;
+                cursor: pointer;
+                padding: calc(.875rem - 3px) 60px calc(.875rem - 3px) 20px;
+                display: block;
+                transition: background-color 0.5s;
+                font-size: 18px;
+                width: 100%;
+                text-align: left;
+                outline: 0;
+            }
+            .QRWrapperInner {
+                display: grid;
+                row-gap: 50px;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+            }
+        </style>
+  </head>
+  <body>
+    <div class="QRWrapper">
+      <div class="QRWrapperInner">
+        <div class="QRfield">
+          <input id="qr-text" type="text" placeholder="Text to generate QR code"/>
+          <button class="qr-btn" onclick="generateQRCode()">Create QR Code</button>
+        </div>
+        <div class="qr-code-result">
+          <p id="qr-result">This is deault QR code:</p>
+          <canvas id="qr-code"></canvas>
+        </div>
+      </div>
+    </div>
+     <script>
+          /* JS comes here */
+          var qr;
+          (function() {
+                        qr = new QRious({
+                        element: document.getElementById('qr-code'),
+                        size: 200,
+                        value: 'https://blog.stackfindover.com/'
+                    });
+                })();
+                
+                function generateQRCode() {
+                    var qrtext = document.getElementById("qr-text").value;
+                    document.getElementById("qr-result").innerHTML = "QR code for " + qrtext +":";
+                    //alert(qrtext);
+                    qr.set({
+                        foreground: '#0f62fe',
+                        size: 200,
+                        value: qrtext
+                    });
+                }
+        </script>
+  </body>
+</html>

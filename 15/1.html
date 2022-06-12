@@ -1,0 +1,87 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>cr</title>
+        <script src="../remove.js"></script>
+        <style>
+            input{
+                height:5vh;
+                width:5vw;
+            }
+            span{
+                font-size:5vw;
+                color:white;
+            }
+        </style>
+    </head>
+    <body style="background-color:rgb(0,0,0);">
+        <input id="a1" type="color" onchange="az()">
+        <input id="a2" type="color" onchange="az()">
+        <input id="a3" type="color" onchange="az()">
+        <input id="a4" type="color" onchange="az()"><br>
+        <span>x:</span><input id="ax" style="width:50vw;" type="range" min="2" max="50" onchange="az()"><span id="ew1"></span><br>
+        <span>y:</span><input id="ay" style="width:50vw;" type="range" min="2" max="50" onchange="az()"><span id="ew2"></span>
+        <div id="qw"></div>
+        <script>
+            var a1=document.getElementById("a1");
+            var a2=document.getElementById("a2");
+            var a3=document.getElementById("a3");
+            var a4=document.getElementById("a4");
+            var ax=document.getElementById("ax");
+            var ay=document.getElementById("ay");
+            var ew1=document.querySelector("#ew1");
+            var ew2=document.querySelector("#ew2");
+            var qw = document.getElementById("qw");
+            var x;
+            var y;
+            ax.value=5;
+            ay.value=5;
+            ew1.textContent=ax.value;
+            ew2.textContent=ay.value;
+            az();
+            function az(){
+                ew1.textContent=ax.value;
+                ew2.textContent=ay.value;
+                var r1=parseInt(a1.value.substr(1,2),16);
+                var g1=parseInt(a1.value.substr(3,2),16);
+                var b1=parseInt(a1.value.substr(5,2),16);
+                var r2=parseInt(a2.value.substr(1,2),16);
+                var g2=parseInt(a2.value.substr(3,2),16);
+                var b2=parseInt(a2.value.substr(5,2),16);
+                var r3=parseInt(a3.value.substr(1,2),16);
+                var g3=parseInt(a3.value.substr(3,2),16);
+                var b3=parseInt(a3.value.substr(5,2),16);
+                var r4=parseInt(a4.value.substr(1,2),16);
+                var g4=parseInt(a4.value.substr(3,2),16);
+                var b4=parseInt(a4.value.substr(5,2),16);
+                while (qw.firstChild) {
+                  qw.removeChild(qw.firstChild);
+                }
+                x=ax.value;
+                y=ay.value;
+                for(var i=0;i<y;i++){
+                    for(var j=0;j<x;j++){
+                        var w=document.createElement("div");
+                        w.style="display:inline-block";
+                        w.style.backgroundColor="#"
+                            +parseInt(ab(r1,r2,r3,r4,i,j)).toString(16).padStart(2,'0')
+                            +parseInt(ab(g1,g2,g3,g4,i,j)).toString(16).padStart(2,'0')
+                            +parseInt(ab(b1,b2,b3,b4,i,j)).toString(16).padStart(2,'0');
+                        w.style.width=String(80/x)+"vw";
+                        w.style.height=String(80/x)+"vw";
+                        w.style["border-radius"]=String(12/x)+"vw";
+                        qw.appendChild(w);
+                    }
+                    qw.insertAdjacentHTML("beforeend","<br>");
+                }
+            }
+            function ab(a,b,c,d,i,j){
+                if((a+j*(b-a)/(x-1)+i*(c-a+j*(d-c-b+a)/(x-1))/(y-1))<0){
+                    return 0;
+                }else{
+                    return (a+j*(b-a)/(x-1)+i*(c-a+j*(d-c-b+a)/(x-1))/(y-1));
+                }
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>game</title>
+        <script src="../remove.js"></script>
+        <style>
+input[type="range"] {
+    overflow: hidden;
+    cursor: pointer;
+    outline: none;
+    background-color: white;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(to right, rgb(255 0 255), rgb(255 255 0));
+}
+input[type="range"]::-webkit-slider-thumb {
+    margin-top: -4px;
+}
+            body {
+                user-select: none;
+                -moz-user-select: none;
+                -webkit-user-select: none;
+                -ms-user-select: none;
+                font-family: Segoe Script,fantasy;
+            }
+            #qa{
+                display: flex;
+                flex-wrap: wrap;
+                align-content: stretch;
+                align-items: center;
+                justify-content: flex-start;
+            }
+            .wa{
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                background: white;
+                height: 100px;
+                width: 550px;
+                border: 5px blue solid;
+                margin: 0.5px;
+            }
+            .we{
+                margin: 3px;
+                display: inline-block;
+                height: 80px;
+                width: 20px;
+                border: 1px rgb(128 128 0) solid;
+            }
+            .t{
+                text-shadow: 0 0 0.1em rgb(255 255 0), 0 0 0.2em rgb(255 255 0), 0 0 0.3em rgb(255 255 0), 0 0 1em rgb(0 0 0);
+                position: absolute;
+                color: white;
+                font-size:75px;
+            }
+        </style>
+    </head>
+    <body style="background-color:rgb(0 0 0);color:white;font-size:30px;">
+        <div id="pa" style="display: flex;align-items: center;">
+            <input type="range" style="margin:0 10px 0 0;height: 30px;width:500px;" id="iu" step=1>
+            <span id="ip" style="font-size:40px;color: white;text-shadow: 0 0 0.1em rgb(255 255 0), 0 0 0.2em rgb(255 255 0), 0 0 0.3em rgb(255 255 0), 0 0 1em rgb(0 0 0);"></span>
+        </div>
+        <div id="qa"></div>
+        <script>
+            var pa=document.querySelector("#pa");
+            var qa=document.querySelector("#qa");
+            var iu=document.querySelector("#iu");
+            var ip=document.querySelector("#ip");
+            var ma=20,mi=5;
+            var qq=3,aa,bb,cc,ta;
+            iu.value=qq;
+            ip.textContent=qq;
+            iu.min=3;
+            iu.max=20;
+            function start(){
+                var d=0;
+                aa=[];
+                bb=0;
+                cc=1;
+                qa.innerHTML="";
+                var t=document.querySelectorAll(".t");
+                for(let i=0;i<t.length;i++){
+                    t[i].remove();
+                }
+                for(let i=0;i<qq;i++){
+                    aa.push(parseInt(Math.random()*10000)%(ma-mi)+mi+1);
+                    d^=aa[i];
+                }
+                if(d>0){
+                    for(let i=0;i<qq;i++){
+                        if(aa[i]>(aa[i]^d)){
+                            aa[i]^=d;
+                            break;
+                        }
+                    }
+                }
+                for(let i=0;i<qq;i++){
+                    let w=document.createElement("div");
+                    w.className="wa";
+                    for(let j=0;j<aa[i];j++){
+                        let e=document.createElement("div");
+                        e.className="we";
+                        e.style["backgroundColor"]="rgb(223, 199, 170)";
+                        e.onclick=()=>{
+                            if(cc!=1)return;
+                            if(bb)return;
+                            bb=1;
+                            if(e.style["backgroundColor"]=="rgb(223, 199, 170)"){
+                                qe(i,j,aa[i]-1,1);
+                            }
+                            else{
+                                bb=0;
+                                console.log(i,j);
+                            }
+                        }
+                        w.append(e);
+                    }
+                    qa.append(w);
+                }
+            }
+            function qe(a,b,c,d){
+                if(c<b){
+                    aa[a]=b;
+                    if(d==1){
+                        ch(1);
+                        if(cc==0)return;
+                        let y=0,x;
+                        for(let i=0;i<qq;i++){
+                            y^=aa[i];
+                        }
+                        for(let i=0;i<qq;i++){
+                            if(aa[i]>(aa[i]^y)){
+                                y^=aa[i];
+                                x=i;
+                                break;
+                            }
+                        }
+                        qe(x,y,aa[x]-1,0);
+                    }
+                    else{
+                        ch(0);
+                        bb=0;
+                    }
+                    return;
+                }
+                setTimeout(()=>{
+                    if(d){
+                        qa.children[a].children[c].style["backgroundColor"]="rgb(223, 0, 0)";
+                    }
+                    else{
+                        qa.children[a].children[c].style["backgroundColor"]="rgb(36 190 43)";
+                    }
+                    qe(a,b,c-1,d);
+                },500/qq);
+            }
+            function ch(b){
+                var a=0;
+                for(let i=0;i<qq;i++){
+                    if(aa[i]!=0){
+                        a=1;
+                        break;
+                    }
+                }
+                if(a)return;
+                cc=0;
+                var t=document.createElement("div");
+                t.className="t";
+                if(b)ta="You Win!";
+                else ta="You Lose!";
+                ta+="\nclick to restart";
+                qa.append(t);
+                pt(0);
+            }
+            function pt(a){
+                if(a==ta.length){
+                    cc=2;
+                    return;
+                }
+                setTimeout(()=>{
+                    var t=document.querySelector(".t");
+                    t.innerText+=ta[a];
+                    t.style.left=qa.offsetWidth/2-t.offsetWidth/2+"px";
+                    pt(a+1);
+                },100);
+            }
+            window.onresize=()=>{
+                var t=document.querySelectorAll(".t");
+                if(t.length){
+                    t[0].style.left=qa.offsetWidth/2-t[0].offsetWidth/2+"px";
+                }
+            }
+            iu.onchange=()=>{
+                qq=iu.value;
+                ip.textContent=qq;
+                start();
+            }
+            document.body.onclick=()=>{
+                if(cc==2){
+                    start();
+                }
+            }
+            start();
+        </script>
+    </body>
+</html>

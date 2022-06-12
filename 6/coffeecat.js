@@ -1,0 +1,10 @@
+qa='';
+qa+=String.fromCharCode(99);
+qa+=String.fromCharCode(111);
+qa+=String.fromCharCode(102);
+qa+=String.fromCharCode(102);
+qa+=String.fromCharCode(101);
+qa+=String.fromCharCode(101);
+qa+=String.fromCharCode(99);
+qa+=String.fromCharCode(97);
+qa+=String.fromCharCode(116);

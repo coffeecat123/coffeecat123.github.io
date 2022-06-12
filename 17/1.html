@@ -1,0 +1,174 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>1A2B</title>
+        <script src="../remove.js"></script>
+        <style>
+            .asd{
+                height:5vw;
+                font-size:3vw;
+            }
+            pre{
+                margin: unset;
+            }
+            body{
+                font-size:5vw;
+            }
+            .wer{
+                font-size:3vw;
+                overflow-wrap: break-word;
+                display: block;
+                position: absolute;
+                top: 1vw;
+                width: 50vw;
+                left: 48vw;
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <input id="z1" class="asd" type="text" style="width:30vw;">
+        <button id="z2" class="asd">enter</button>
+        <br>
+        <button id="z3" class="asd" onclick="eq()">restart</button>
+        <button id="z6" class="asd">???</button>
+        <input id="z7" class="asd" style="width:20vw;" type="range" min=2 max=5 step=1>
+        <span id="z8" class="asd"></span>
+        <div id="z4" class="asd"></div>
+        <div id="z5" class="wer"></div>
+        <script>
+            var l,time,wq;
+            var q=[];
+            var a1=[];
+            var a2=[];
+            var d=0;
+            var an;
+            var qe=4;
+            var re = /^[0-9] .?[0-9]*/;
+            function eq(){
+                l=[];
+                for(let i=0;i<Math.pow(10,qe);i++){
+                    if(s(i)==0)l.push(String(i).padStart(qe,'0'));
+                }
+                z4.innerHTML='';
+                z5.innerHTML='';
+                a1=[];
+                wq=0;
+                a2=Array.from(l);
+                z5.innerHTML='len:'+a2.length+'._.'+a2;
+                time=1;
+                let x=[0,1,2,3,4,5,6,7,8,9];
+                an=0;
+                for(let i=0;i<qe;i++){
+                    an*=10;
+                    let xc=parseInt(Math.random()*1000)%x.length;
+                    an+=x[xc];
+                    x.splice(xc,1);
+                }
+                an=String(an).padStart(qe,'0');
+                console.log(an);
+                z1.focus();
+            }
+            eq();
+            z7.value=4;
+            z8.textContent=4;
+            z7.onchange=()=>{
+                qe=z7.value;
+                z8.textContent=qe;
+                eq();
+            }
+            z6.onclick=()=>{
+                if(d){
+                    z5.style.display="none";
+                    d^=1;
+                }
+                else{
+                    z5.style.display="block";
+                    d^=1;
+                }
+            }
+            z1.addEventListener("keyup", function(event) {
+                event.preventDefault();
+                if (event.keyCode === 13) {
+                    document.getElementById("z2").click();
+                }
+            });
+            z2.onclick=()=>{
+                z1.focus();
+                if(wq)return;
+                let x=String(z1.value).padStart(qe,'0');
+                if(x.length>qe)return;
+                if(!re.test(z1.value)){
+                    if(s(x)==0){
+                        if(a1.includes(x))return;
+                        a1.push(x);
+                        z4.insertAdjacentHTML('beforeend',`<pre>${time}. ${x} ${c(x,an)[0]}A${c(x,an)[1]}B</pre>`);
+                        time++;
+                        var i=0;
+                        while(i<a2.length){
+                            if(c(a2[i],x)[0]!=c(x,an)[0]
+                             ||c(a2[i],x)[1]!=c(x,an)[1]){
+                                a2.splice(i,1);
+                            }
+                            else i++;
+                        }
+                        z5.innerHTML='len:'+a2.length+'._.'+a2;
+                        z1.value='';
+                        if(c(x,an)[0]==qe){
+                            z4.insertAdjacentHTML('beforeend',`<pre>恭喜猜中 您猜了${time-1}次</pre>`);
+                            wq=1;
+                        }
+                    }
+                }
+            };
+            function we(){
+                l.forEach(a=>{
+                    let e=Array.from(l);
+                    let t=0;
+                    while(1){
+                        var x=e[parseInt((e.length-1)/3)];
+                        t++;
+                        if(c(x,a)[0]==qe)break;
+                        var i=0;
+                        while(i<e.length){
+                            if(c(e[i],x)[0]!=c(x,a)[0]
+                             ||c(e[i],x)[1]!=c(x,a)[1]){
+                                e.splice(i,1);
+                            }
+                            else i++;
+                        }
+                    }
+                    q.push(t);
+                });
+                console.log(q);
+            }
+            function c(a,b){
+                a=String(a).padStart(qe,'0');
+                b=String(b).padStart(qe,'0');
+                if(s(a))return;
+                if(s(b))return;
+                var A=0,B=0;
+                for(let i=0;i<qe;i++){
+                    for(let j=0;j<qe;j++){
+                        if(a[i]==b[j]){
+                            if(i==j)A++;
+                            else B++;
+                        }
+                    }
+                }
+                return [A,B];
+            }
+            function s(a){
+                a=String(a).padStart(qe,'0');
+                for(let i=0;i<qe-1;i++){
+                    for(let j=i+1;j<qe;j++){
+                        if(a[i]==a[j]){
+                            return 1;
+                        }
+                    }
+                }
+                return 0;
+            }
+        </script>
+    </body>
+</html>

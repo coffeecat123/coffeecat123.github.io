@@ -1,0 +1,45 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>coffeecat</title>
+    <script src="../remove.js"></script>
+    <style>
+        .a1{
+            position:relative;
+            top:-7px;
+            border:none;
+            height:30px;
+            color:red;
+            background-color:rgb(255,255,0);
+            border-radius: 10px;
+        }
+        .a2{
+            position:relative;
+            top:-7px;
+            height:30px;
+        }
+        .a3{
+            position:relative;
+            top:-6px;
+            border-radius: 10px;
+            background-color:red;
+        }
+        .a4{
+            font-size:30px;
+            color:red;
+        }
+    </style>
+  </head>
+  <body>
+    <h1>
+      <form method="get" action="b.php">
+          姓名：
+          <input class="a1" name="yname" type="text-area"  placeholder="必填" autofocus required><br>提交內容:
+          <input class="a2" name="yng" type="text"  placeholder="必填" required>
+          <input class="a3" name="send" type="submit" value="送出">
+          <br>
+          <textarea class="a4" rows=3 cols=20  placeholder="隨便打" required></textarea>
+      </form>
+    </h1>
+  </body>
+</html>

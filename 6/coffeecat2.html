@@ -1,0 +1,65 @@
+<html>
+  <head>
+    <title>coffeecat2</title>
+    <script src="../remove.js"></script>
+    <style>
+    i{
+      color:white;
+      font-size:50px;
+    }
+    b{
+      font-size:50px;
+    }
+    </style>
+  </head>
+  <body id='wiu'>
+        <script>
+            mx=0
+            my=0
+            w=window.innerWidth|| document.documentElement.clientWidth|| document.body.clientWidth;
+            h=window.innerHeight|| document.documentElement.clientHeight|| document.body.clientHeight;
+            let mouse = {
+                x : 0,
+                y : 0,
+            }
+            function rd(min,max){
+                return Math.floor(Math.random()*(max-min+1))+min;
+            }
+            function qpw(h1,s1,l1) {
+              s1 /= 100;
+              l1 /= 100;
+              let c = (1 - Math.abs(2 * l1 - 1)) * s1,
+                  x = c * (1 - Math.abs((h1 / 60) % 2 - 1)),
+                  m = l1 - c/2,
+                  r = 0,
+                  g = 0,
+                  b = 0;
+              if (0 <= h1 && h1 < 60) {
+                r = c; g = x; b = 0;  
+              } else if (60 <= h1 && h1 < 120) {
+                r = x; g = c; b = 0;
+              } else if (120 <= h1 && h1 < 180) {
+                r = 0; g = c; b = x;
+              } else if (180 <= h1 && h1 < 240) {
+                r = 0; g = x; b = c;
+              } else if (240 <= h1 && h1 < 300) {
+                r = x; g = 0; b = c;
+              } else if (300 <= h1 && h1 < 360) {
+                r = c; g = 0; b = x;
+              }
+              r = Math.round((r + m) * 255);
+              g = Math.round((g + m) * 255);
+              b = Math.round((b + m) * 255);
+              return "rgb(" + r + "," + g + "," + b + ")";
+            }
+            window.addEventListener('mousemove',(event) => {
+                mx = event.pageX-8;
+                my = event.pageY-7;
+                hh=mx/w*360;
+                ss=100;
+                ll=my/h*100;
+                document.getElementById('wiu').style='background-color:'+qpw(hh,ss,ll);
+            })
+        </script>
+  </body>
+</html>

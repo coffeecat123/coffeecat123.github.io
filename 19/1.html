@@ -1,0 +1,330 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>game</title>
+        <script src="../remove.js"></script>
+        <style>
+            [draggable="true"],body {
+                user-select: none;
+                -moz-user-select: none;
+                -webkit-user-select: none;
+                -ms-user-select: none;
+            }
+            .aa{
+                width: 70px;
+                height: 70px;
+                background: white;
+                display: inline-block;
+            }
+            .a1{
+                font-size: 20px;
+                width: 60px;
+                height: 60px;
+                background: red;
+                display: inline-block;
+                text-align: center;
+                line-height: 60px;
+                margin: 5px;
+                border-radius: 15px;
+                /*box-shadow: rgb(227, 0, 255) 0px 0px 8px 4px;*/
+            }
+            .a2{
+                font-size: 20px;
+                width: 60px;
+                height: 60px;
+                background: blue;
+                display: inline-block;
+                text-align: center;
+                line-height: 60px;
+                margin: 5px;
+                border-radius: 15px;
+                /*box-shadow: pink 3px 3px 12px;*/
+            }
+            button{
+                font-size: 15px;
+                text-align: center;
+                margin:5px;
+                width:50px;
+                height:45px;
+                box-shadow: 1px 1px 0px 0px rgb(246 10 10 / 50%);
+                background: #6efa6c;
+                border: none;
+                border-radius: 5px;
+                transition-duration: 0.4s;
+            }
+            button:hover {
+                border: 0.1px solid #202020;
+                background-color: #000;
+                color: #6efa6c;
+            }
+            button:active {
+                background-color: #000;
+                box-shadow: 1px 1px 0px 0px #ff0;
+                color: #f00;
+            }
+        </style>
+    </head>
+    <body style="background-color:rgb(0 0 0);color:white;font-size:30px;">
+        <span style="">press up,down,left,right to play</span><br>
+        <span style="">x:</span>
+        <select id="s1" onchange="qe()">
+            <script>
+                for(i=2;i<=7;i++){
+                document.write("<option>"+i+"</option>");
+                }
+            </script>
+        </select>
+        <span style="">y:</span>
+        <select id="s2" onchange="qe()">
+            <script>
+                for(i=2;i<=7;i++){
+                document.write("<option>"+i+"</option>");
+                }
+            </script>
+        </select>
+        <br>
+        <div id="qwe" style="background-color:rgb(255 255 255);margin-top: 10px;margin-right: 10px;display:inline-block;"></div>
+        <div id="qwa" style="background-color:rgb(255 255 255);margin-top: 10px;position: absolute;display:inline-block;"></div>
+        <br>
+        <div id="wta" style="height:145px;width:160px;margin-top: 10px;background-color:rgb(255 255 255);position: absolute;display:inline-block;align-items: center;display:flex;">
+            <button onclick="up()" style="position: absolute;top: 0;left: 50px;">up</button>
+            <button onclick="dw()" style="position: absolute;bottom: 0;left: 50px;">dw</button>
+            <button onclick="lt()" style="position: absolute;top:45px;left: 0;">lt</button>
+            <button onclick="rt()" style="position: absolute;top:45px;right: 0;">rt</button>
+        </div>
+        <br>
+        <script>
+            var wta=document.querySelector("#wta");
+            var qwe=document.querySelector("#qwe");
+            var qwa=document.querySelector("#qwa");
+            var s1=document.querySelector("#s1");
+            var s2=document.querySelector("#s2");
+            var p=document.createElement("div");
+            var sx=3;
+            var sy=2;
+            var ee,bb,aa,ca,wi;
+            p.id="wp";
+            s1.value=3;
+            document.body.style.overflow='hidden';
+            function qe(){
+                s1.blur();
+                s2.blur();
+                if((s1.value%2+s2.value%2)==0){
+                    s1.value=sx;
+                    s2.value=sy;
+                    return;
+                }
+                sx=Number(s1.value);
+                sy=Number(s2.value);
+                start();
+            }
+            function start(){
+                ee=[];
+                bb=[];
+                aa=0;
+                ca=0;
+                wi=0;
+                qwa.innerHTML='';
+                qwe.innerHTML='';
+                qwe.style.width=70*sx;
+                qwe.style.height=70*sy;
+                qwa.style.width=70*sx;
+                qwa.style.height=70*sy;
+                if((document.querySelector("#wi"))!=null){
+                    document.querySelector("#wi").remove();
+                }
+                for(var i=0;i<sy*sx;i++){
+                    wa1(i);
+                }
+                var e=[];
+                for(var i=0;i<sy*sx;i++){
+                    e.push(i);
+                }
+                for(var i=sy*sx;i>0;i--){
+                    var w=parseInt(Math.random()*10000)%i;
+                    we(e[w]);
+                    e.splice(w,1);
+                }
+                ca=1;
+            }
+            function wa1(a){
+                var w=document.createElement("div");
+                w.id="wwa"+a;
+                w.className="aa";
+                if((a%sx+parseInt(a/sx))%2==0){
+                    w.style.background="rgb(0 255 142)";
+                }
+                else{
+                    w.style.background="rgb(255,240, 145)";
+                }
+                w.append(wa2(a));
+                qwe.append(w);
+                w.addEventListener('dragenter',(e)=>{
+                    if(e.target.id.indexOf('wwa')==-1)return;
+                    if(wi)return;
+                    ch(aa,e.target.id.split('a')[1]);
+                    ck();
+                });
+            }
+            function wa2(a){
+                ee.push(a);
+                var w=document.createElement("div");
+                w.id="wa"+a;
+                if(a==0){
+                    w.className="a1";
+                    w.draggable="true";
+                }
+                else{
+                    w.className="a2";
+                }
+                w.innerText=a;
+                w.addEventListener('dragstart',(e)=>{
+                    e.target.style.opacity = ".5";
+                    e.dataTransfer.setData('text/plain', e.target.id);
+                });
+                w.addEventListener('dragover',(e)=>{
+                    cancelDefault(e);
+                });
+                w.addEventListener("dragend",(e)=> {
+                    e.target.style.opacity = "";
+                });
+                return w;
+            }
+            function we(a){
+                bb.push(a);
+                var w=document.createElement("div");
+                w.id="ww"+a;
+                if(a==0){
+                    w.className="a1";
+                }
+                else{
+                    w.className="a2";
+                }
+                w.innerText=a;
+                qwa.append(w);
+                w.onclick=()=>{
+                    console.log(w.id);
+                };
+            }
+            function ch(a,b){
+                b=Number(b);
+                if(a==b)return;
+                aa=b;
+                document.querySelector("#wwa"+a).append(document.querySelector("#wa"+ee[b]));
+                document.querySelector("#wwa"+b).append(document.querySelector("#wa"+ee[a]));
+                var temp=ee[a];
+                ee[a]=ee[b];
+                ee[b]=temp;
+            }
+            function ew(q){
+                var t='#w';
+                if(q==sx*sy-1)t+= 'p';
+                else  t+=ee[q+1];
+                return t;
+            }
+            function ck(){
+                var a=1;
+                for(var i=0;i<sy*sx;i++){
+                    if(ee[i]!=bb[i]){
+                        a=0;
+                        break;
+                    }
+                }
+                if(a){
+                    ca=0;
+                    wi=1;
+                    var t=document.createElement("div");
+                    t.id="wi";
+                    t.style="position: absolute;color:yellow;font-size:50px;";
+                    t.innerText="You Win!\npress space or click to restart";
+                    document.body.append(t);
+                    t.style.top=document.body.offsetHeight/2-t.offsetHeight/2;
+                    t.style.left=document.body.offsetWidth/2-t.offsetWidth/2;
+                }
+            }
+            function wc(a){
+                for(var i=0;i<a;i++){
+                    var b=parseInt(Math.random()*10000)%4;
+                    if(b==0)up();
+                    if(b==1)dw();
+                    if(b==2)rt();
+                    if(b==3)lt();
+                }
+            }
+            document.body.onkeydown=(k)=>{
+                //console.log(k);
+                if(k.key=='b'){
+                    wc(101);
+                }
+                if(k.keyCode==40){
+                    dw();
+                }
+                if(k.keyCode==38){
+                    up();
+                }
+                if(k.keyCode==37){
+                    lt();
+                }
+                if(k.keyCode==39){
+                    rt();
+                }
+                if(k.key==' '){
+                    if(wi){
+                        start();
+                    }
+                }
+            }
+            document.body.onclick=()=>{
+                if(wi){
+                    start();
+                }
+            }
+            function dw(){
+                if(ca){
+                    ch(aa,(aa+sx+sx*sy)%(sx*sy));
+                    ck();
+                }
+            }
+            function up(){
+                if(ca){
+                    ch(aa,(aa-sx+sx*sy)%(sx*sy));
+                    ck();
+                }
+            }
+            function lt(){
+                if(ca){
+                    ch(aa,(aa%sx-1+sx)%sx+aa-aa%sx);
+                    ck();
+                }
+            }
+            function rt(){
+                if(ca){
+                    ch(aa,(aa%sx+1+sx)%sx+aa-aa%sx);
+                    ck();
+                }
+            }
+            wta.onmousedown = function(e){
+    			var h = e.clientY+10;
+    			var w = e.clientX;
+    			var ex = w - wta.offsetLeft;
+    			var ey = h - wta.offsetTop;
+    			document.ontouchmove=document.onmousemove = function(h){
+    				var h = h||window.event;
+    				var  h1 = h.clientY;
+    				var  w1 = h.clientX;
+    				wta.style.left=(w1-ex)+"px"; 
+    				wta.style.top=(h1-ey)+"px";
+    			}
+    		}
+    		document.body.onmouseup =function(){
+    			document.onmousemove = null;
+    		}
+    		function cancelDefault (e) {
+                e.preventDefault()
+                e.stopPropagation()
+                return false
+            }
+            start();
+        </script>
+    </body>
+</html>

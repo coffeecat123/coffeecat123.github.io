@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>game</title>
+        <script src="../remove.js"></script>
+        <style>
+            body{
+                background: black;
+                -webkit-user-select:none;
+                -moz-user-select:none;
+                -o-user-select:none;
+                user-select:none;
+                font-family: Segoe Script,fantasy;
+            }
+            .cv{
+                touch-action: none;
+                background: black;
+                border: 1px white solid;
+            }
+            .ww{
+                border: 0;
+                margin: 1px;
+            }
+            .t{
+                text-shadow: 0 0 0.1em rgb(255 255 0), 0 0 0.2em rgb(255 255 0), 0 0 0.3em rgb(255 255 0), 0 0 1em rgb(0 0 0);
+                position: absolute;
+                color: white;
+                font-size:75px;
+            }
+            #qa{
+                display: flex;
+                align-content: center;
+                align-items: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="qw"></div>
+        <div id="qa">
+            <canvas id="cv" class="cv"></canvas>
+        </div>
+        <script>
+            var qw=document.querySelector("#qw");
+            var qa=document.querySelector("#qa");
+            var cv=document.querySelector("#cv");
+            var ctx = cv.getContext('2d');
+            var sx=1000,sy=1000,kp=2,rr=6*kp;
+            var ax,ay,bx,by,qq,ba,lq,ll,aa,lv,cc,wx,wy;
+            var ta="You Pass\nclick to next";
+            cv.width=sx;
+            cv.height=sy;
+            ctx.lineWidth=4*kp;
+            cv.style.width=sx/2+"px";
+            cv.style.height=sy/2+"px";
+            lv=getCookie('lv');
+            if(lv!=-1){
+                for(let i=1;i<lv-1;i++){
+                    qww(qw.childElementCount+1);
+                }
+            }
+            else{
+                document.cookie='lv=2';
+                lv=2;
+            }
+            qww(qw.childElementCount+1);
+            start();
+            function getCookie(name) {
+                var value = `; ${document.cookie}`;
+                var parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return -1;
+            }
+            function qww(e){
+                var w=document.createElement("button");
+                w.textContent=e;
+                w.className="ww";
+                qw.append(w);
+                w.onclick=()=>{
+                    lv=e+1;
+                    start();
+                    
+                }
+                setInterval(()=>{
+                    if(e==lv-1){
+                        w.style.background="rgb(0 255 255)";
+                    }
+                    else{
+                        w.style.background="rgb(0 128 128)";
+                    }
+                },100);
+            }
+            function qwe(e){
+                cv.ontouchend=cv.onmouseup=qsa;
+                var x,y;
+                if(e.type=="touchstart"){
+                    x=e.changedTouches[0].pageX-cv.offsetLeft;
+                    y=e.changedTouches[0].pageY-cv.offsetTop;
+                }
+                if(e.type=="mousedown"){
+                    x=e.pageX-cv.offsetLeft;
+                    y=e.pageY-cv.offsetTop;
+                }
+                x*=kp;
+                y*=kp;
+                var a=-1;
+                for(let i=0;i<qq;i++){
+                    if((x-ax[i])*(x-ax[i])+(y-ay[i])*(y-ay[i])<(rr+ctx.lineWidth*0.5)*(rr+ctx.lineWidth*0.5)){
+                        a=i;
+                        break;
+                    }
+                }
+                if(a==-1)return;
+                ba=a;
+                bx=ax[ba]-x;
+                by=ay[ba]-y;
+                qaz();
+                cv.ontouchmove=cv.onmousemove=(ev)=>{
+                    var ex,ey;
+                    if(ev.type=="touchmove"){
+                        ex=ev.changedTouches[0].pageX-cv.offsetLeft;
+                        ey=ev.changedTouches[0].pageY-cv.offsetTop;
+                    }
+                    if(ev.type=="mousemove"){
+                        ex=ev.pageX-cv.offsetLeft;
+                        ey=ev.pageY-cv.offsetTop;
+                    }
+                    ex*=kp;
+                    ey*=kp;
+                    if(ex<0||ex>sx||ey<0||ey>sy){
+                        cv.ontouchmove=cv.onmousemove='';
+                        qsa();
+                    }
+                    ax[ba]=ex+bx;
+                    ay[ba]=ey+by;
+                    ch1();
+                    qaz();
+                }
+            }
+            function qaz(){
+                ctx.clearRect(0,0,sx,sy);
+                var b=ll.length;
+                ctx.strokeStyle="rgb(0,255,0)";
+                for(let i=0;i<b;i++){
+                    ctx.beginPath();
+                    if(aa.includes(i))continue;
+                    ctx.moveTo(ax[ll[i][0]],ay[ll[i][0]]);
+                    ctx.lineTo(ax[ll[i][1]],ay[ll[i][1]]);
+                    ctx.stroke();
+                }
+                ctx.strokeStyle="rgb(255,0,0,0.5)";
+                for(let i=0;i<b;i++){
+                    ctx.beginPath();
+                    if(!aa.includes(i))continue;
+                    ctx.moveTo(ax[ll[i][0]],ay[ll[i][0]]);
+                    ctx.lineTo(ax[ll[i][1]],ay[ll[i][1]]);
+                    ctx.stroke();
+                }
+                ctx.strokeStyle="rgb(32,32,0)";
+                for(let i=qq-1;i>=0;i--){
+                    if(i==ba){
+                        ctx.fillStyle="rgb(255,0,255)";
+                    }
+                    else{
+                        ctx.fillStyle="rgb(0,0,255)";
+                    }
+                    let a=0
+                    for(let k=0;k<ll.length;k++){
+                        if((ll[k][0]==i&&ll[k][1]==ba)||(ll[k][0]==ba&&ll[k][1]==i)){
+                            a=1;
+                            break;
+                        }
+                    }
+                    if(a){
+                        ctx.fillStyle="rgb(255 192 203)";
+                    }
+                    ctx.beginPath();
+                    ctx.arc(ax[i],ay[i],rr,0,2*Math.PI);
+                    ctx.stroke();
+                    ctx.fill();
+                }
+            }
+            function start(){
+                let yq=Date.now();
+                cv.onmousedown=cv.ontouchstart='';
+                cv.onmousemove=cv.ontouchmove='';
+                cv.ontouchend=cv.onmouseup='';
+                if(lv>qw.childElementCount+1){
+                    document.cookie='lv='+lv;
+                    qww(qw.childElementCount+1);
+                }
+                qq=lv*lv;
+                cc=0;
+                ba=-1;
+                ax=[];
+                ay=[];
+                lq=0;
+                ll=[];
+                var t=document.querySelectorAll(".t");
+                for(let i=0;i<t.length;i++){
+                    t[i].remove();
+                }
+                for(let i=0;i<qq;i++){
+                    ax.push(parseInt(Math.random()*10000)%sx);
+                    ay.push(parseInt(Math.random()*10000)%sy);
+                }
+                let w=[],p=[];
+                for(let i=0;i<qq-1;i++){
+                    for(let k=i+1;k<qq;k++){
+                        w.push((ax[i]-ax[k])*(ax[i]-ax[k])+(ay[i]-ax[k])*(ay[i]-ax[k]));
+                        p.push([i,k]);
+                    }
+                }
+                let q=qq*(qq-1)/2;
+                /*
+                for(let i=1;i<q;i++){
+                    for(let k=0;k<q-i;k++){
+                        if(w[k+1]<w[k]){
+                            let t=w[k+1];
+                            w[k+1]=w[k];
+                            w[k]=t;
+                            t=p[k+1];
+                            p[k+1]=p[k];
+                            p[k]=t;
+                        }
+                    }
+                }
+                */
+                var a=w;
+                var len=a.length;
+                var b=[];
+                var c=[];
+                for(let i=0;i<len;i++)b.push(0);
+                for(let i=0;i<len;i++)c.push([]);
+                for(let seg=1;seg<len;seg+=seg){
+                    for(let start=0;start<len;start+=seg+seg){
+                        let low=start,mid=Math.min(start+seg,len),high=Math.min(start+seg+seg,len);
+                        let k=low;
+                        let start1=low,end1=mid;
+                        let start2=mid,end2=high;
+                        while(start1<end1&&start2<end2){
+                            if(a[start1]<a[start2]){
+                                c[k]=p[start1];
+                                b[k++]=a[start1++];
+                            }
+                            else{
+                                c[k]=p[start2];
+                                b[k++]=a[start2++];
+                            }
+                        }
+                        while(start1<end1){
+                            c[k]=p[start1];
+                            b[k++]=a[start1++];
+                        }
+                        while(start2<end2){
+                            c[k]=p[start2];
+                            b[k++]=a[start2++];
+                        }
+                    }
+                    let temp=a;
+                    a=b;
+                    b=temp;
+                    let temp1=p;
+                    p=c;
+                    c=temp1;
+                }
+                for(let i=0;i<q;i++){
+                    ll.push(p[i]);
+                    if(ch1()){
+                        ll.splice(ll.length-1,1);
+                    }
+                }
+                wx=[];
+                wy=[];
+                for(let i=0;i<qq;i++){
+                    wx.push(ax[i]);
+                    wy.push(ay[i]);
+                }
+                do{
+                    ax=[];
+                    ay=[];
+                    for(let i=0;i<qq;i++){
+                        ax.push(parseInt(Math.random()*10000)%sx);
+                        ay.push(parseInt(Math.random()*10000)%sy);
+                    }
+                }while(!ch1());
+                console.log(Date.now()-yq);
+                ch1();
+                qaz();
+                cv.onmousedown=cv.ontouchstart=qwe;
+            }
+            function ch1(){
+                aa=[];
+                var a=0;
+                var b=ll.length;
+                for(let i=0;i<b-1;i++){
+                    for(let j=i+1;j<b;j++){
+                        if(ch2(ax[ll[i][0]],ay[ll[i][0]],ax[ll[i][1]],ay[ll[i][1]],ax[ll[j][0]],ay[ll[j][0]],ax[ll[j][1]],ay[ll[j][1]])){
+                            a=1;
+                            if(!aa.includes(i))
+                                aa.push(i);
+                            if(!aa.includes(j))
+                                aa.push(j);
+                        }
+                    }
+                }
+                return a;
+            }
+            function ch2(x1,y1,x2,y2,x3,y3,x4,y4){
+                if(x1==x2&&y1==y2)return 0;
+                if(x1==x3&&y1==y3)return 0;
+                if(x1==x4&&y1==y4)return 0;
+                if(x2==x3&&y2==y3)return 0;
+                if(x2==x4&&y2==y4)return 0;
+                if(x3==x4&&y1==y4)return 0;
+                var a=y1-y2;
+                var b=x2-x1;
+                var c=y1*x2-x1*y2;
+                var d=y3-y4;
+                var e=x4-x3;
+                var f=y3*x4-x3*y4;
+                var z=b*d-a*e;
+                var x=(f*b-c*e)/z;
+                var y=(c*d-a*f)/z;
+                if(x>Math.max(x1,x2))return 0;
+                if(x<Math.min(x1,x2))return 0;
+                if(y>Math.max(y1,y2))return 0;
+                if(y<Math.min(y1,y2))return 0;
+                if(x>Math.max(x3,x4))return 0;
+                if(x<Math.min(x3,x4))return 0;
+                if(y>Math.max(y3,y4))return 0;
+                if(y<Math.min(y3,y4))return 0;
+                return 1;
+            }
+            function qsa(){
+                cv.onmousedown=cv.ontouchstart='';
+                cv.ontouchmove=cv.onmousemove='';
+                ba=-1;
+                qaz();
+                if(!ch1()){
+                    cv.ontouchend=cv.onmouseup='';
+                    cc=1;
+                    var t=document.createElement("div");
+                    t.className="t";
+                    qa.append(t);
+                    pt(0);
+                }
+                else{
+                    cv.onmousedown=cv.ontouchstart=qwe;
+                    cv.ontouchend=cv.onmouseup='';
+                }
+            }
+            function pt(a){
+                if(a==ta.length){
+                    cc=2;
+                    return;
+                }
+                setTimeout(()=>{
+                    var t=document.querySelector(".t");
+                    t.innerText+=ta[a];
+                    pt(a+1);
+                },100);
+            }
+            document.body.onclick=()=>{
+                if(cc==2){
+                    lv++;
+                    start();
+                }
+            }
+            /*
+            document.body.onkeydown=(k)=>{
+                if(k.keyCode==46){
+                    ax=[];
+                    ay=[];
+                    for(let i=0;i<qq;i++){
+                        ax.push(wx[i]);
+                        ay.push(wy[i]);
+                    }
+                    ch1();
+                    qaz();
+                }
+            }
+            */
+        </script>
+    </body>
+</html>

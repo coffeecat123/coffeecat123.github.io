@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>demo</title>
+    <script src="../remove.js"></script>
+	<style>
+	    #myMenu {
+            background:rgba(0,0,0,0.7);
+            height:70px;
+            width:100px;
+            display: none;
+            position: absolute;
+            z-index:999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+	    }
+	    #myMenu div{
+	        color:rgb(255,255,255);
+            height:30px;
+            width:100px;
+            font-size:20px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            //justify-content: space-evenly;
+            cursor: default;
+	    }
+	    #myMenu div:hover{
+	        background: rgba(200,200,200,0.5);
+	    }
+	    #myDiv{
+            border:1px solid red;
+            width:100px;
+            height:100px;
+            display:flex;
+            margin:200px auto;
+        }
+	</style>
+</head>
+<body>
+	<div id="myMenu">
+		<div onclick="xianshi();"><svg style="margin: 5px;" height="24" viewBox="0 0 36 36" width="24"><path d="M14.1 24.9L7.2 18.0l6.9-6.9L12.0 9.0l-9.0 9.0 9.0 9.0 2.1-2.1zm7.8 .0l6.9-6.9-6.9-6.9L24.0 9.0l9.0 9.0-9.0 9.0-2.1-2.1z" fill="#fff"></path></svg>顯示</div>
+		<div onclick="yc();"><svg style="margin: 5px;" fill="none" height="24" viewBox="0 0 24 24" width="24"><path d="M7 7H17V10L21 6L17 2V5H5V11H7V7ZM17 17H7V14L3 18L7 22V19H19V13H17V17Z" fill="white"></path></svg>hide 1</div>
+	</div>
+	<div id="myDiv">
+		我是內容
+	</div>
+	<script>
+	   document.oncontextmenu=(ev)=>{
+	       console.log(ev.path[0]);
+	       var oevent=ev||event;
+	       var myMenu=document.getElementById('myMenu');
+	       myMenu.style.left = oevent.clientX + 'px';
+	       myMenu.style.top = oevent.clientY + 'px';
+	       myMenu.style.display = 'flex';
+	       return false;
+	   }   
+	   document.onclick = function() {
+	       var myMenu=document.getElementById('myMenu');
+	       myMenu.style.display = 'none';
+	   }
+	   function xianshi(){
+	       var myDiv = document.getElementById('myDiv');
+	       myDiv.style.display="flex";
+	   }
+	   function yc(){
+	       var myDiv = document.getElementById('myDiv');
+	       myDiv.style.display="none";
+	   }
+	</script>
+</body>
+</html>

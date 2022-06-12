@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>metronome</title>
+    <script src="../remove.js"></script>
+    <style>
+        body {
+            user-select: none;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+        button{
+            outline: none;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: rgb(255 255 255 / 100%);
+            cursor: pointer;
+            border-radius: 100px;
+        }
+        button:hover{
+            background: rgb(128 128 128 / 10%);
+        }
+    </style>
+</head>
+<body>
+    <div style="display: flex;align-items: center;">
+        <button id="bt"></button>
+        <input type="range" id="rg" style="outline: none;width:500px;">
+        <span id="sp" style="font-size:30px;">60bpm</span>
+    </div>
+    <div style="background: linear-gradient(270deg, #9ee1ff, transparent);width:200px;display: flex;align-items: center;">
+        <button id="bt1"><img style="width: 30px;" src="https://img.icons8.com/glyph-neue/344/rotate.png"></button>
+        <button id="bt2" style="display:inline-block;"></button>
+        <div style="width: 150px;display: flex;flex-direction: row-reverse;">
+            <span id="sd" style="right:0;font-size:30px;">0</span>
+        </div>
+    </div>
+    <script>
+        var vl=[`<img style="width: 30px;" src="https://img.icons8.com/ios-filled/344/no-audio--v1.png">`,`<img style="width: 30px;" src="https://img.icons8.com/ios-filled/344/low-volume.png">`,`<img style="width: 30px;" src="https://img.icons8.com/ios-filled/344/medium-volume.png">`,`<img style="width: 30px;" src="https://img.icons8.com/ios-filled/344/high-volume.png">`];
+        var pause=`<svg xmlns="http://www.w3.org/2000/svg" version="1.0" width="25px" height="25px" viewBox="0 0 344.000000 344.000000" preserveAspectRatio="xMidYMid meet"><g transform="translate(0.000000,344.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none"><path d="M1487 3284 c-259 -40 -487 -134 -709 -294 -35 -24 -115 -96 -178 -160 -224 -223 -362 -480 -431 -800 -20 -90 -23 -134 -23 -310 0 -176 3 -220 23 -310 69 -320 207 -577 431 -800 164 -164 307 -262 504 -346 216 -92 434 -130 680 -121 407 16 760 170 1046 457 164 164 262 307 346 504 92 216 130 434 121 680 -16 409 -170 760 -461 1052 -253 252 -543 399 -891 449 -123 18 -340 18 -458 -1z m23 -1564 l0 -620 -170 0 -170 0 0 620 0 620 170 0 170 0 0 -620z m760 0 l0 -620 -170 0 -170 0 0 620 0 620 170 0 170 0 0 -620z"/></g></svg>`;
+        var play=`<svg xmlns="http://www.w3.org/2000/svg" version="1.0" width="25px" height="25px" viewBox="0 0 344.000000 344.000000" preserveAspectRatio="xMidYMid meet"><g transform="translate(0.000000,344.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none"><path d="M1487 3284 c-259 -40 -487 -134 -709 -294 -35 -24 -115 -96 -178 -160 -224 -223 -362 -480 -431 -800 -20 -90 -23 -134 -23 -310 0 -176 3 -220 23 -310 69 -320 207 -577 431 -800 164 -164 307 -262 504 -346 216 -92 434 -130 680 -121 407 16 760 170 1046 457 164 164 262 307 346 504 92 216 130 434 121 680 -16 409 -170 760 -461 1052 -253 252 -543 399 -891 449 -123 18 -340 18 -458 -1z m413 -1224 c313 -184 570 -337 570 -340 0 -5 -1131 -672 -1150 -678 -7 -2 -10 239 -10 678 0 439 3 680 10 678 5 -1 266 -154 580 -338z"/></g></svg>`;
+        var bt=document.querySelector("#bt");
+        var bt2=document.querySelector("#bt2");
+        var rg=document.querySelector("#rg");
+        var sp=document.querySelector("#sp");
+        var sd=document.querySelector("#sd");
+        var py=0,p,md=0,vl1=2,ac,ad=0,ae,sa,ab,st;
+        var sw,sw2,rl=[600,60000],ra=0;
+        var vl2=[0,0.025,0.1,0.25];
+        bt2.innerHTML=vl[vl1];
+        bt.innerHTML=play;
+        rg.min=10;
+        rg.max=600;
+        rg.step=1;
+        rg.value=60;
+        var au = new Audio();
+        au.src="https://www.musicca.com/lydfiler/metronome/metronome2.mp3";
+        au.volume=vl2[vl1];
+        function start(a,c){
+            clearInterval(p);
+            sd.textContent=a;
+            if(ad==0)c=0;
+            ab=bpm(Number(rg.value));
+            st=sa=Date.now()-c;
+            p=setInterval(()=>{
+                if(Date.now()-sa>ab){
+                    sa+=ab;
+                    if(rg.value<=600)ba();
+                }
+                sd.textContent=parseInt((Date.now()-sw)/ab);
+            },0);
+        }
+        function ba(){
+            au.currentTime=0;
+            au.play();
+        }
+        function bpm(a){
+            return 60*1000/a;
+        }
+        rg.onmousedown=()=>{
+            md=1;
+        }
+        rg.onchange=()=>{
+            sp.textContent=rg.value+"bpm";
+            md=1;
+        }
+        rg.onmousemove=()=>{
+            sp.textContent=rg.value+"bpm";
+        }
+        document.onkeyup=document.onmouseup=()=>{
+            setTimeout(()=>{
+                if(md==0)return;
+                md=0;
+                if(py==0)return;
+                py=1;
+                au.pause();
+                clearInterval(p);
+                ad=0;
+                sw=Date.now();
+                start(0,0);
+            },10);
+        };
+        bt.onclick=()=>{
+            py^=1;
+            if(py==1){
+                bt.innerHTML=pause;
+                if(ad){
+                    sw+=Date.now()-sw2;
+                    start(ae,ac);
+                }
+                else{
+                    sw=Date.now();
+                    start(0,0);
+                }
+            }
+            else{
+                bt.innerHTML=play;
+                au.pause();
+                clearInterval(p);
+                ac=(Date.now()-st)%ab;
+                sw2=Date.now();
+                ae=sd.textContent;
+                ad=1;
+            }
+        };
+        bt1.onclick=()=>{
+            bt.innerHTML=pause;
+            ad=0;
+            py=1;
+            sw=Date.now();
+            start(0,0);
+        };
+        bt2.onclick=()=>{
+            vl1=(vl1+1)%4;
+            bt2.innerHTML=vl[vl1];
+            au.volume=vl2[vl1];
+        };
+        document.onkeydown=(k)=>{
+            if(k.key=='a'){
+                ra^=1;
+                rg.max=rl[ra];
+            }
+        };
+    </script>
+</body>
+</html>

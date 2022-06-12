@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>混色器</title>
+        <script src="../remove.js"></script>
+        <style>
+            input{
+                height:50vh;
+                width:20vw;
+            }
+            span{
+                font-size:20vw;
+            }
+        </style>
+    </head>
+    <body>
+        <input id="a1" type="color" onchange="az()"><span>+</span>
+        <input id="a2" type="color" onchange="az()"><span>=</span>
+        <input id="a" type="color" onchange="aw()">
+        <script>
+            var a1=document.getElementById("a1");
+            var a2=document.getElementById("a2");
+            var a=document.getElementById("a");
+            var w=a.value;
+            function az(){
+                a.value=`#${(parseInt((parseInt(a1.value.substr(1,2),16)+parseInt(a2.value.substr(1,2),16))/2)).toString(16).padStart(2,'0')}${(parseInt((parseInt(a1.value.substr(3,2),16)+parseInt(a2.value.substr(3,2),16))/2)).toString(16).padStart(2,'0')}${(parseInt((parseInt(a1.value.substr(5,2),16)+parseInt(a2.value.substr(5,2),16))/2)).toString(16).padStart(2,'0')}`;
+                w=a.value;
+            }
+            function aw(){
+                a.value=w;
+            }
+        </script>
+    </body>
+</html>

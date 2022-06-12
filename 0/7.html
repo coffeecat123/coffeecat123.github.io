@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>ball cft</title>
+	<script src="../remove.js"></script>
+	<style>
+	       html,body{
+	           height: 100%;
+	           margin: 0;
+	           overflow: hidden;
+	       }
+	       canvas{
+	           background: black;
+	           width: 100%;
+	       }
+	</style>
+</head>
+<body>
+	<canvas id="cv"></canvas>
+	<script>
+	    var cv=document.querySelector("#cv");
+        var ctx=cv.getContext("2d");
+        var cw=window.innerWidth;
+        var ch=window.innerHeight;
+        cv.width=cw;
+        cv.height=ch;
+        window.onresize=()=>{
+            cw=window.innerWidth;
+            ch=window.innerHeight;
+            cv.width=cw;
+            cv.height=ch;
+        };
+        var pb={'x':cw/2,'y':ch/2};
+        var pv={'x':10,'y':0};
+        var pa={'x':0,'y':0.6};
+        var cr=50;
+        var fps=60,fps2=1000/fps;
+        var st=Date.now();
+        var qs=setInterval(()=>{
+            if(Date.now()-st>fps2){
+                st=Date.now();
+                draw();
+                move();
+            }
+        },0);
+        function move(){
+            pb.x+=pv.x;
+            pb.y+=pv.y;
+            pv.x*=0.99;
+            pv.y*=0.99;
+            pv.x+=pa.x;
+            pv.y+=pa.y;
+            if(pb.x<cr){
+                pv.x=Math.abs(pv.x);
+            }
+            if(pb.y<cr){
+                pv.y=-Math.abs(pv.y);
+            }
+            if(pb.x+cr>cw){
+                pv.x=-Math.abs(pv.x);
+            }
+            if(pb.y+cr>ch){
+                pv.y=-Math.abs(pv.y);
+            }
+        }
+        function draw(){
+            ctx.clearRect(0,0,cw,ch);
+            ctx.beginPath();
+            ctx.fillStyle="rgba(255,255,255,1)";
+            ctx.arc(pb.x,pb.y,cr,0,Math.PI/180*360);
+            ctx.fill();
+        }
+	</script>
+</body>
+</html>

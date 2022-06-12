@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>文字集</title>
+        <script src="../remove.js"></script>
+        <style>
+            html{
+            }
+            div{
+                display:inline-block;
+                font-size:30px;
+                width:50px;
+            }
+        </style>
+    </head>
+    <body>
+        <script>
+            // 字串
+            //str = "中文";
+            // 獲取字元
+            //char0 = str.charAt(0); // "中"
+            // 數字編碼值
+            //code = str.charCodeAt(0); // 20013
+            // 編碼互轉
+            //str0 = String.fromCharCode(code); // "中"
+            // 轉為16進位制陣列
+            //code16 = code.toString(16); // "4e2d"
+            //143924+34300
+            /*
+            for(i=0;i<178206;i++){
+                document.write("&#x"+i.toString(16)+";");
+                if((i+1)%16==0){
+                    document.write("<br>");
+                }
+            }*/
+            var a="";
+            for(i=0;i<65536;i++){
+                a+="<div>&#x"+i.toString(16)+";</div>";
+                if((i+1)%16==0){
+                    a+="<br>";
+                }
+            }
+            document.write(a);
+        </script>
+    </body>
+</html>

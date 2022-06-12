@@ -1,0 +1,126 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>^_^</title>
+        <script src="../remove.js"></script>
+        <style>
+            .qw{
+                background-color:white;
+                visibility:hidden;
+            }
+            input,button{
+                width:20vw;
+                font-size:2vw;
+            }
+        </style>
+    </head>
+    <body style="background-color:rgb(154 98 127);color:white;">
+        <input type="file" name="fla"  id="eda" accept="image/*" onchange="lfa(event)">
+        <input type="file" name="flb"  id="edb" accept="image/*" onchange="lfb(event)">
+        <button onclick="qa()">Merge!</button>
+        <button onclick="qb()">Change!</button>
+        <br>
+        <canvas id="a1" class="qw"></canvas>
+        <canvas id="b1" class="qw"></canvas>
+        <canvas id="c1" class="qw"></canvas>
+        <script>
+            var a1 = document.getElementById("a1");
+            var ctxa = a1.getContext('2d');
+            var b1 = document.getElementById("b1");
+            var ctxb = b1.getContext('2d');
+            var b1 = document.getElementById("b1");
+            var c1 = document.getElementById("c1");
+            var ctxc = c1.getContext('2d');
+            var qw = document.querySelectorAll('.qw');
+            var qe=1;
+            var ax=-1,ay=-1,bx=-1,by=-1;
+            function qa(){
+                if(ax!=bx||ay!=by)return;
+                if(ax<0||bx<0)return;
+                var ca = ctxa.getImageData(0,0,ax,ay).data,
+                    cb = ctxb.getImageData(0,0,bx,by).data;
+                var width = ax,
+                    height = ay,
+                    buffer = new Uint8ClampedArray(width * height * 4);
+                for(var y = 0; y < height; y++) {
+                    for(var x = 0; x < width; x++) {
+                        var pos = (y * width + x) * 4;
+                        if((x+y)%2){
+                            buffer[pos  ] = 0;
+                            buffer[pos+1] = 0;
+                            buffer[pos+2] = 0;
+                            buffer[pos+3] = 255-parseInt((ca[pos]+ca[pos+1]+ca[pos+2])/3);
+                        }
+                        else{
+                            buffer[pos  ] = 255;
+                            buffer[pos+1] = 255;
+                            buffer[pos+2] = 255;
+                            buffer[pos+3] = parseInt((cb[pos]+cb[pos+1]+cb[pos+2])/3);
+                        }
+                    }
+                }
+                var canvas = document.createElement('canvas'),
+                    ctx = canvas.getContext('2d');
+                canvas.width = width;
+                canvas.height = height;
+                c1.width = width;
+                c1.height = height;
+                c1.style.visibility="visible";
+                var idata = ctx.createImageData(width, height);
+                idata.data.set(buffer);
+                ctxc.putImageData(idata, 0, 0);
+            }
+            function qb(){
+                if(qe){
+                    for(let i=0;i<qw.length;i++){
+                        qw[i].style.backgroundColor="black";
+                    }
+                }
+                else{
+                    for(let i=0;i<qw.length;i++){
+                        qw[i].style.backgroundColor="white";
+                    }
+                }
+                qe^=1;
+            }
+            var lfa = function(e) {
+                let file = e.target.files[0];
+                if (file) {
+                    var img = new Image;
+                    img.src = URL.createObjectURL(e.target.files[0]);
+                    img.onload = ()=>{
+                        a1.width=img.width;
+                        a1.height=img.height;
+                        ax = a1.width;
+                        ay = a1.height;
+                        a1.style.visibility="visible";
+                        ctxa.drawImage(img, 0,0);
+                    }
+                }
+            }
+            var lfb = function(e) {
+                let file = e.target.files[0];
+                if (file) {
+                    var img = new Image;
+                    img.src = URL.createObjectURL(e.target.files[0]);
+                    img.onload = ()=>{
+                        b1.width=img.width;
+                        b1.height=img.height;
+                        bx = b1.width;
+                        by = b1.height;
+                        b1.style.visibility="visible";
+                        ctxb.drawImage(img, 0,0);
+                    }
+                }
+            }
+            document.body.onkeydown=(k)=>{
+                if(k.key=='a'){
+                    qa();
+                }
+                if(k.key=='b'){
+                    qb();
+                }
+            }
+        </script>
+    </body>
+</html>
