@@ -3,18 +3,58 @@
         <meta charset="UTF-8">
         <script src="./remove.js"></script>
         <style>
-            body{
-                font-size:50px;
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: space-around;
-                align-content: space-around;
-                align-items: center;
-            }
+body{
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-around;
+    align-content: space-around;
+    align-items: center;
+    flex-direction: column;
+    height: calc(100vh - 40px);
+}
+div#adz {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+cft1{
+    font-size: 150px;
+}
+cft2{
+    position: relative;
+    top: -35px;
+    font-size: 30px;
+}
+cft3{
+    position: relative;
+    top: -35px;
+    font-size: 30px;
+}
+#btn{
+    border: none;
+    background: transparent;
+    border-radius: 25px;
+    width: 50px;
+    transition: all 0.2s linear;
+}
+#btn:hover{
+    background: #c0c0c0;
+}
+#hmp{
+    position: relative;
+    top: -2.7px;
+    left: -5.7px;
+}
         </style>
     </head>
     <body>
-        <cft>404 page</cft>
-        <a href="index.html">home</a>
+        <div id="adz">
+            <cft1>404</cft1>
+            <cft2>Ooops!</cft2>
+            <cft3>page not find</cft3>
+        </div>
+        <button id="btn" title="home page" onclick='window.open("index.html","_self")'>
+            <svg id="hmp" width="50px" viewBox="0 0 24 24"><path d="M4 9l8-6 8 6v12H4V9zm11 10h3v-9l-6-4.5L6 10v9h3v-6h6v6z"></path></svg>
+        </button>
     </body>
 </html>
