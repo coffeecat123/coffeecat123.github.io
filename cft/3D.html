@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs {
+    cursor: grab;
+    background: #eee;
+    height: 500px;
+}
+#txt {
+    overflow-wrap: unset;
+    overflow: auto;
+    white-space: nowrap;
+    outline: none;
+    font-size: 25px;
+    height: 400px;
+    min-width: 400px;
+    max-width: 500px;
+    background: #303030;
+    margin-left: 5px;
+}
+#clrs{
+    width: 200px;
+    height: 450px;
+    background: #202020;
+    color: #eee;
+    padding: 5px;
+    margin-left: 5px;
+    font-size: 25px;
+}
+.clrsq{
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    border: 0.1px #fff6 solid;
+}
+.cdn {
+    display: flex;
+}
+#dv1 {
+    pointer-events: none;
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: #f0f;
+    height: 500px;
+    width: 500px;
+    align-items: center;
+    justify-content: center;
+    font-size: 120px;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+.trn{
+    color: #e93af4;
+}
+.num{
+    color: #deef4a;
+}
+.clr{
+    color: #5ec7ce;
+}
+.cmm{
+    color: #15f72d;
+}
+        </style>
+    </head>
+    <body>
+        <div class="cdn">
+            <div id="dv1">Wrong!</div>
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+            <div id="clrs"></div>
+            <div id="txt" contenteditable></div>
+        </div>
+        <label class="switch">
+            <input id="ipt1" type="checkbox" checked>
+            <span class="slider round"></span>
+        </label>
+        <input id="rng" type="range" min="3" max="10" step="0.1" value="6">
+        <script>
+var ipt1=document.querySelector("#ipt1");
+var clrs=document.querySelector("#clrs");
+var dv1=document.querySelector("#dv1");
+var rng=document.querySelector("#rng");
+var txt=document.querySelector("#txt");
+var cvs=document.querySelector("#cvs");
+var ctx=cvs.getContext("2d");
+var pnts,ln,ti=cvs.width/cvs.offsetWidth;
+var R=300,rr=1,ra=R,rb=1/6;
+var stk=1;
+var drl="",wip="";
+var clr={
+    a:"#fff",
+    b:"#eee",
+    c:"#ccc",
+    d:"#aaa",
+    e:"#888",
+    f:"#666",
+    i:"#444",
+    j:"#222",
+    k:"#000"
+};
+var st={
+    x:500,
+    y:100,
+};
+
+ipt1.oninput=()=>{
+    stk^=1;
+    dw();
+};
+rng.oninput=()=>{
+    rb=1/rng.value;
+    dw();
+};
+cvs.onmousedown=(e)=>{
+    let x1=e.pageX,y1=e.pageY,
+        _x=st.x,_y=st.y;
+    document.onmousemove=(f)=>{
+        let x2=f.pageX,y2=f.pageY;
+        st.x=_x+(x2-x1)*ti;
+        st.y=_y+(y2-y1)*ti;
+        dw();
+    };
+    document.onmouseup=()=>{
+        document.onmousemove="";
+        document.onmouseup="";
+    };
+};
+cvs.onwheel=(e)=>{
+    document.onmousemove="";
+    document.onmouseup="";
+    if(e.ctrlKey)return;
+    let a=e.wheelDeltaY,
+        x=e.offsetX*ti,
+        y=e.offsetY*ti,
+        b=rr,
+        r_=0.2;
+    rr+=r_*(a>0)*2-r_;
+    if(rr>10)rr=10;
+    if(rr<r_)rr=r_;
+    let c=rr/b,d=1-c;
+    st.x=st.x*c+x*d;
+    st.y=st.y*c+y*d;
+    ra=R*rr;
+    dw();
+};
+function hilit(ky){
+    ky=ky.replace(/ /g, "");
+    let s=ky.split("/");
+    if(s.length>=3)return;
+    let s1=s[0],s2=s[1];
+    let r1=s1.split(","),r2=s2.split(",");
+    let qq="";
+    let qr={
+        ",":`<font class="cmm">,</font>`,
+        "+":`<font class="cmm">+</font>`,
+        "/":`<font class="cmm">/</font>`,
+        ".":`<font class="cmm">.</font>`
+    };
+    let e_=1;
+    txt.innerHTML="";
+    function crt(){
+        let a=document.createElement("div");
+        a.innerHTML=qq;
+        qq="";
+        txt.append(a);
+    }
+    function wio(){
+        if(ky.substring(0,e_).includes("\n")){
+            ky=ky.replace("\n"," ");
+            crt();
+        }
+    }
+    for(let i in r1){
+        if(r1[i]=="")continue;
+        let x=r1[i];
+        let a=parseInt(x.substring(0,x.length-1)),
+            b=x.substring(x.length-1);
+        qq+=`<font class="num">${a}</font><font class="trn">${b}</font>`;
+        e_+=x.length;
+        wio();
+        if(i<r1.length-1){
+            qq+=qr[","];
+            e_++;
+            wio();
+        }
+    }
+    qq+=qr["/"];
+    e_++;
+    wio();
+    for(let i in r2){
+        if(r2[i]=="")continue;
+        let a=r2[i].split("+")[0],b=r2[i].split("+")[1];
+        let c=a.split(".");
+        for(let i in c){
+            let x=c[i];
+            let g=parseInt(x.substring(0,x.length-1)),
+                h=x.substring(x.length-1);
+            qq+=`<font class="num">${g}</font><font class="trn">${h}</font>`;
+            e_+=x.length;
+            wio();
+            if(i<c.length-1){
+                qq+=qr["."];
+                e_++;
+                wio();
+            }
+        }
+        qq+=qr["+"];
+        qq+=`<font class="clr">${b}</font>`;
+        e_+=b.length+1;
+        wio();
+        if(i<r2.length-1){
+            qq+=qr[","];
+            e_++;
+            wio();
+        }
+    }
+    crt();
+}
+function setCaret(y,x) {
+    var range = document.createRange();
+    var sel = window.getSelection();
+    range.setStart(txt.childNodes[y],x);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    txt.focus();
+}
+function getCaret(element) {
+    var caretOffset = 0;
+    var doc = element.ownerDocument || element.document;
+    var win = doc.defaultView || doc.parentWindow;
+    var sel;
+    if (typeof win.getSelection != "undefined") {
+        sel = win.getSelection();
+        if (sel.rangeCount > 0) {
+            var range = win.getSelection().getRangeAt(0);
+            var preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(element);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+            caretOffset = preCaretRange.toString().length;
+        }
+    } else if ( (sel = doc.selection) && sel.type != "Control") {
+        var textRange = sel.createRange();
+        var preCaretTextRange = doc.body.createTextRange();
+        preCaretTextRange.moveToElementText(element);
+        preCaretTextRange.setEndPoint("EndToEnd", textRange);
+        caretOffset = preCaretTextRange.text.length;
+    }
+    return caretOffset;
+}
+function dw(){
+    let a=txt.innerText,
+        b=a.replace(/\s+/g, '');
+    let stp=getCaret(txt);
+    let y=0,x=0,d=0;
+    for(let i in a){
+        let c=a[i];
+        if(c=="\n"){
+            y++;
+            x=0;
+            continue;
+        }
+        if(c.search(/\s/)>0){
+            continue;
+        }
+        d++;
+        x++;
+        if(d==stp){
+            if(i<a.length-1){
+              if(a[i+1]=="\n")y++;
+            }
+            break;
+        }
+    }
+    try{
+        if(b!=""){
+            dd(a);
+            if(wip==b)return;
+            wip=b;
+            hilit(a);
+        }
+        dv1.style.display="none";
+    }catch(e){
+        dv1.style.display="flex";
+    }
+    for(let i=x;i>=0;i--){
+        try{
+            setCaret(y,i);
+            break;
+        }catch(e){
+            void(0);
+        }
+    }
+}
+txt.oninput=()=>{
+    dw();
+};
+function dd(ky){
+    bk();
+    ky=ky.replace(/\s+/g, '');
+    pnts=[];
+    ln=[];
+    let s=ky.split("/");
+    let s1=s[0],s2=s[1];
+    let r1=s1.split(","),r2=s2.split(",");
+    pnts.push(new point(st.x,st.y));
+    for(let i in r1){
+        if(r1[i]=="")continue;
+        let x=r1[i];
+        let a=parseInt(x.substring(0,x.length-1)),
+            b=x.substring(x.length-1);
+        pnts.push(pnt(pnts[a].x,pnts[a].y,ra,b));
+    }
+    for(let i in r2){
+        if(r2[i]=="")continue;
+        fl(r2[i]);
+    }
+    ctx.lineWidth=1;
+    ctx.strokeStyle="#000";
+    if(stk){
+        for(let i in ln){
+            ctx.stroke(ln[i]);
+        }
+    }
+    draw();
+    let w=`x: ${parseInt(st.x)} , y: ${parseInt(st.y)}`;
+    ctx.fillStyle="#f00";
+    ctx.font="20px sans-serif";
+    ctx.fillText(w,20,cvs.height-20);
+}
+function fl(s){
+    let a=s.split("+")[0],b=s.split("+")[1];
+    let c=a.split(".");
+    let pp=[];
+    if(b[0]!="#"){
+        b=clr[b];
+    }
+    ctx.fillStyle=b;
+    for(let i in c){
+        let x=c[i];
+        let g=parseInt(x.substring(0,x.length-1)),
+            h=x.substring(x.length-1);
+        pp.push(pnt(pnts[g].x,pnts[g].y,ra*rb,h));
+    }
+    let pw=new Path2D(),pl=pp.length;
+    pw.moveTo(pp[pl-1].x,pp[pl-1].y);
+    for(let i in pp){
+        pw.lineTo(pp[i].x,pp[i].y);
+    }
+    ctx.fill(pw);
+    ln.push(pw);
+}
+class point{
+    constructor(x,y){
+        this.x=x;
+        this.y=y;
+    }
+}
+function pnt(x,y,r,t){
+    if(t=='a')return new point(x,y-r);
+    if(t=='b')return new point(x+3**0.5/2*r,y-r/2);
+    if(t=='c')return new point(x+3**0.5/2*r,y+r/2);
+    if(t=='d')return new point(x,y+r);
+    if(t=='e')return new point(x-3**0.5/2*r,y+r/2);
+    if(t=='f')return new point(x-3**0.5/2*r,y-r/2);
+    if(t=='g')return new point(x+3**0.5/2*r,y-1.5*r);
+    if(t=='h')return new point(x+3**0.5*r,y);
+    if(t=='i')return new point(x+3**0.5/2*r,y+1.5*r);
+    if(t=='j')return new point(x-3**0.5/2*r,y+1.5*r);
+    if(t=='k')return new point(x-3**0.5*r,y);
+    if(t=='l')return new point(x-3**0.5/2*r,y-1.5*r);
+    if(t=='m')return new point(x,y);
+}
+function draw(){
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#eee";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+(()=>{
+    let a=Object.keys(clr);
+    for(let i in a){
+        let b=document.createElement("div");
+        b.className="clrsq";
+        b.style["background-color"]=clr[a[i]];
+        let t1=document.createElement("span");
+        t1.innerText=a[i]+": ";
+        let t2=document.createElement("span");
+        t2.innerText=" "+clr[a[i]];
+        clrs.append(t1,b,t2,document.createElement("br"));
+    }
+})();
+bk();
+draw();
+///*
+txt.innerText=`0c,1e,2e/
+0a.0f.1f.2g.2b.1b+d,
+0f.1f.1k.0d.2d.2e+e,
+0d.0i.2b.1b.1c.2d+f
+`;
+dw();
+/*
+0c,1e,2e/0a.0f.1f.2g.2b.1b+c,
+0f.1f.1k.0d.2m.2f+d,
+0d.0i.2b.1b.1c.3d.3m.2m+e,
+3f.3m.2m.2f+c,3f.3m.3d.3e+d
+*/
+/*
+0a,0b,0c,0d,0e,0f/
+1a.6f.0f.5g.5b.0m.3f.3l.0b.2b+c,
+1m.6b.0a.2f+#eee,
+6b.6h.1j.0l.0a.1m+d,2f.2k.1i.0g.0a.1m+e,
+6f.0f.0k.6d.5m.4f.0j.0d.4d.5e+e,
+2b.0b.0h.2d.3m.4b.0i.0d.4d.3c+d,
+6d.6i.5b.5m+d,2d.2j.3f.3m+e,
+5b.5h.0d.0m+d,3f.3k.0d.0m+e,
+5m.5b.4l.4f+c,3m.3f.4g.4b+c
+*/
+//*/
+        </script>
+    </body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>img</title>
+    <style>
+        ::-webkit-scrollbar-track{
+            border-radius: 10px;
+            background-color: #181818;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #808080;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+body{
+    min-height: calc(100vh - 16px);
+    background: #181818;
+}
+* {
+    font-family: "Comic Sans MS",標楷體;
+}
+button.btn,button.btn1 {
+    background: transparent;
+    border: none;
+    height: 30px;
+    width: 30px;
+    border-radius: 15px;
+    outline: none;
+}
+button.btn:hover {
+    background: #909090;
+}
+svg#svg1{
+    fill: #fff;
+    position: relative;
+    top: 2px;
+    left: -2.7px;
+}
+svg#svg2{
+    fill: #a7a7a7;
+    position: relative;
+    top: 2.9px;
+    left: -1px;
+    cursor: pointer;
+}
+svg#svg2:hover{
+    fill: #ffffff;
+}
+#inff{
+    padding: 0px 4px 4px 4px;
+    border: 1.5px #00ffbf solid;
+    z-index: 5;
+    top: 0;
+    right: 0px;
+    position: fixed;
+    width: 200px;
+    color: #fff;
+    background: rgb(40, 40, 40);
+    display: none;
+}
+#inf{
+    z-index: 10;
+    position: fixed;
+    top: 5px;
+    right: 4px;
+}
+.tt{
+    color: #fff;
+    font-size: 25px;
+}
+.drag{
+    margin-bottom: 8px !important;
+    border-bottom: #f00 2px solid;
+}
+#aqs{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+}
+#div{
+	transition: transform 0.5s cubic-bezier(0.45, -0.02, 0.47, 0.86),transform-origin 0.5s cubic-bezier(1, -0.09, 1, -0.09);
+}
+img{
+    margin-right: 16px;
+}
+    </style>
+</head>
+<body>
+    <div id="aqs">
+        <input id="ipt" type="file" style="display: none">
+        <button class="btn" onclick="wip(1)" title="directory">
+            <svg id="svg1" width="25px" version="1.0" viewBox="0 0 512 512"><g transform="translate(0,512) scale(0.1,-0.1)"><path d="M681 4304 c-169 -45 -301 -180 -346 -351 -23 -87 -22 -2700 0 -2788 45 -172 179 -305 352 -350 86 -23 3660 -23 3746 0 173 45 307 178 352 350 22 87 23 1741 0 1828 -34 132 -126 249 -241 309 l-64 33 0 120 c0 137 -15 209 -61 296 -38 70 -126 157 -197 193 -113 57 -92 56 -1027 56 l-860 1 -34 50 c-88 129 -247 228 -406 254 -130 21 -1134 21 -1214 -1z m1234 -334 c98 -48 122 -83 283 -412 184 -376 219 -419 395 -491 52 -22 60 -22 919 -27 856 -5 867 -5 894 -26 15 -11 37 -33 48 -48 21 -27 21 -34 21 -886 0 -852 0 -859 -21 -886 -11 -15 -33 -37 -48 -48 l-27 -21 -1819 0 -1819 0 -27 21 c-15 11 -37 33 -48 48 -21 27 -21 32 -24 1339 -1 722 0 1326 3 1344 7 40 49 91 90 109 24 11 134 13 580 11 l550 -2 50 -25z m2171 -316 c60 -44 69 -67 72 -185 l4 -109 -734 2 -735 3 -34 26 c-25 19 -52 62 -97 153 -34 70 -62 129 -62 132 0 2 351 3 779 2 770 -3 780 -3 807 -24z"/><path d="M2460 2864 c-25 -9 -58 -26 -75 -37 -61 -43 -595 -572 -611 -605 -47 -99 34 -222 145 -222 27 0 58 8 76 19 17 10 114 100 217 200 l187 182 3 -515 c3 -504 3 -515 24 -543 11 -15 36 -39 55 -51 28 -20 44 -23 92 -20 46 4 63 10 88 34 60 56 59 47 59 595 l0 501 193 -187 c105 -103 206 -194 224 -201 72 -31 147 -8 196 57 27 38 33 108 13 151 -10 21 -141 156 -309 320 -215 209 -305 290 -342 307 -65 31 -172 38 -235 15z"/></g></svg>
+        </button>
+        <button class="btn" onclick="wip(0)" title="files">
+            <svg id="svg1" width="25px" version="1.0" viewBox="0 0 512 512"><g transform="translate(0,512) scale(0.1,-0.1)"><path d="M681 4304 c-169 -45 -301 -180 -346 -351 -23 -87 -22 -2700 0 -2788 45 -172 179 -305 352 -350 86 -23 3660 -23 3746 0 173 45 307 178 352 350 22 87 23 1741 0 1828 -34 132 -126 249 -241 309 l-64 33 0 120 c0 137 -15 209 -61 296 -38 70 -126 157 -197 193 -113 57 -92 56 -1027 56 l-860 1 -34 50 c-88 129 -247 228 -406 254 -130 21 -1134 21 -1214 -1z m1234 -334 c98 -48 122 -83 283 -412 184 -376 219 -419 395 -491 52 -22 60 -22 919 -27 856 -5 867 -5 894 -26 15 -11 37 -33 48 -48 21 -27 21 -34 21 -886 0 -852 0 -859 -21 -886 -11 -15 -33 -37 -48 -48 l-27 -21 -1819 0 -1819 0 -27 21 c-15 11 -37 33 -48 48 -21 27 -21 32 -24 1339 -1 722 0 1326 3 1344 7 40 49 91 90 109 24 11 134 13 580 11 l550 -2 50 -25z m2171 -316 c60 -44 69 -67 72 -185 l4 -109 -734 2 -735 3 -34 26 c-25 19 -52 62 -97 153 -34 70 -62 129 -62 132 0 2 351 3 779 2 770 -3 780 -3 807 -24z"/><path d="M2460 2864 c-25 -9 -58 -26 -75 -37 -61 -43 -595 -572 -611 -605 -47 -99 34 -222 145 -222 27 0 58 8 76 19 17 10 114 100 217 200 l187 182 3 -515 c3 -504 3 -515 24 -543 11 -15 36 -39 55 -51 28 -20 44 -23 92 -20 46 4 63 10 88 34 60 56 59 47 59 595 l0 501 193 -187 c105 -103 206 -194 224 -201 72 -31 147 -8 196 57 27 38 33 108 13 151 -10 21 -141 156 -309 320 -215 209 -305 290 -342 307 -65 31 -172 38 -235 15z"/></g></svg>
+        </button>
+        <span id="spn" class="tt" style="margin-left: 5px;"></span>
+    </div>
+    <button id="inf" class="btn1" onclick="inf()" title="inf">
+        <svg id="svg2" width="20px" viewBox="0 0 416.979 416.979"><path d="M356.004,61.156c-81.37-81.47-213.377-81.551-294.848-0.182c-81.47,81.371-81.552,213.379-0.181,294.85   c81.369,81.47,213.378,81.551,294.849,0.181C437.293,274.636,437.375,142.626,356.004,61.156z M237.6,340.786   c0,3.217-2.607,5.822-5.822,5.822h-46.576c-3.215,0-5.822-2.605-5.822-5.822V167.885c0-3.217,2.607-5.822,5.822-5.822h46.576   c3.215,0,5.822,2.604,5.822,5.822V340.786z M208.49,137.901c-18.618,0-33.766-15.146-33.766-33.765   c0-18.617,15.147-33.766,33.766-33.766c18.619,0,33.766,15.148,33.766,33.766C242.256,122.755,227.107,137.901,208.49,137.901z"/></svg>
+    </button>
+    <div id="inff" class="tt">
+ctrl+Up<br>
+ctrl+Down<br>
+ctrl+Left<br>
+ctrl+Right<br>
+Left<br>
+Right
+    </div>
+    <div id="div"></div>
+    <script>
+var rot=0;
+var drg=0;
+var ifl={};
+var img=[];
+var trh=[];
+var infhd=1;
+var idx=0;
+var scl=1,scm=0.01;
+var ipt=document.querySelector("#ipt");
+var inff=document.querySelector("#inff");
+var div=document.querySelector("#div");
+var spn=document.querySelector("#spn");
+var aqs=document.querySelector("#aqs");
+function imgrt(){
+    if(div.childElementCount==0)return;
+    let x,y;
+    let img=document.querySelector("img");
+    if((rot%360+360)%360<=90){
+        x=img.height/2;
+        y=img.height/2;
+    }
+    else if((rot%360+360)%360==270){
+        x=img.width/2;
+        y=img.width/2;
+    }
+    else{
+        x=img.width/2;
+        y=img.height/2;
+    }
+    div.style["transform-origin"]=`${x}px ${y}px`;
+    div.style.transform=`rotate(${rot}deg)`;
+}
+function inf(){
+    if(infhd){
+        inff.style.display="block";
+    }
+    else{
+        inff.style.display="none";
+    }
+    infhd^=1;
+}
+function wip(a){
+    ipt.removeAttribute("webkitdirectory");
+    ipt.removeAttribute("webkitdirectory");
+    if(a){
+        ipt.setAttribute("webkitdirectory","");
+    }
+    else{
+        ipt.setAttribute("multiple","");
+    }
+    ipt.click();
+}
+document.addEventListener('dragstart',(e)=>{
+    drg=1;
+});
+document.addEventListener('dragend',(e)=>{
+    drg=0;
+});
+document.addEventListener('dragleave',(e)=>{
+    if(e.fromElement!=null)return;
+    aqs.classList.remove("drag");
+});
+document.addEventListener('dragover',(e)=>{
+    e.stopPropagation();
+    e.preventDefault();
+    e.dataTransfer.dropEffect='copy';
+    if(drg)return;
+    aqs.classList.add("drag");
+});
+document.addEventListener('drop',(e)=>{
+    e.stopPropagation();
+    e.preventDefault();
+    aqs.classList.remove("drag");
+    var files = e.dataTransfer.files;
+    for (let i=0,file;file=files[i];i++) {
+        if (file.type.match(/image.*/)){
+            ae(file);
+        }
+    }
+});
+ipt.onchange=()=>{
+    let files=ipt.files;
+    for (let i=0,file;file=files[i];i++) {
+        if (file.type.match(/image.*/)){
+            ae(file);
+        }
+    }
+};
+function ae(file) {
+    var reader = new FileReader();
+    reader.onloadend = function() {
+        if(ifl.hasOwnProperty(reader.result))return;
+        var w=document.createElement("img");
+        w.src=reader.result;
+        ifl[reader.result]=file.name;
+        img.push({img:w,name:file.name});
+        if(div.innerHTML==""){
+            div.append(img[0].img);
+            upd();
+        }
+    }
+    reader.readAsDataURL(file);
+}
+document.onkeydown=(k)=>{
+    if(k.code=="ArrowLeft"&&k.ctrlKey){
+        rot-=90;
+        imgrt();
+        return;
+    }
+    if(k.code=="ArrowRight"&&k.ctrlKey){
+        rot+=90;
+        imgrt();
+        return;
+    }
+    if(k.code=="ArrowRight"){
+        if(img.length<=1)return;
+        idx=(idx+img.length+1)%img.length;
+        div.replaceChild(img[idx].img,div.firstChild);
+        upd();
+        return;
+    }
+    if(k.code=="ArrowLeft"){
+        if(img.length<=1)return;
+        idx=(idx+img.length-1)%img.length;
+        div.replaceChild(img[idx].img,div.firstChild);
+        upd();
+        return;
+    }
+    if(k.code=="Delete"){
+        if(img.length==0)return;
+        trh.push(img[idx]);
+        if(img.length==1)
+        {
+            img=[];
+            div.innerHTML="";
+            return;
+        }
+        img.splice(idx,1);
+        if(idx==img.length)idx--;
+        div.replaceChild(img[idx].img,div.firstChild);
+        upd();
+        return;
+    }
+    if(k.code=="KeyZ"){
+        if(trh.length==0)return;
+        let _img=trh.pop();
+        img.push(_img);
+        idx=img.length-1;
+        if(div.innerHTML==""){
+            div.append(_img.img);
+        }
+        else{
+            div.replaceChild(_img.img,div.firstChild);
+        }
+        return;
+    }
+    if(k.code=="ArrowUp"&&k.ctrlKey){
+        scl+=scm;
+        scl=Number(scl.toFixed(2));
+        if(scl<=scm)scl=scm;
+        div.style.zoom=scl;
+        return;
+    }
+    if(k.code=="ArrowDown"&&k.ctrlKey){
+        scl-=scm;
+        scl=Number(scl.toFixed(2));
+        if(scl<=scm)scl=scm;
+        div.style.zoom=scl;
+        return;
+    }
+};
+setInterval(upd,100);
+function upd(){
+    if(img.length==0)
+    {
+        spn.textContent="upload some image";
+        document.title="cft";
+        return;
+    }
+    let w=img[idx].img;
+    let m=img[idx].name;
+    let a=`${m} (${w.width}×${w.height}) [${idx+1}/${img.length}]`;
+    spn.textContent=a;
+    document.title=a;
+    imgrt();
+}
+    </script>
+</body>
+</html>

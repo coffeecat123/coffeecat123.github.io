@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+            <input type="color" id="inputclr">
+        </div>
+        <script>
+var inputclr=$("#inputclr");
+var cvs=$("#cvs");
+var ctx=cvs.getContext("2d");
+var ti=cvs.width/cvs.offsetWidth,md=0,
+    step=0,hist=[],clr="#ff0000";
+inputclr.value=clr;
+
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+document.onkeydown=(e)=>{
+    if(md)return;
+    if(e.key=='f'){
+        bk();
+        draw();
+        psh();
+    }
+    if(e.key=='z'){
+        undo();
+    }
+};
+inputclr.oninput=()=>{
+    clr=inputclr.value;
+};
+cvs.onmousedown=(e)=>{
+    md=1;
+    let x1=e.pageX,y1=e.pageY;
+    let x=e.offsetX*ti,
+        y=e.offsetY*ti;
+    let f1,f2;
+    let pp=[{x,y}];
+    ctx.strokeStyle="#fff";
+    ctx.lineCap="round";
+    ctx.lineWidth=4;
+    document.addEventListener('mousemove',f1=(e1)=>{
+        let x2=e1.pageX,y2=e1.pageY;
+        let xa=x+(x2-x1)*ti,
+            ya=y+(y2-y1)*ti;
+        ctx.shadowColor=clr;
+        for(let i=15;i<25;i+=3){
+            ctx.shadowBlur=i;
+            ctx.beginPath();
+            ctx.moveTo(x,y);
+            ctx.lineTo(xa,ya);
+            ctx.stroke();
+        }
+        ctx.shadowColor='#0000';
+        pp.push({x:xa,y:ya});
+        for(let i=0;i<pp.length-1;i++){
+            let a=pp[i],b=pp[i+1];
+            ctx.beginPath();
+            ctx.moveTo(a.x,a.y);
+            ctx.lineTo(b.x,b.y);
+            ctx.stroke();
+        }
+        if(pp.length>=50){
+            pp.splice(0,20);
+        }
+        x=xa;
+        y=ya;
+        x1=x2;
+        y1=y2;
+    });
+    document.addEventListener('mouseup',f2=()=>{
+        document.removeEventListener('mouseup',f2);
+        document.removeEventListener('mousemove',f1);
+        md=0;
+        psh();
+    });
+};
+function psh(){
+    step++;
+    hist[step]=cvs.toDataURL();
+}
+function undo(){
+    if(step==0)return;
+    let lastDraw = new Image;
+    step--;
+    lastDraw.src=hist[step];
+    lastDraw.onload=()=>{
+        bk();
+        draw();
+        ctx.drawImage(lastDraw,0,0);
+    };
+};
+function draw(){
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#181818";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+bk();
+draw();
+hist[0]=cvs.toDataURL();
+        </script>
+    </body>
+</html>

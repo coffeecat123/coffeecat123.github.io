@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+        </div>
+        <script>
+var cvs=$("#cvs");
+var ctx=cvs.getContext("2d");
+var balls=[],rr=20,mv=20,dm=0,
+    ti=cvs.width/cvs.offsetWidth;
+var st={
+    x:500,
+    y:500,
+};
+
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+document.onkeydown=(k)=>{
+    if(k.key=="a"){
+    }
+};
+cvs.onmousedown=(e)=>{
+    if(dm)return;
+    dm=1;
+    let x1=e.pageX,y1=e.pageY;
+    let x=e.offsetX*ti,
+        y=e.offsetY*ti;
+    let xa,ya;
+    if(!ctx.isPointInPath(balls[0].t,x,y))return;
+    x=balls[0].x;
+    y=balls[0].y;
+    let f1,f2;
+    document.addEventListener('mousemove',f1=(e1)=>{
+        let x2=e1.pageX,y2=e1.pageY;
+        xa=x+(x2-x1)*ti;
+        ya=y+(y2-y1)*ti;
+        bk();
+        draw();
+        draw_all_balls();
+        ctx.beginPath();
+        ctx.moveTo(x,y);
+        ctx.lineTo(xa,ya);
+        ctx.stroke();
+    });
+    document.addEventListener('mouseup',f2=()=>{
+        document.removeEventListener('mouseup',f2);
+        document.removeEventListener('mousemove',f1);
+        bk();
+        draw();
+        draw_all_balls();
+        if(xa==undefined){
+            dm=0;
+            return;
+        }
+        let dx=x-xa,
+            dy=y-ya;
+        let w=Math.atan2(dy,dx);
+        balls[0].dx=mv*Math.cos(w),
+        balls[0].dy=mv*Math.sin(w);
+        dkf();
+    });
+};
+function dkf(){
+    if((balls[0].dx**2+balls[0].dy**2)**0.5<3){
+        dm=0;
+        return;
+    }
+    balls[0].dx*=0.95;
+    balls[0].dy*=0.95;
+    balls[0].move();
+    bk();
+    draw();
+    draw_all_balls();
+    setTimeout(dkf,100);
+}
+class ball{
+    constructor(x,y,dx,dy,clr){
+        this.r=rr;
+        this.x=x;
+        this.y=y;
+        this.dx=dx;
+        this.dy=dy;
+        this.clr=clr;
+        this.ud();
+    }
+    rnd(){
+        let x=this.w.x;
+        let y=this.w.y;
+        if((this.x-x)**2+(this.y-y)**2<=(rr*2)**2){
+            let a=Math.atan2(-this.dy,-this.dx)*180/Math.PI,
+                b=Math.atan2(this.y-y,this.x-x)*180/Math.PI,
+                c=b*2-a,
+                d=c/180*Math.PI;
+            this.dx=mv*Math.cos(d);
+            this.dy=mv*Math.sin(d);
+            return 1;
+        }
+        return 0;
+    }
+    move(){
+        let a=0;
+        this.x+=this.dx;
+        this.y+=this.dy;
+        this.ud();
+        if(this.y<=this.r){
+            this.dy*=-1;
+            a=1;
+        }
+        if(this.y>cvs.height-this.r){
+            this.dy=-Math.abs(this.dy);
+            a=1;
+        }
+        if(this.x<=this.r){
+            this.dx=Math.abs(this.dx);
+            a=1;
+        }
+        if(this.x>cvs.width-this.r){
+            this.dx=-Math.abs(this.dx);
+            a=1;
+        }
+        if(a)return 1;
+        for(let i in balls){
+            let b=balls[i];
+            if(this==b)continue;
+            this.w=b;
+            if(this.rnd())return 1;
+        }
+    }
+    ud(){
+        let t=new Path2D();
+        t.arc(this.x,this.y,rr,0,Math.PI*2);
+        this.t=t;
+    }
+    drawbl(){
+        bl(this.x,this.y,this.r,this.clr);
+    }
+}
+function bl(x,y,r,clr){
+    ctx.save();
+    ctx.strokeStyle="#000";
+    ctx.fillStyle=clr;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,2*Math.PI);
+    ctx.fill();
+    //ctx.stroke();
+    ctx.restore();
+};
+function start(){
+    balls.push(new ball(200,200,0,0,"#fff"));
+    balls.push(new ball(500,700,0,0,"#f00"));
+    draw_all_balls();
+}
+function draw_all_balls(){
+    for(let i in balls){
+        balls[i].drawbl();
+    }
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#008f00";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+function draw(){
+    ctx.save();
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+    ctx.restore();
+}
+bk();
+draw();
+start();
+        </script>
+    </body>
+</html>

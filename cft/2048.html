@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>2048</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+        </div>
+        <script>
+var inputclr=$("#inputclr");
+var cvs=$("#cvs");
+var ctx=cvs.getContext("2d");
+var ti=cvs.width/cvs.offsetWidth
+    ba=10,maze=[],score=0,playing=0,
+    nu=[],wa=cvs.width/ba;
+//maze:ba*ba
+//maze[x][y]=type
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+document.onkeydown=(e)=>{
+    if(e.key=='a'||e.key=='ArrowLeft'){
+        lt();
+    }
+    if(e.key=='d'||e.key=='ArrowRight'){
+        rt();
+    }
+    if(e.key=='w'||e.key=='ArrowUp'){
+        up();
+    }
+    if(e.key=='s'||e.key=='ArrowDown'){
+        dw();
+    }
+};
+function lt(){
+    if(!playing)return;
+    let w=1;
+    for(let i=0;i<ba;i++){
+        let a=0,c=0,ch=[];
+        for(let j=0;j<ba;j++){
+            let b=maze[j][i];
+            ch.push(maze[j][i]);
+            maze[j][i]=0;
+            if(b==0)continue;
+            if(a==0){a=b;continue;}
+            else if(a==b){
+                a=0;
+                maze[c++][i]=b+1;
+                continue;
+            }
+            maze[c++][i]=a;
+            a=b;
+        }
+        if(a!=0)maze[c++][i]=a;
+        if(w){
+            for(let j=0;j<ba;j++){
+                if(maze[j][i]!=ch[j]){
+                    w=0;
+                    break;
+                }
+            }
+        }
+    }
+    if(w)return;
+    play();
+}
+function rt(){
+    if(!playing)return;
+    let w=1;
+    for(let i=0;i<ba;i++){
+        let a=0,c=ba-1,ch=[];
+        for(let j=ba-1;j>=0;j--){
+            let b=maze[j][i];
+            ch.unshift(maze[j][i]);
+            maze[j][i]=0;
+            if(b==0)continue;
+            if(a==0){a=b;continue;}
+            else if(a==b){
+                a=0;
+                maze[c--][i]=b+1;
+                continue;
+            }
+            maze[c--][i]=a;
+            a=b;
+        }
+        if(a!=0)maze[c--][i]=a;
+        if(w){
+            for(let j=0;j<ba;j++){
+                if(maze[j][i]!=ch[j]){
+                    w=0;
+                    break;
+                }
+            }
+        }
+    }
+    if(w)return;
+    play();
+}
+function up(){
+    if(!playing)return;
+    let w=1;
+    for(let i=0;i<ba;i++){
+        let a=0,c=0,ch=[];
+        for(let j=0;j<ba;j++){
+            let b=maze[i][j];
+            ch.push(maze[i][j]);
+            maze[i][j]=0;
+            if(b==0)continue;
+            if(a==0){a=b;continue;}
+            else if(a==b){
+                a=0;
+                maze[i][c++]=b+1;
+                continue;
+            }
+            maze[i][c++]=a;
+            a=b;
+        }
+        if(a!=0)maze[i][c++]=a;
+        if(w){
+            for(let j=0;j<ba;j++){
+                if(maze[i][j]!=ch[j]){
+                    w=0;
+                    break;
+                }
+            }
+        }
+    }
+    if(w)return;
+    play();
+}
+function dw(){
+    if(!playing)return;
+    let w=1;
+    for(let i=0;i<ba;i++){
+        let a=0,c=ba-1,ch=[];
+        for(let j=ba-1;j>=0;j--){
+            let b=maze[i][j];
+            ch.unshift(maze[i][j]);
+            maze[i][j]=0;
+            if(b==0)continue;
+            if(a==0){a=b;continue;}
+            else if(a==b){
+                a=0;
+                maze[i][c--]=b+1;
+                continue;
+            }
+            maze[i][c--]=a;
+            a=b;
+        }
+        if(a!=0)maze[i][c--]=a;
+        if(w){
+            for(let j=0;j<ba;j++){
+                if(maze[i][j]!=ch[j]){
+                    w=0;
+                    break;
+                }
+            }
+        }
+    }
+    if(w)return;
+    play();
+}
+function start(){
+    for(let i=1;i<=ba**2+1;i++){
+        nu.push(2**i);
+    }
+    for(let i=0;i<ba;i++){
+        maze.push([]);
+        for(let j=0;j<ba;j++){
+            maze[i].push(0);
+        }
+    }
+    playing=1;
+    play();
+    play();
+}
+function play(){
+    let a=[];
+    for(let i=0;i<ba;i++){
+        for(let j=0;j<ba;j++){
+            if(maze[i][j]==0){
+                a.push([i,j]);
+            }
+        }
+    }
+    let b=random(0,a.length-1);
+    maze[a[b][0]][a[b][1]]=give();
+    bk();
+    draw();
+    chk();
+}
+function give(){
+    let a=random(1,10);
+    if(a<=7)return 1;
+    return 2;
+}
+function chk(){
+    for(let i=0;i<ba;i++){
+        let a1=maze[i][0];
+        if(a1==0)return;
+        for(let j=1;j<ba;j++){
+            if(maze[i][j]==0)return;
+            if(maze[i][j]==a1)return;
+            a1=maze[i][j];
+        }
+    }
+    for(let i=0;i<ba;i++){
+        let a1=maze[0][i];
+        if(a1==0)return;
+        for(let j=1;j<ba;j++){
+            if(maze[j][i]==0)return;
+            if(maze[j][i]==a1)return;
+            a1=maze[j][i];
+        }
+    }
+    playing=0;
+    game_over();
+}
+function game_over(){
+    console.log("Game Over");
+}
+function draw(){
+    for(let i=0;i<ba;i++){
+        for(let j=0;j<ba;j++){
+            let x=i*wa+wa/2,y=j*wa+wa/2;
+            let txt=nu[maze[i][j]-1];
+            let tp=maze[i][j];
+            if(tp==0)continue;
+            ctx.fillStyle=HSLToRGB((tp*360/15)%360,100,50);
+            ctx.fillRect(x-wa/2,y-wa/2,wa,wa);
+            ctx.fillStyle="#181818";
+            let fms=wa*0.6;
+            ctx.font=`${fms}px Comic Sans MS,標楷體`;
+            let _w=ctx.measureText(txt).width;
+            if(_w>fms)_w=fms;
+            ctx.fillText(txt,x-_w/2,y+fms/2.5,fms);
+        }
+    }
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#800");
+    gdt.addColorStop(0,"#808");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    for(let i=1;i<ba;i++){
+        ctx.moveTo(i*wa,0);
+        ctx.lineTo(i*wa,cvs.width);
+    }
+    for(let i=1;i<ba;i++){
+        ctx.moveTo(0,i*wa);
+        ctx.lineTo(cvs.width,i*wa);
+    }
+    ctx.stroke();
+    ctx.lineWidth=20;
+    ctx.beginPath();
+    for(let i=0;i<=ba;i+=ba){
+        ctx.moveTo(i*wa,0);
+        ctx.lineTo(i*wa,cvs.width);
+    }
+    for(let i=0;i<=ba;i+=ba){
+        ctx.moveTo(0,i*wa);
+        ctx.lineTo(cvs.width,i*wa);
+    }
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#181818";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+start();
+        </script>
+    </body>
+</html>

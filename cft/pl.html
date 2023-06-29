@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+#ipt1{
+    width:750px;
+}
+#sp1 {
+    color: #eee;
+    font-size: 30px;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="2000" height="1000"></canvas>
+        </div>
+        <input type="range" id="ipt1" step="1">
+        <span id="sp1"></span>
+        <script>
+var abs=Math.abs;
+var cvs=$("#cvs");
+var ipt1=$("#ipt1");
+var sp1=$("#sp1");
+var ctx=cvs.getContext("2d");
+var ti=cvs.width/cvs.offsetWidth,
+    g=2,μk=0.75,m=1,cr=50,balls=[],
+    maxf=50,minf=1,playing=0,ff;
+
+var ee={
+    x:0,
+    y:0,
+    t:0
+}
+ipt1.min=minf;
+ipt1.max=maxf;
+ipt1.value=maxf/2;
+sp1.textContent=ipt1.value;
+ff=Number(ipt1.value);
+
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+document.onkeydown=(e)=>{
+};
+ipt1.oninput=()=>{
+    sp1.textContent=ipt1.value;
+    ff=Number(ipt1.value);
+};
+class ball{
+    constructor(x,y,clr){
+        this.x=x;
+        this.y=y;
+        this.vx=0;
+        this.vy=0;
+        this.ax=0;
+        this.ay=0;
+        this.r=cr;
+        this.ud();
+        this.p=0;//touch wall
+        this.clr=clr;
+        this.lb=-1;
+    }
+    move(p){
+        if(this.vx==0&&this.vy==0&&this.ax==0&&this.ay==0)return;
+        let thwl=0;
+        this.x+=this.vx;
+        this.y+=this.vy;
+        if(p!=1){
+            let fk=g*m*μk/((this.vx**2+this.vy**2)**0.5);
+            if((this.vx+this.ax>0)!=(this.vx>0)&&this.vx!=0)
+                this.vx=this.ax=0;
+            else this.vx+=this.ax;
+            if((this.vy+this.ay>0)!=(this.vy>0)&&this.vy!=0)
+                this.vy=this.ay=0;
+            else this.vy+=this.ay;
+            this.ax=((this.vx>=0)*2-1)*(abs(this.ax)-abs(fk*this.vx));
+            this.ay=((this.vy>=0)*2-1)*(abs(this.ay)-abs(fk*this.vy));
+        }
+        let a=0;
+        if(this.x<this.r||this.x+this.r>cvs.width){
+            if(this.p==1)return;
+            this.vx*=-1;
+            this.p=1;
+            thwl=1;
+            a++;
+        }
+        else if(this.y<this.r||this.y+this.r>cvs.height){
+            if(this.p==2)return;
+            this.vy*=-1;
+            this.p=2;
+            thwl=1;
+            a++;
+        }
+        if(a==0)this.p=0;
+        this.ud();
+        for(let i in balls){
+            if(p==1&&i==0)continue;
+            let b=balls[i];
+            if(b==this)continue;
+            if(this.lb==i){
+                this.lb=0;
+                continue;
+            }
+            if(((this.x-b.x)**2+(this.y-b.y)**2)**0.5<=this.r*2){
+                let a1=Math.atan2(this.y-b.y,this.x-b.x),
+                    a2=Math.atan2(-this.vy,-this.vx),
+                    a3=a1*2-a2,
+                    f=((this.vx**2)+(this.vy**2))**0.5;
+                this.vx=f*Math.cos(a3);
+                this.vy=f*Math.sin(a3);
+                this.ax=0;
+                this.ay=0;
+                thwl=1;
+                this.lb=i;
+                break;
+            }
+        }
+        if(p==1)return thwl;
+    }
+    drawbl(){
+        bl(this.x,this.y,this.r,this.clr);
+    }
+    ud(){
+        let t=new Path2D();
+        t.arc(this.x,this.y,this.r*1.5,0,Math.PI*2);
+        this.t=t;
+        let t2=new Path2D();
+        t2.arc(this.x,this.y,this.r*1,0,Math.PI*2);
+        this.t2=t2;
+    }
+}
+cvs.addEventListener(("mousemove"),(e2)=>{
+    if(playing)return;
+    ee.t=1;
+    let x,y;
+    x=balls[0].x;
+    y=balls[0].y;
+    let x1,y1;
+    x1=e2.offsetX;
+    y1=e2.offsetY;
+    x1*=ti;y1*=ti;
+    let a=new ball(x,y,"#00f");
+    let d=((x1-x)**2+(y1-y)**2)**0.5;
+    a.vx=cr/10*(x1-x)/d;
+    a.vy=cr/10*(y1-y)/d;
+    while(1)if(a.move(1))break;
+    moving();
+    ctx.strokeStyle="#bbba";
+    drline(x,y,a.x,a.y);
+    drline(a.x,a.y,a.x+a.vx*5,a.y+a.vy*5);
+    ctx.stroke(a.t2);
+    ee.x=x1;
+    ee.y=y1;
+});
+cvs.addEventListener(("click"),()=>{
+    if(playing)return;
+    if(ee.t==0)return;
+    ee.t=0;
+    let x,y;
+    x=balls[0].x;
+    y=balls[0].y;
+    let x1=ee.x,y1=ee.y;
+    let d=((x1-x)**2+(y1-y)**2)**0.5;
+    balls[0].vx=ff*2*(x1-x)/d;
+    balls[0].vy=ff*2*(y1-y)/d;
+    moving();
+});
+function drline(x,y,x1,y1){
+    ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x1,y1);
+    ctx.stroke();
+}
+function start(){
+    let a=new ball(500,500,"#eee");
+    a.vx=random(-maxf,maxf);
+    a.vy=random(-maxf,maxf);
+    balls.push(a);
+    let b=new ball(1500,500,"#a00a");
+    balls.push(b);
+    moving();
+}
+function moving(){
+    playing=1;
+    console.log(balls[0].vx,balls[0].vy,balls[0].ax,balls[0].ay);
+    let a=0;
+    for(let i in balls){
+        balls[i].move();
+        if(balls[i].vx==0&&balls[i].vy==0)a++;
+    }
+    bk();
+    draw();
+    for(let i in balls){
+        balls[i].drawbl();
+    }
+    if(a==balls.length){
+        playing=0;
+        return;
+    }
+    setTimeout(moving,10);
+}
+function bl(x,y,r,clr){
+    ctx.fillStyle=clr;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,2*Math.PI);
+    ctx.fill();
+};
+function draw(){
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#080";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+bk();
+draw();
+start();
+        </script>
+    </body>
+</html>

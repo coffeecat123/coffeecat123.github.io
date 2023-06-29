@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+        </div>
+        <script>
+var cvs=$("#cvs");
+var ctx=cvs.getContext("2d");
+var pnt=[],ti=cvs.width/cvs.offsetWidth;
+var pds=[];
+
+class point{
+    constructor(x,y){
+        this.x=x;
+        this.y=y;
+    }
+}
+class line{
+    constructor(a,b,c){//ax+by=c
+        this.a=a;
+        this.b=b;
+        this.c=c;
+    }
+}
+document.onkeydown=(e)=>{
+    if(e.key=='f'){
+        if(pnt.length!=0)return;
+        pds=[];
+        bk();
+        draw();
+    }
+};
+cvs.onmousedown=(e)=>{
+    let x=e.offsetX*ti,
+        y=e.offsetY*ti;
+    let clr=random(0,360-1);
+    pnt.push(new point(x,y));
+    ctx.lineWidth=5;
+    let pd=new Path2D();
+    pd.arc(x,y,10,0,2*Math.PI);
+    pds.push(pd);
+    dr();
+    if(pnt.length==3){
+        let p=ins(cal(pnt[0],pnt[1]),cal(pnt[1],pnt[2]));
+        let r=((pnt[0].x-p.x)**2+(pnt[0].y-p.y)**2)**0.5;
+        for(let i=0;i<360;i++){
+            ctx.strokeStyle=HSLToRGB((clr+i)%360,100,50);
+            ctx.beginPath();
+            ctx.arc(p.x,p.y,r,DegToRad(i),DegToRad((i+1)%360));
+            ctx.stroke();
+        }
+        dr();
+        pnt=[];
+    }
+    draw();
+};
+function dr(){
+    ctx.fillStyle="#fff";
+    for(let i in pds){
+        ctx.fill(pds[i]);
+    }
+}
+function cal(p1,p2){
+    let xa=p1.x+p2.x,xb=p1.x-p2.x,
+        ya=p1.y+p2.y,yb=p1.y-p2.y;
+    return new line(xb,yb,(xa*xb+ya*yb)/2);
+}
+function ins(l1,l2){
+    let dz=l1.a*l2.b-l1.b*l2.a,
+        dx=l1.c*l2.b-l1.b*l2.c,
+        dy=l1.a*l2.c-l1.c*l2.a;
+    let x=dx/dz,y=dy/dz;
+    return new point(x,y);
+}
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+function draw(){
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#181818";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+bk();
+draw();
+        </script>
+    </body>
+</html>

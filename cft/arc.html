@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs1{
+    height: 500px;
+    z-index: 1;
+}
+#cvs{
+    position: absolute;
+    left: 8px;
+    height: 500px;
+    z-index: 0;
+}
+#cvs2 {
+    position: absolute;
+    left: 8px;
+    height: 500px;
+    z-index: 100;
+}
+.cdn {
+    display: flex;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+#wl{
+    display: flex;
+}
+#pre{
+    margin: 0 10px 0 5px;
+    color: #fff;
+    font-size: 25px;
+}
+#rng1{
+    display: none;
+}
+#div2{
+    display: flex;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs1" width="1000" height="1000"></canvas>
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+            <canvas id="cvs2" width="1000" height="1000"></canvas>
+            <div id="div2">
+                <pre id="pre"></pre>
+                <label class="switch">
+                    <input id="ipt1" type="checkbox" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+        <input id="rng1" type="range">
+        <input id="rng2" type="range">
+        <input id="rng3" type="range">
+        <script>
+var pre=$("#pre");
+var ipt1=$("#ipt1");
+var dv1=$("#dv1");
+var cvs=$("#cvs");
+var cvs1=$("#cvs1");
+var cvs2=$("#cvs2");
+var rng1=$("#rng1");
+var rng2=$("#rng2");
+var rng3=$("#rng3");
+var ctx=cvs.getContext("2d");
+var ctx1=cvs1.getContext("2d");
+var ctx2=cvs2.getContext("2d");
+var r1=400,
+    r2=247,
+    r3=57,
+    rr=50;
+var stk=1,stp=1,step=5,wer=0,stop=0;
+var clr={
+    a:"#000",
+    b:"#fff",
+    c:"#aaa",
+    d:"#888",
+    e:"#666",
+};
+var st={
+    x:500,
+    y:500,
+};
+rng1.value=r1;
+rng2.value=r2;
+rng3.value=r3;
+rng1.min=0;
+rng1.max=500;
+rng2.min=0;
+rng2.max=r1;
+rng3.min=0;
+rng3.max=r2;
+rng1.oninput=()=>{
+    r1=rng1.value;
+    rng2.max=r1;
+    wie();
+};
+rng2.oninput=()=>{
+    r2=rng2.value;
+    rng3.max=r2;
+    wie();
+};
+rng3.oninput=()=>{
+    r3=rng3.value;
+    wie();
+};
+function cos(a){
+    return Number(Math.cos(a*Math.PI/180).toFixed(3));
+}
+function sin(a){
+    return Number(Math.sin(a*Math.PI/180).toFixed(3));
+}
+document.onkeydown=(e)=>{
+    if(e.key=="ArrowLeft"){
+        step-=1;
+        wie();
+    }
+    if(e.key=="ArrowRight"){
+        step+=1;
+        wie();
+    }
+    if(e.keyCode==13){
+        stop=1;
+    }
+    if(e.key=='a'){
+        stp^=1;
+    }
+    if(e.key=='f'){
+        ctx1.clearRect(0,0,cvs1.width,cvs1.height);
+    }
+};
+function play(){
+    ctx.lineWidth=5;
+    ctx.strokeStyle="#000";
+    ctx.beginPath();
+    ctx.arc(st.x,st.y,r1,0,2*Math.PI);
+    ctx.stroke();
+    let p1,p2,p3,p3_,ra,rb;
+    p1=new point(st.x,st.y);
+    let q=setInterval(()=>{
+        if(stp){
+            ra=r1-r2;
+            p2=new point(p1.x+ra*cos(wer),
+                         p1.y+ra*sin(wer));
+            let a=r1/r2*wer+rr;
+            rb=r2-r3;
+            p3=new point(p2.x+rb*cos(a),
+                         p2.y+rb*sin(a));
+            if(wer!=0)dr(p3,p3_,p2);
+            p3_=p3;
+            wer+=step;
+            if(stop)clearInterval(q);
+        }
+    },0);
+}
+function dr(p1,p2,pa){
+    let clr=HSLToRGB((wer%360+360)%360,100,50);
+    ctx2.clearRect(0,0,cvs2.width,cvs2.height);
+    if(stk){
+        ctx2.fillStyle="#18181840";
+        ctx2.beginPath();
+        ctx2.arc(pa.x,pa.y,r2,0,2*Math.PI);
+        ctx2.fill();
+        ctx2.fillStyle=clr;
+        ctx2.beginPath();
+        ctx2.arc(p1.x,p1.y,5,0,2*Math.PI);
+        ctx2.fill();
+    }
+    ctx1.lineWidth=3;
+    ctx1.strokeStyle=clr;
+    ctx1.beginPath();
+    ctx1.moveTo(p1.x,p1.y);
+    ctx1.lineTo(p2.x,p2.y);
+    ctx1.stroke();
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+function $(el){
+    return document.querySelector(el);
+}
+ipt1.oninput=()=>{
+    stk^=1;
+    if(stk){
+        cvs.style.display="block";
+        cvs2.style.display="block";
+    }
+    else{
+        cvs.style.display="none";
+        cvs2.style.display="none";
+    }
+};
+class point{
+    constructor(x,y){
+        this.x=x;
+        this.y=y;
+    }
+}
+function draw(){
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#eee";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+function wie(){
+    pre.innerText=`\
+r1: ${r1}
+r2: ${r2}
+r3: ${r3}
+speed: ${step}`;
+}
+bk();
+draw();
+play();
+wie();
+        </script>
+    </body>
+</html>
