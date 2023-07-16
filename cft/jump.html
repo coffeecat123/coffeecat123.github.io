@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="1000" height="600"></canvas>
+        </div>
+        <script>
+var ty=$("#ty");
+var cvs=$("#cvs");
+var ctx=cvs.getContext("2d");
+var ti=cvs.width/cvs.offsetWidth,
+    bal,dm=0,t=1/90,interval,
+    g=500,jp=0,dc=0,stmp=0,rs=0,ls=0,
+    lines=[],
+key={
+    'a':0,
+    'd':0
+};
+
+/*
+dc   left:-1  right:1  none:0
+
+*/
+document.onkeydown=(e)=>{
+    if(e.key==' '){
+        jump();
+    }
+    if(e.key=="d"){
+        key['d']=1;
+    }
+    if(e.key=="a"){
+        key['a']=1;
+    }
+};
+document.onkeyup=(e)=>{
+    if(e.key=="d"){
+        key['d']=0;
+    }
+    if(e.key=="a"){
+        key['a']=0;
+    }
+};
+class ball{
+    constructor(x,y,vx,vy,r){
+        this.x=x;
+        this.y=y;
+        this.vx=vx;
+        this.vy=vy;
+        this.r=r;
+        this.clr="#f00";
+    }
+    move(){
+        if(this.y+this.r<cvs.height)this.vy+=g*t;
+        this.x+=this.vx*t;
+        this.y+=this.vy*t;
+        if(key['a']==0&&key['d']==0)
+            this.vx=parseInt(Math.abs(this.vx)*0.999)*Math.sign(this.vx);
+        if(this.vy==0&&key['a']==0&&key['d']==0)
+            this.vx=parseInt(Math.abs(this.vx)*0.9)*Math.sign(this.vx);
+        if(this.x+this.r>=cvs.width&&this.vx>0){
+            this.vx=-this.vx;
+            if(this.vy!=0){
+                this.vy=-300;
+                rs=stmp;
+            }else{
+                this.x=cvs.width-this.r;
+                this.vx=0;
+            }
+        }else if(this.x-this.r<=0&&this.vx<0){
+            this.vx=-this.vx;
+            if(this.vy!=0){
+                this.vy=-300;
+                ls=stmp;
+            }else{
+                this.x=this.r;
+                this.vx=0;
+            }
+        }
+        if(this.y+this.r>=cvs.height-5&&this.vy>0){
+            this.vy=0;
+            this.y=cvs.height-this.r;
+            jp=0;
+            dc=0;
+        }/*else if(this.y-this.r<=0){
+            this.vy=-this.vy;
+            this.y=this.r;
+        }*/
+        this.clr=HSLToRGB(Math.abs(this.y/cvs.height)*360,100,50);
+    }
+    drawbl(){
+        bl(this.x,this.y,this.r,this.clr);
+    }
+    path2d(){
+        let a=new Path2D();
+        a.arc(this.x,this.y,this.r,0,2*Math.PI);
+        return a;
+    }
+}
+function bl(x,y,r,clr){
+    ctx.fillStyle=clr;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,2*Math.PI);
+    ctx.fill();
+};
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+function distance(x1,y1,x2,y2){
+    return ((x1-x2)**2+(y1-y2)**2)**0.5;
+}
+function draw(){
+    /*
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+    */
+    for(let i=0;i<lines.length;i++){
+        ctx.fillStyle=`rgb(255,255,255,${i/lines.length*0.3})`;
+        ctx.beginPath();
+        ctx.arc(lines[i][0],lines[i][1],bal.r*i/lines.length,0,2*Math.PI);
+        ctx.fill();
+    }
+    bal.drawbl();
+    ctx.strokeStyle=HSLToRGB((Math.abs(bal.y/cvs.height)*360+180)%360,100,50);;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(bal.x,bal.y);
+    ctx.lineTo(bal.x+bal.vx*0.1,bal.y+bal.vy*0.1);
+    ctx.stroke();/*
+    if(lines.length>2){
+        for(let i=2;i<lines.length;i++){
+            ctx.strokeStyle=`rgb(255,255,255,${i/lines.length/1.5})`;
+            ctx.lineWidth=2*i/lines.length;
+            ctx.beginPath();
+            ctx.moveTo(lines[i-2][0],lines[i-2][1]);
+            ctx.lineTo(lines[i-1][0],lines[i-1][1]);
+            ctx.lineTo(lines[i][0],lines[i][1]);
+            ctx.stroke();
+        }
+    }*/
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#252525";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+function jump(){
+    if(jp>=2)return 0;
+    bal.vy=-500;
+    jp+=1;
+}
+function start(){
+    clearInterval(interval);
+    dm=1;
+    bal=new ball(100,50,0,0,30);
+    bk();
+    draw();
+    interval=setInterval(()=>{
+        if(dm){
+            if(key['d']+key['a']==2){
+                key['d']=0;
+                key['a']=0;
+            }
+            //press 'd'
+            if(stmp-rs>1/t/1.5&&key['d'])bal.vx=250;
+            //press 'a'
+            if(stmp-ls>1/t/1.5&&key['a'])bal.vx=-250;
+            bal.move();
+            
+            if(stmp%3==0){
+                if(lines.length==0){
+                    lines.push([bal.x,bal.y,stmp]);
+                }else{
+                    let ln=lines.length-1;
+                    if( bal.vx==0&&bal.vy==0){
+                        lines.splice(0,1);
+                    }
+                    if(lines.length>0){
+                        let ln=lines.length-1;
+                        if( lines[ln][0]!=bal.x||
+                            lines[ln][1]!=bal.y)
+                            lines.push([bal.x,bal.y,stmp]);
+                    }
+                }
+            }
+            stmp++;
+
+            for(let i=lines.length-1;i>=0;i--){
+                if(stmp-lines[i][2]>150){
+                    lines.splice(0,i);
+                    break;
+                }
+            }
+            bk();
+            draw();
+        }
+    },t*1000);
+}
+start();
+        </script>
+    </body>
+</html>
