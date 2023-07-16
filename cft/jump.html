@@ -70,7 +70,7 @@ input:checked + .slider:before {
     </head>
     <body>
         <div id="wl">
-            <canvas id="cvs" width="1000" height="600"></canvas>
+            <canvas id="cvs" width="1000" height="800"></canvas>
         </div>
         <script>
 var ty=$("#ty");
@@ -98,6 +98,9 @@ document.onkeydown=(e)=>{
     }
     if(e.key=="a"){
         key['a']=1;
+    }
+    if(e.key=="p"){
+        dm^=1;
     }
 };
 document.onkeyup=(e)=>{
