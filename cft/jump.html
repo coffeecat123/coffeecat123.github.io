@@ -77,9 +77,10 @@ var ty=$("#ty");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    bal,dm=0,t=1/120,
+    bal,dm=0,fps=120,t=1/fps,
     g=500,jp=0,stmp=0,rs=0,ls=0,
-    lines=[],keys=[],
+    lines=[],keys=[],f1,f2,
+    mouse_down=0,
 key={
     'a':0,
     'd':0,
@@ -104,7 +105,7 @@ document.onkeydown=(e)=>{
         keys.push('a');
     }
     if(e.key=="p"){
-        dm^=1;
+        if(mouse_down==0)dm^=1;
     }
 };
 document.onkeyup=(e)=>{
@@ -118,6 +119,32 @@ document.onkeyup=(e)=>{
     if(e.key=="a"||e.key=="A"){
         key['a']=0;
         if(keys.indexOf('a')>=0)keys.splice(keys.indexOf('a'),1);
+    }
+};
+cvs.onmousedown=(e)=>{
+    mouse_down=1;
+    let x1=e.pageX,y1=e.pageY;
+    let x=e.offsetX*ti,
+        y=e.offsetY*ti;
+    let now_dm=dm;
+    if(ctx.isPointInPath(bal.path2d(),x,y)){
+        dm=0;
+        document.addEventListener("mousemove",f1=(e1)=>{
+            let x2=e1.pageX,y2=e1.pageY;
+            let dx=(x2-x1)*ti,
+                dy=(y2-y1)*ti;
+            x1=e1.pageX,y1=e1.pageY;
+            bal.x+=dx;
+            bal.y+=dy;
+            bk();
+            draw();
+        });
+        document.addEventListener('mouseup',f2=()=>{
+            document.removeEventListener('mouseup',f2);
+            document.removeEventListener('mousemove',f1);
+            dm=now_dm;
+            mouse_down=0;
+        });
     }
 };
 class ball{
@@ -313,7 +340,7 @@ function start(){
             bk();
             draw();
         }
-    },t*1000);
+    },1000/fps);
 }
 start();
         </script>
