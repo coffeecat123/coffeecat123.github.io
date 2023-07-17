@@ -91,7 +91,7 @@ dc   left:-1  right:1  none:0
 */
 document.onkeydown=(e)=>{
     if(e.key==' '){
-        jump();
+        if(dm)jump();
     }
     if(e.key=="d"){
         key['d']=1;
@@ -235,12 +235,13 @@ function draw(){
         ctx.fill();
     }
     bal.drawbl();
+    /*
     ctx.strokeStyle=HSLToRGB((Math.abs(bal.y/cvs.height)*360+180)%360,100,50);;
     ctx.lineWidth=2;
     ctx.beginPath();
     ctx.moveTo(bal.x,bal.y);
     ctx.lineTo(bal.x+bal.vx*0.1,bal.y+bal.vy*0.1);
-    ctx.stroke();/*
+    ctx.stroke();*//*
     if(lines.length>2){
         for(let i=2;i<lines.length;i++){
             ctx.strokeStyle=`rgb(255,255,255,${i/lines.length/1.5})`;
