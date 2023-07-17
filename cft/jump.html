@@ -70,7 +70,7 @@ input:checked + .slider:before {
     </head>
     <body>
         <div id="wl">
-            <canvas id="cvs" width="1500" height="700"></canvas>
+            <canvas id="cvs" width="1500" height="1000"></canvas>
         </div>
         <script>
 var ty=$("#ty");
@@ -78,9 +78,19 @@ var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     bal,dm=0,fps=120,t=1/fps,
-    g=500,jp=0,stmp=0,rs=0,ls=0,
+    g=500,jp=0,maxjp=5,stmp=0,rs=0,ls=0,
     lines=[],keys=[],f1,f2,
-    mouse_down=0,
+    mouse_down=0,walls=[],
+touch={
+    top:0,
+    bottom:0,
+    right:0,
+    left:0
+}
+view={
+    x:0,
+    y:0
+},maxwidth=3500,
 key={
     'a':0,
     'd':0,
@@ -127,6 +137,7 @@ cvs.onmousedown=(e)=>{
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
     let now_dm=dm;
+    //console.log(x+view.x,y+view.y);
     if(ctx.isPointInPath(bal.path2d(),x,y)){
         dm=0;
         document.addEventListener("mousemove",f1=(e1)=>{
@@ -147,6 +158,20 @@ cvs.onmousedown=(e)=>{
         });
     }
 };
+class wall{
+    constructor(x,y,w,h,clr){
+        this.x=x;
+        this.y=y;
+        this.w=w;
+        this.h=h;
+        this.clr=clr;
+    }
+    path2d(){
+        let a=new Path2D();
+        a.rect(this.x-this.w/2,this.y-this.h/2,this.w,this.h);
+        return a;
+    }
+}
 class ball{
     constructor(x,y,vx,vy,r){
         this.x=x;
@@ -157,7 +182,7 @@ class ball{
         this.clr="#f00";
     }
     move(){
-        if(this.y+this.r<cvs.height)this.vy+=g*t;
+        if(!touch.bottom)this.vy+=g*t;
         this.x+=this.vx*t;
         this.y+=this.vy*t;
         if(key['a']==0&&key['d']==0)
@@ -167,7 +192,7 @@ class ball{
         if(this.x+this.r>=cvs.width&&this.vx>0){
             this.vx=-this.vx;
             if(this.vy!=0){
-                this.vy=-300;
+                //this.vy=-300;
                 rs=stmp;
             }else{
                 this.x=cvs.width-this.r;
@@ -176,7 +201,7 @@ class ball{
         }else if(this.x-this.r<=0&&this.vx<0){
             this.vx=-this.vx;
             if(this.vy!=0){
-                this.vy=-300;
+                //this.vy=-300;
                 ls=stmp;
             }else{
                 this.x=this.r;
@@ -189,6 +214,9 @@ class ball{
             jp=0;
         }else if(this.y-this.r<=0&&this.vy<0){
             this.vy=-this.vy;
+        }else{
+            touch.top=0;
+            touch.bottom=0;
         }
         this.clr=HSLToRGB(Math.abs(this.y/cvs.height)*360,100,50);
     }
@@ -262,6 +290,11 @@ function draw(){
     ctx.lineTo(0,0);
     ctx.stroke();
     */
+    for(let i=0;i<walls.length;i++){
+        ctx.fillStyle=walls[i].clr;
+        ctx.fill(walls[i].path2d());
+    }
+
     for(let i=0;i<lines.length;i++){
         ctx.fillStyle=`rgb(255,255,255,${i/lines.length*0.3})`;
         ctx.beginPath();
@@ -296,22 +329,95 @@ function bk(){
     ctx.restore();
 }
 function jump(){
-    if(jp>=2)return 0;
+    if(jp>=maxjp)return 0;
     bal.vy=-500;
     jp+=1;
 }
+function hit(){
+    let a=[],b,c,min=-1,max=361;
+    for(let i=0;i<360;i+=10){
+        let x=bal.x+bal.r*Math.cos(DegToRad(i)),
+            y=bal.y+bal.r*Math.sin(DegToRad(i));
+        b=0;
+        for(let j=0;j<walls.length;j++){
+            if(ctx.isPointInPath(walls[j].path2d(),x,y)){
+                b=1;
+                c=i;
+                if(c>=180)c-=360;
+                a.push(i);
+                if(min==-1)min=i;
+                max=i;
+                break;
+            }
+        }
+    }
+    if(a.length==0)return 0;
+    b=0;
+    for(let i=0;i<a.length;i++){
+        let x=bal.x+bal.r*Math.cos(DegToRad(a[i])),
+            y=bal.y+bal.r*Math.sin(DegToRad(a[i]));
+        bl(x,y,2,"#eee");
+        if(max-min>180&&a[i]>180)a[i]-=360;
+        b+=a[i];
+    }
+    let d=b/a.length;
+    let x=bal.x+bal.r*Math.cos(DegToRad(d)),
+        y=bal.y+bal.r*Math.sin(DegToRad(d));
+    bl(x,y,2,"#f00");
+    let v=(bal.vx**2+bal.vy**2)**0.5;
+    let a1=(Math.atan2(-bal.vy,-bal.vx)+Math.PI*2)%(Math.PI*2),
+        b1=DegToRad(d),
+        c1=b1*2-a1;
+    bal.vx=v*Math.cos(c1);
+    bal.vy=v*Math.sin(c1);
+    if(Math.abs(d-90)<10){
+        jp=0;
+        bal.vy=0;
+    }
+}
 function start(){
     dm=1;
-    bal=new ball(100,50,0,0,30);
+    bal=new ball(100,500,0,0,30);
+    //let a=new wall(250,cvs.height-250,10,500,"#888");
+    let b=new wall(maxwidth/2,150,maxwidth,50,"#888");
+    let c=new wall(1000,cvs.height-250,100,500,"#888");
+    let d=new wall(maxwidth/2,cvs.height-150,maxwidth,50,"#888");
+    let e=new wall(3450,cvs.height-250,100,500,"#888");
+    let f=new wall(3200,cvs.height-250,100,500,"#888");
+    walls.push(b,c,d,e,f);
     bk();
     draw();
     setInterval(()=>{
         if(dm){
+            bk();
+            draw();
             //press 'd'
             if(stmp-rs>1/t/1.5&&key['d']&&keys[keys.length-1]=='d')bal.vx=250*(key['Shift']/3+1);
             //press 'a'
             if(stmp-ls>1/t/1.5&&key['a']&&keys[keys.length-1]=='a')bal.vx=-250*(key['Shift']/3+1);
+            
+            //hit();
             bal.move();
+            if(bal.x>cvs.width*0.6&&view.x<maxwidth-cvs.width){
+                for(let i=0;i<walls.length;i++){
+                    walls[i].x-=bal.vx*t;
+                }
+                for(let i=0;i<lines.length;i++){
+                    lines[i][0]-=bal.vx*t;
+                }
+                bal.x-=bal.vx*t;
+                view.x+=bal.vx*t;
+            }
+            if(bal.x<cvs.width*0.4&&view.x>0){
+                for(let i=0;i<walls.length;i++){
+                    walls[i].x-=bal.vx*t;
+                }
+                for(let i=0;i<lines.length;i++){
+                    lines[i][0]-=bal.vx*t;
+                }
+                bal.x-=bal.vx*t;
+                view.x+=bal.vx*t;
+            }
             
             if(stmp%3==0){
                 if(lines.length==0){
@@ -337,8 +443,6 @@ function start(){
                     break;
                 }
             }
-            bk();
-            draw();
         }
     },1000/fps);
 }
