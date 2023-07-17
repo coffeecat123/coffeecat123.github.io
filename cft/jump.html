@@ -70,16 +70,16 @@ input:checked + .slider:before {
     </head>
     <body>
         <div id="wl">
-            <canvas id="cvs" width="1000" height="800"></canvas>
+            <canvas id="cvs" width="1000" height="560"></canvas>
         </div>
         <script>
 var ty=$("#ty");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    bal,dm=0,t=1/90,interval,
+    bal,dm=0,t=1/120,interval,
     g=500,jp=0,dc=0,stmp=0,rs=0,ls=0,
-    lines=[],
+    lines=[],keys=[],
 key={
     'a':0,
     'd':0
@@ -95,9 +95,13 @@ document.onkeydown=(e)=>{
     }
     if(e.key=="d"){
         key['d']=1;
+        if(keys.indexOf('d')>=0)keys.splice(keys.indexOf('d'),1);
+        keys.push('d');
     }
     if(e.key=="a"){
         key['a']=1;
+        if(keys.indexOf('a')>=0)keys.splice(keys.indexOf('a'),1);
+        keys.push('a');
     }
     if(e.key=="p"){
         dm^=1;
@@ -106,9 +110,11 @@ document.onkeydown=(e)=>{
 document.onkeyup=(e)=>{
     if(e.key=="d"){
         key['d']=0;
+        if(keys.indexOf('d')>=0)keys.splice(keys.indexOf('d'),1);
     }
     if(e.key=="a"){
         key['a']=0;
+        if(keys.indexOf('a')>=0)keys.splice(keys.indexOf('a'),1);
     }
 };
 class ball{
@@ -152,10 +158,9 @@ class ball{
             this.y=cvs.height-this.r;
             jp=0;
             dc=0;
-        }/*else if(this.y-this.r<=0){
+        }else if(this.y-this.r<=0&&this.vy<0){
             this.vy=-this.vy;
-            this.y=this.r;
-        }*/
+        }
         this.clr=HSLToRGB(Math.abs(this.y/cvs.height)*360,100,50);
     }
     drawbl(){
@@ -274,14 +279,10 @@ function start(){
     draw();
     interval=setInterval(()=>{
         if(dm){
-            if(key['d']+key['a']==2){
-                key['d']=0;
-                key['a']=0;
-            }
             //press 'd'
-            if(stmp-rs>1/t/1.5&&key['d'])bal.vx=250;
+            if(stmp-rs>1/t/1.5&&key['d']&&keys[keys.length-1]=='d')bal.vx=250;
             //press 'a'
-            if(stmp-ls>1/t/1.5&&key['a'])bal.vx=-250;
+            if(stmp-ls>1/t/1.5&&key['a']&&keys[keys.length-1]=='a')bal.vx=-250;
             bal.move();
             
             if(stmp%3==0){
@@ -303,7 +304,7 @@ function start(){
             stmp++;
 
             for(let i=lines.length-1;i>=0;i--){
-                if(stmp-lines[i][2]>150){
+                if(stmp-lines[i][2]>1/t*1.5){
                     lines.splice(0,i);
                     break;
                 }
