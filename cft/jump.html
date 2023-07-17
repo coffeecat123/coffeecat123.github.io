@@ -70,7 +70,7 @@ input:checked + .slider:before {
     </head>
     <body>
         <div id="wl">
-            <canvas id="cvs" width="1000" height="560"></canvas>
+            <canvas id="cvs" width="1500" height="700"></canvas>
         </div>
         <script>
 var ty=$("#ty");
@@ -78,27 +78,27 @@ var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     bal,dm=0,t=1/120,
-    g=500,jp=0,dc=0,stmp=0,rs=0,ls=0,
+    g=500,jp=0,stmp=0,rs=0,ls=0,
     lines=[],keys=[],
 key={
     'a':0,
-    'd':0
+    'd':0,
+    'Shift':0
 };
 
-/*
-dc   left:-1  right:1  none:0
-
-*/
 document.onkeydown=(e)=>{
+    if(e.key=='Shift'){
+        key['Shift']=1;
+    }
     if(e.key==' '){
         if(dm)jump();
     }
-    if(e.key=="d"){
+    if(e.key=="d"||e.key=="D"){
         key['d']=1;
         if(keys.indexOf('d')>=0)keys.splice(keys.indexOf('d'),1);
         keys.push('d');
     }
-    if(e.key=="a"){
+    if(e.key=="a"||e.key=="A"){
         key['a']=1;
         if(keys.indexOf('a')>=0)keys.splice(keys.indexOf('a'),1);
         keys.push('a');
@@ -108,11 +108,14 @@ document.onkeydown=(e)=>{
     }
 };
 document.onkeyup=(e)=>{
-    if(e.key=="d"){
+    if(e.key=='Shift'){
+        key['Shift']=0;
+    }
+    if(e.key=="d"||e.key=="D"){
         key['d']=0;
         if(keys.indexOf('d')>=0)keys.splice(keys.indexOf('d'),1);
     }
-    if(e.key=="a"){
+    if(e.key=="a"||e.key=="A"){
         key['a']=0;
         if(keys.indexOf('a')>=0)keys.splice(keys.indexOf('a'),1);
     }
@@ -157,7 +160,6 @@ class ball{
             this.vy=0;
             this.y=cvs.height-this.r;
             jp=0;
-            dc=0;
         }else if(this.y-this.r<=0&&this.vy<0){
             this.vy=-this.vy;
         }
@@ -279,9 +281,9 @@ function start(){
     setInterval(()=>{
         if(dm){
             //press 'd'
-            if(stmp-rs>1/t/1.5&&key['d']&&keys[keys.length-1]=='d')bal.vx=250;
+            if(stmp-rs>1/t/1.5&&key['d']&&keys[keys.length-1]=='d')bal.vx=250*(key['Shift']/3+1);
             //press 'a'
-            if(stmp-ls>1/t/1.5&&key['a']&&keys[keys.length-1]=='a')bal.vx=-250;
+            if(stmp-ls>1/t/1.5&&key['a']&&keys[keys.length-1]=='a')bal.vx=-250*(key['Shift']/3+1);
             bal.move();
             
             if(stmp%3==0){
