@@ -83,14 +83,12 @@ var ti=cvs.width/cvs.offsetWidth,
     mouse_down=0,walls=[],
 touch={
     top:0,
-    bottom:0,
-    right:0,
-    left:0
+    bottom:0
 }
 view={
     x:0,
     y:0
-},maxwidth=3500,
+},maxwidth=2000,
 key={
     'a':0,
     'd':0,
@@ -159,16 +157,17 @@ cvs.onmousedown=(e)=>{
     }
 };
 class wall{
-    constructor(x,y,w,h,clr){
-        this.x=x;
-        this.y=y;
-        this.w=w;
-        this.h=h;
+    constructor(points,clr){
+        this.points=points;//[x,y]
         this.clr=clr;
     }
     path2d(){
         let a=new Path2D();
-        a.rect(this.x-this.w/2,this.y-this.h/2,this.w,this.h);
+        a.moveTo(this.points[0][0],this.points[1]);
+        for(let i=1;i<this.points.length;i++){
+            a.lineTo(this.points[i][0],this.points[i][1]);
+        }
+        a.lineTo(this.points[0][0],this.points[0][1]);
         return a;
     }
 }
@@ -189,6 +188,7 @@ class ball{
             this.vx=parseInt(Math.abs(this.vx)*0.999)*Math.sign(this.vx);
         if(this.vy==0&&key['a']==0&&key['d']==0)
             this.vx=parseInt(Math.abs(this.vx)*0.9)*Math.sign(this.vx);
+        /*
         if(this.x+this.r>=cvs.width&&this.vx>0){
             this.vx=-this.vx;
             if(this.vy!=0){
@@ -207,17 +207,20 @@ class ball{
                 this.x=this.r;
                 this.vx=0;
             }
-        }
+        }*/
+        /*
         if(this.y+this.r>=cvs.height-5&&this.vy>0){
             this.vy=0;
             this.y=cvs.height-this.r;
             jp=0;
+            touch.bottom=1;
         }else if(this.y-this.r<=0&&this.vy<0){
             this.vy=-this.vy;
+            touch.top=1;
         }else{
             touch.top=0;
             touch.bottom=0;
-        }
+        }*/
         this.clr=HSLToRGB(Math.abs(this.y/cvs.height)*360,100,50);
     }
     drawbl(){
@@ -308,7 +311,8 @@ function draw(){
     ctx.beginPath();
     ctx.moveTo(bal.x,bal.y);
     ctx.lineTo(bal.x+bal.vx*0.1,bal.y+bal.vy*0.1);
-    ctx.stroke();*//*
+    ctx.stroke();*/
+    /*
     if(lines.length>2){
         for(let i=2;i<lines.length;i++){
             ctx.strokeStyle=`rgb(255,255,255,${i/lines.length/1.5})`;
@@ -319,7 +323,8 @@ function draw(){
             ctx.lineTo(lines[i][0],lines[i][1]);
             ctx.stroke();
         }
-    }*/
+    }
+    */
 }
 function bk(){
     ctx.clearRect(0,0,cvs.width,cvs.height);
@@ -333,9 +338,9 @@ function jump(){
     bal.vy=-500;
     jp+=1;
 }
-function hit(){
-    let a=[],b,c,min=-1,max=361;
-    for(let i=0;i<360;i+=10){
+function hit(q){
+    let a=[],b,c,min=-1,max=361,stp=3;
+    for(let i=0;i<360;i+=stp){
         let x=bal.x+bal.r*Math.cos(DegToRad(i)),
             y=bal.y+bal.r*Math.sin(DegToRad(i));
         b=0;
@@ -351,40 +356,108 @@ function hit(){
             }
         }
     }
-    if(a.length==0)return 0;
+    if(q==1)return a.length;
+    if(bal.vy<0)touch.bottom=0;
+    if(a.length==0){
+        touch.bottom=0;
+        return 0;
+    }
     b=0;
     for(let i=0;i<a.length;i++){
         let x=bal.x+bal.r*Math.cos(DegToRad(a[i])),
             y=bal.y+bal.r*Math.sin(DegToRad(a[i]));
-        bl(x,y,2,"#eee");
+        //bl(x,y,2,"#eee");
         if(max-min>180&&a[i]>180)a[i]-=360;
         b+=a[i];
     }
-    let d=b/a.length;
+    let d=(b/a.length+360)%360;
+    //console.log(d);
+    let v=(bal.vx**2+bal.vy**2)**0.5;
+    if(a.length/(360/stp)>0.1){
+        while(hit(1)>0){
+            bal.x-=Math.cos(DegToRad(d));
+            bal.y-=Math.sin(DegToRad(d));
+        }
+    }
     let x=bal.x+bal.r*Math.cos(DegToRad(d)),
         y=bal.y+bal.r*Math.sin(DegToRad(d));
-    bl(x,y,2,"#f00");
-    let v=(bal.vx**2+bal.vy**2)**0.5;
+    //bl(x,y,2,"#f00");
     let a1=(Math.atan2(-bal.vy,-bal.vx)+Math.PI*2)%(Math.PI*2),
         b1=DegToRad(d),
         c1=b1*2-a1;
-    bal.vx=v*Math.cos(c1);
-    bal.vy=v*Math.sin(c1);
-    if(Math.abs(d-90)<10){
+    let vx=v*Math.cos(c1);
+    let vy=v*Math.sin(c1);
+    let bly=bal.vy;
+    if(Math.abs(d-90)<45&&bal.vy>0){
         jp=0;
         bal.vy=0;
+        touch.bottom=1;
     }
+    if(Math.abs(d-90)>45&&Math.abs(d-90)<90){
+        bly=vy*0.99;
+    }
+    //bal.vx=vx;
+    //bal.vy=vy;
+    if(touch.bottom==0)bal.vy=bly;
+    if(Math.abs(d-180)>170){
+        bal.vx=-2;
+    }
+    if(d>170&&d<190){
+        bal.vx=2;
+    }
+    if(d>250&&d<290){
+        bal.vy*=-0.5;
+    }
+}
+function focus_out(){
+    var  isShine = false;
+    setInterval(function() {
+        window.onfocus = function() {
+            isShine = false;
+        };
+        window.onblur = function() {
+            isShine = true;
+        };
+        // for IE
+        document.onfocusin = function() {
+            isShine = false;
+        };
+        document.onfocusout = function() {
+            isShine = true;
+        };
+        if (isShine == true) {
+            key['a']=0;
+            key['d']=0;
+            key['Shift']=0;
+            keys=[];
+        }
+    }, 800);
 }
 function start(){
     dm=1;
     bal=new ball(100,500,0,0,30);
-    //let a=new wall(250,cvs.height-250,10,500,"#888");
-    let b=new wall(maxwidth/2,150,maxwidth,50,"#888");
-    let c=new wall(1000,cvs.height-250,100,500,"#888");
-    let d=new wall(maxwidth/2,cvs.height-150,maxwidth,50,"#888");
-    let e=new wall(3450,cvs.height-250,100,500,"#888");
-    let f=new wall(3200,cvs.height-250,100,500,"#888");
-    walls.push(b,c,d,e,f);
+    let l=new wall([[0,0],
+                    [0,cvs.height],
+                    [-100,cvs.height],
+                    [-100,0]],"#888");
+    let u=new wall([[0,0],
+                    [0,-100],
+                    [maxwidth,-100],
+                    [maxwidth,0]],"#888");
+    let r=new wall([[maxwidth,0],
+                    [maxwidth,cvs.height],
+                    [maxwidth+100,cvs.height],
+                    [maxwidth+100,0]],"#888");
+    let d=new wall([[0,cvs.height+100],
+                    [0,cvs.height],
+                    [maxwidth,cvs.height],
+                    [maxwidth,cvs.height+100]],"#888");
+    let e=new wall([[1350,800],
+                    [1350,700],
+                    [500,700],
+                    [500,800]],"#888");
+    walls.push(l,r,u,d);//left right up down
+    walls.push(e);
     bk();
     draw();
     setInterval(()=>{
@@ -396,11 +469,13 @@ function start(){
             //press 'a'
             if(stmp-ls>1/t/1.5&&key['a']&&keys[keys.length-1]=='a')bal.vx=-250*(key['Shift']/3+1);
             
-            //hit();
+            hit();
             bal.move();
             if(bal.x>cvs.width*0.6&&view.x<maxwidth-cvs.width){
                 for(let i=0;i<walls.length;i++){
-                    walls[i].x-=bal.vx*t;
+                    for(let j=0;j<walls[i].points.length;j++){
+                        walls[i].points[j][0]-=bal.vx*t;
+                    }
                 }
                 for(let i=0;i<lines.length;i++){
                     lines[i][0]-=bal.vx*t;
@@ -410,7 +485,9 @@ function start(){
             }
             if(bal.x<cvs.width*0.4&&view.x>0){
                 for(let i=0;i<walls.length;i++){
-                    walls[i].x-=bal.vx*t;
+                    for(let j=0;j<walls[i].points.length;j++){
+                        walls[i].points[j][0]-=bal.vx*t;
+                    }
                 }
                 for(let i=0;i<lines.length;i++){
                     lines[i][0]-=bal.vx*t;
@@ -447,6 +524,7 @@ function start(){
     },1000/fps);
 }
 start();
+focus_out();
         </script>
     </body>
 </html>
