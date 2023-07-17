@@ -77,7 +77,7 @@ var ty=$("#ty");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    bal,dm=0,t=1/120,interval,
+    bal,dm=0,t=1/120,
     g=500,jp=0,dc=0,stmp=0,rs=0,ls=0,
     lines=[],keys=[],
 key={
@@ -272,12 +272,11 @@ function jump(){
     jp+=1;
 }
 function start(){
-    clearInterval(interval);
     dm=1;
     bal=new ball(100,50,0,0,30);
     bk();
     draw();
-    interval=setInterval(()=>{
+    setInterval(()=>{
         if(dm){
             //press 'd'
             if(stmp-rs>1/t/1.5&&key['d']&&keys[keys.length-1]=='d')bal.vx=250;
