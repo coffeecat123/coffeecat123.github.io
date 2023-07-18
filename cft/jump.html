@@ -130,7 +130,6 @@ document.onkeyup=(e)=>{
     }
 };
 cvs.onmousedown=(e)=>{
-    mouse_down=1;
     let x1=e.pageX,y1=e.pageY;
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
@@ -138,6 +137,7 @@ cvs.onmousedown=(e)=>{
     //console.log(x+view.x,y+view.y);
     if(ctx.isPointInPath(bal.path2d(),x,y)){
         dm=0;
+        mouse_down=1;
         document.addEventListener("mousemove",f1=(e1)=>{
             let x2=e1.pageX,y2=e1.pageY;
             let dx=(x2-x1)*ti,
