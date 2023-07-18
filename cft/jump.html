@@ -77,7 +77,7 @@ var ty=$("#ty");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    bal,dm=0,fps=120,t=1/fps,
+    bal,dm=0,fps=120,t=1/fps,interval,
     g=500,jp=0,maxjp=5,stmp=0,rs=0,ls=0,
     lines=[],keys=[],f1,f2,
     mouse_down=0,walls=[],
@@ -338,17 +338,13 @@ function jump(){
     bal.vy=-500;
     jp+=1;
 }
-function hit(q){
-    let a=[],b,c,min=-1,max=361,stp=3;
+function rnd(stp,x0,y0){
+    let a=[],min=-1,max=361;
     for(let i=0;i<360;i+=stp){
-        let x=bal.x+bal.r*Math.cos(DegToRad(i)),
-            y=bal.y+bal.r*Math.sin(DegToRad(i));
-        b=0;
+        let x=x0+bal.r*Math.cos(DegToRad(i)),
+            y=y0+bal.r*Math.sin(DegToRad(i));
         for(let j=0;j<walls.length;j++){
             if(ctx.isPointInPath(walls[j].path2d(),x,y)){
-                b=1;
-                c=i;
-                if(c>=180)c-=360;
                 a.push(i);
                 if(min==-1)min=i;
                 max=i;
@@ -356,58 +352,64 @@ function hit(q){
             }
         }
     }
-    if(q==1)return a.length;
+    return [a.slice(0,a.length),min,max];
+}
+function hit(q){
+    let a,b,min,max,stp=3,wal;
+    [a,min,max]=rnd(stp,bal.x,bal.y);
     if(bal.vy<0)touch.bottom=0;
     if(a.length==0){
         touch.bottom=0;
-        return 0;
+        return [0,0];
     }
     b=0;
     for(let i=0;i<a.length;i++){
         let x=bal.x+bal.r*Math.cos(DegToRad(a[i])),
             y=bal.y+bal.r*Math.sin(DegToRad(a[i]));
-        //bl(x,y,2,"#eee");
         if(max-min>180&&a[i]>180)a[i]-=360;
         b+=a[i];
     }
-    let d=(b/a.length+360)%360;
-    //console.log(d);
+    let d1=(b/a.length+360)%360,d2=(d1+180)%360;
+    let t1=rnd(stp,bal.x+10*Math.cos(DegToRad(d1)),bal.y+10*Math.sin(DegToRad(d1)))[0],
+        t2=rnd(stp,bal.x+10*Math.cos(DegToRad(d2)),bal.y+10*Math.sin(DegToRad(d2)))[0];
+    if(t1.length>t2.length)wal=d1;
+    else wal=d2;
+    if(q==1)return [wal,a.length];
+    
     let v=(bal.vx**2+bal.vy**2)**0.5;
-    if(a.length/(360/stp)>0.1){
-        while(hit(1)>0){
-            bal.x-=Math.cos(DegToRad(d));
-            bal.y-=Math.sin(DegToRad(d));
-        }
-    }
-    let x=bal.x+bal.r*Math.cos(DegToRad(d)),
-        y=bal.y+bal.r*Math.sin(DegToRad(d));
-    //bl(x,y,2,"#f00");
     let a1=(Math.atan2(-bal.vy,-bal.vx)+Math.PI*2)%(Math.PI*2),
-        b1=DegToRad(d),
+        b1=DegToRad(wal),
         c1=b1*2-a1;
     let vx=v*Math.cos(c1);
     let vy=v*Math.sin(c1);
-    let bly=bal.vy;
-    if(Math.abs(d-90)<45&&bal.vy>0){
+
+    if(a.length/(360/stp)>0.1){
+        for(let d=[wal,a.length];;){
+            bal.x-=Math.cos(DegToRad(d[0]));
+            bal.y-=Math.sin(DegToRad(d[0]));
+            bal.x-=Math.cos(DegToRad(d1));
+            bal.y-=Math.sin(DegToRad(d1));
+            d=hit(1);
+            if(d[1]==0)break;
+        }
+    }
+
+    if(Math.abs(wal-90)<45&&bal.vy>0){//bottom
         jp=0;
         bal.vy=0;
         touch.bottom=1;
     }
-    if(Math.abs(d-90)>45&&Math.abs(d-90)<90){
-        bly=vy*0.99;
+    if(Math.abs(wal-180)>170){//right
+        if(bal.vx>0)bal.vx=0;
     }
-    //bal.vx=vx;
-    //bal.vy=vy;
-    if(touch.bottom==0)bal.vy=bly;
-    if(Math.abs(d-180)>170){
-        bal.vx=-2;
+    if(wal>170&&wal<190){//left
+        if(bal.vx<0)bal.vx=0;
     }
-    if(d>170&&d<190){
-        bal.vx=2;
+    if(wal>190&&wal<350&&bal.vy<0){//top
+        bal.vx=vx*0.8;
+        bal.vy=vy*0.5;
     }
-    if(d>250&&d<290){
-        bal.vy*=-0.5;
-    }
+    return [0,0];
 }
 function focus_out(){
     var  isShine = false;
@@ -433,8 +435,26 @@ function focus_out(){
         }
     }, 800);
 }
+function view_move(dx,dy){
+    for(let i=0;i<walls.length;i++){
+        for(let j=0;j<walls[i].points.length;j++){
+            walls[i].points[j][0]+=dx;
+            walls[i].points[j][1]+=dy;
+        }
+    }
+    for(let i=0;i<lines.length;i++){
+        lines[i][0]+=dx;
+        lines[i][1]+=dy;
+    }
+    bal.x+=dx;
+    bal.y+=dy;
+    view.x-=dx;
+    view.y-=dy;
+}
 function start(){
+    clearInterval(interval);
     dm=1;
+    stmp=0;
     bal=new ball(100,500,0,0,30);
     let l=new wall([[0,0],
                     [0,cvs.height],
@@ -452,15 +472,19 @@ function start(){
                     [0,cvs.height],
                     [maxwidth,cvs.height],
                     [maxwidth,cvs.height+100]],"#888");
-    let e=new wall([[1350,800],
-                    [1350,700],
-                    [500,700],
-                    [500,800]],"#888");
-    walls.push(l,r,u,d);//left right up down
-    walls.push(e);
+    let e=new wall([[1350,1100],
+                    [1350,300],
+                    [500,1000],
+                    [500,1100]],"#888");
+    let f=new wall([[650,800],
+                    [650,300],
+                    [800,300],
+                    [700,800]],"#888");
+    walls=[l,r,u,d];//left right up down
+    walls.push(e,f);
     bk();
     draw();
-    setInterval(()=>{
+    interval=setInterval(()=>{
         if(dm){
             bk();
             draw();
@@ -470,30 +494,20 @@ function start(){
             if(stmp-ls>1/t/1.5&&key['a']&&keys[keys.length-1]=='a')bal.vx=-250*(key['Shift']/3+1);
             
             hit();
+            let x1=bal.x,y1=bal.y;
             bal.move();
+            let x2=bal.x,y2=bal.y;
+            let dx=x2-x1,dy=y2-y1;
+
             if(bal.x>cvs.width*0.6&&view.x<maxwidth-cvs.width){
-                for(let i=0;i<walls.length;i++){
-                    for(let j=0;j<walls[i].points.length;j++){
-                        walls[i].points[j][0]-=bal.vx*t;
-                    }
-                }
-                for(let i=0;i<lines.length;i++){
-                    lines[i][0]-=bal.vx*t;
-                }
-                bal.x-=bal.vx*t;
-                view.x+=bal.vx*t;
+                view_move(-dx,0);
+            }else if(bal.x<cvs.width*0.4&&view.x>0){
+                view_move(-dx,0);
             }
-            if(bal.x<cvs.width*0.4&&view.x>0){
-                for(let i=0;i<walls.length;i++){
-                    for(let j=0;j<walls[i].points.length;j++){
-                        walls[i].points[j][0]-=bal.vx*t;
-                    }
-                }
-                for(let i=0;i<lines.length;i++){
-                    lines[i][0]-=bal.vx*t;
-                }
-                bal.x-=bal.vx*t;
-                view.x+=bal.vx*t;
+            if(view.x+cvs.width>maxwidth){
+                view_move(view.x-(maxwidth-cvs.width),0);
+            }else if(view.x<0){
+                view_move(view.x,0);
             }
             
             if(stmp%3==0){
