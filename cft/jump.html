@@ -484,6 +484,10 @@ function start(){
     walls.push(e,f);
     bk();
     draw();
+    let last_time={
+        time:Date.now(),
+        stmp:0
+    };
     interval=setInterval(()=>{
         if(dm){
             bk();
@@ -508,6 +512,16 @@ function start(){
                 view_move(view.x-(maxwidth-cvs.width),0);
             }else if(view.x<0){
                 view_move(view.x,0);
+            }
+
+            let new_time={
+                time:Date.now(),
+                stmp:stmp
+            };
+            if(new_time.time-last_time.time>=1000){
+                //console.log((new_time.stmp-last_time.stmp)/(new_time.time-last_time.time)*1000);
+                last_time.time=new_time.time;
+                last_time.stmp=new_time.stmp;
             }
             
             if(stmp%3==0){
