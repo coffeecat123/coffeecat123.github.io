@@ -79,16 +79,20 @@ var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     bal,dm=0,fps=120,t=1/fps,interval,
     g=500,jp=0,maxjp=5,stmp=0,rs=0,ls=0,
-    lines=[],keys=[],f1,f2,
-    mouse_down=0,walls=[],
+    lines=[],keys=[],f1,f2,now_fps,
+    mouse_down=0,walls=[],pins=[],
 touch={
     top:0,
     bottom:0
+},
+live={
+    x:100,
+    y:500
 }
 view={
     x:0,
     y:0
-},maxwidth=2000,
+},maxwidth=2000,maxheight=1500,
 key={
     'a':0,
     'd':0,
@@ -115,6 +119,23 @@ document.onkeydown=(e)=>{
     if(e.key=="p"){
         if(mouse_down==0)dm^=1;
     }
+    if(e.key=="k"){
+        if(dm){
+            if(pins.length>0){
+                let a="";
+                for(let i=0;i<pins.length;i++){
+                    a+=`[${pins[i][0]},${pins[i][1]}],\n`;
+                    pins[i][0]-=view.x;
+                    pins[i][1]-=view.y;
+                }
+                a=a.substr(0,a.length-2);
+                console.log(a);
+                let b=new wall(pins,"#555");
+                walls.push(b);
+                pins=[];
+            }
+        }
+    }
 };
 document.onkeyup=(e)=>{
     if(e.key=='Shift'){
@@ -134,7 +155,7 @@ cvs.onmousedown=(e)=>{
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
     let now_dm=dm;
-    //console.log(x+view.x,y+view.y);
+    pins.push([x+view.x,cvs.height-y+view.y]);
     if(ctx.isPointInPath(bal.path2d(),x,y)){
         dm=0;
         mouse_down=1;
@@ -160,6 +181,9 @@ class wall{
     constructor(points,clr){
         this.points=points;//[x,y]
         this.clr=clr;
+        for(let i=0;i<points.length;i++){
+            this.points[i][1]=cvs.height-this.points[i][1];
+        }
     }
     path2d(){
         let a=new Path2D();
@@ -221,9 +245,10 @@ class ball{
             touch.top=0;
             touch.bottom=0;
         }*/
-        this.clr=HSLToRGB(Math.abs(this.y/cvs.height)*360,100,50);
+        this.clr=HSLToRGB(Math.abs((cvs.height-this.y+view.y)/maxheight-(view.x+this.x)/maxwidth)*360,100,50);
     }
     drawbl(){
+        this.clr=HSLToRGB(Math.abs((cvs.height-this.y+view.y)/maxheight-(view.x+this.x)/maxwidth)*360,100,50);
         bl(this.x,this.y,this.r,this.clr);
     }
     path2d(){
@@ -383,14 +408,21 @@ function hit(q){
     let vx=v*Math.cos(c1);
     let vy=v*Math.sin(c1);
 
+    let e=0;
     if(a.length/(360/stp)>0.1){
         for(let d=[wal,a.length];;){
             bal.x-=Math.cos(DegToRad(d[0]));
             bal.y-=Math.sin(DegToRad(d[0]));
             bal.x-=Math.cos(DegToRad(d1));
             bal.y-=Math.sin(DegToRad(d1));
+            e++;
             d=hit(1);
             if(d[1]==0)break;
+            if(e>=50){
+                bal.x=live.x;
+                bal.y=live.y;
+                break;
+            }
         }
     }
 
@@ -449,37 +481,38 @@ function view_move(dx,dy){
     bal.x+=dx;
     bal.y+=dy;
     view.x-=dx;
-    view.y-=dy;
+    view.y+=dy;
 }
 function start(){
     clearInterval(interval);
     dm=1;
     stmp=0;
-    bal=new ball(100,500,0,0,30);
+    bal=new ball(live.x,live.y,0,0,30);
     let l=new wall([[0,0],
-                    [0,cvs.height],
-                    [-100,cvs.height],
+                    [0,maxheight],
+                    [-100,maxheight],
                     [-100,0]],"#888");
-    let u=new wall([[0,0],
+    let r=new wall([[maxwidth,0],
+                    [maxwidth,maxheight],
+                    [maxwidth+100,maxheight],
+                    [maxwidth+100,0]],"#888");
+    let u=new wall([[0,maxheight+100],
+                    [0,maxheight],
+                    [maxwidth,maxheight],
+                    [maxwidth,maxheight+100]],"#888");
+    let d=new wall([[0,0],
                     [0,-100],
                     [maxwidth,-100],
                     [maxwidth,0]],"#888");
-    let r=new wall([[maxwidth,0],
-                    [maxwidth,cvs.height],
-                    [maxwidth+100,cvs.height],
-                    [maxwidth+100,0]],"#888");
-    let d=new wall([[0,cvs.height+100],
-                    [0,cvs.height],
-                    [maxwidth,cvs.height],
-                    [maxwidth,cvs.height+100]],"#888");
-    let e=new wall([[1350,1100],
-                    [1350,300],
-                    [500,1000],
-                    [500,1100]],"#888");
-    let f=new wall([[650,800],
-                    [650,300],
-                    [800,300],
-                    [700,800]],"#888");
+    let e=new wall([[1350,-100],
+                    [1350,700],
+                    [500,0],
+                    [500,-100]],"#888");
+    let f=new wall([[650,200],
+                    [650,700],
+                    [800,700],
+                    [700,200]],"#888");
+                    
     walls=[l,r,u,d];//left right up down
     walls.push(e,f);
     bk();
@@ -503,23 +536,35 @@ function start(){
             let x2=bal.x,y2=bal.y;
             let dx=x2-x1,dy=y2-y1;
 
+            //move view.x
             if(bal.x>cvs.width*0.6&&view.x<maxwidth-cvs.width){
                 view_move(-dx,0);
             }else if(bal.x<cvs.width*0.4&&view.x>0){
                 view_move(-dx,0);
             }
-            if(view.x+cvs.width>maxwidth){
+            if(view.x>maxwidth-cvs.width){
                 view_move(view.x-(maxwidth-cvs.width),0);
             }else if(view.x<0){
                 view_move(view.x,0);
+            }
+            //move view.y
+            if(bal.y<cvs.height*0.2&&view.y<maxheight-cvs.height){
+                view_move(0,-dy);
+            }else if(bal.y>cvs.height*0.3&&view.y>0){
+                view_move(0,-dy);
+            }
+            if(view.y>maxheight-cvs.height){
+                view_move(0,-view.y+(maxheight-cvs.height));
+            }else if(view.y<0){
+                view_move(0,-view.y);
             }
 
             let new_time={
                 time:Date.now(),
                 stmp:stmp
             };
-            if(new_time.time-last_time.time>=1000){
-                //console.log((new_time.stmp-last_time.stmp)/(new_time.time-last_time.time)*1000);
+            if(new_time.time-last_time.time>=500){
+                now_fps=(new_time.stmp-last_time.stmp)/(new_time.time-last_time.time)*1000;
                 last_time.time=new_time.time;
                 last_time.stmp=new_time.stmp;
             }
