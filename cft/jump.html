@@ -78,16 +78,19 @@ var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     bal,dm=0,fps=120,t=1/fps,interval,
-    g=500,jp=0,maxjp=5,stmp=0,rs=0,ls=0,
+    g=500,jp,maxjp,stmp,rs,ls,
     lines=[],keys=[],f1,f2,now_fps,
-    mouse_down=0,walls=[],pins=[],
+    mouse_down,walls=[],
+    pins=[],developer=1,mv=0,
 touch={
     top:0,
     bottom:0
 },
 live={
     x:100,
-    y:500
+    y:1200,
+    vx:0,
+    vy:700
 }
 view={
     x:0,
@@ -119,20 +122,30 @@ document.onkeydown=(e)=>{
     if(e.key=="p"){
         if(mouse_down==0)dm^=1;
     }
-    if(e.key=="k"){
-        if(dm){
-            if(pins.length>0){
-                let a="";
-                for(let i=0;i<pins.length;i++){
-                    a+=`[${pins[i][0]},${pins[i][1]}],\n`;
-                    pins[i][0]-=view.x;
-                    pins[i][1]-=view.y;
+    if(developer){
+        if(e.key=="k"){
+            if(dm==0){
+                if(pins.length>0){
+                    let a="";
+                    for(let i=0;i<pins.length;i++){
+                        a+=`[${pins[i][0]},${pins[i][1]}],`;
+                        pins[i][0]-=view.x;
+                        pins[i][1]-=view.y;
+                    }
+                    a=a.substr(0,a.length-1);
+                    console.log(a);
+                    let b=new wall(pins,"#555");
+                    walls.push(b);
+                    pins=[];
                 }
-                a=a.substr(0,a.length-2);
-                console.log(a);
-                let b=new wall(pins,"#555");
-                walls.push(b);
-                pins=[];
+            }
+        }
+        if(e.key=="c"){
+            mv^=1;
+            if(mv){
+                cvs.style.cursor="move";
+            }else{
+                cvs.style.cursor="";
             }
         }
     }
@@ -155,8 +168,8 @@ cvs.onmousedown=(e)=>{
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
     let now_dm=dm;
-    pins.push([x+view.x,cvs.height-y+view.y]);
-    if(ctx.isPointInPath(bal.path2d(),x,y)){
+    if(dm==0&&developer&&mv==0&&!ctx.isPointInPath(bal.path2d(),x,y))pins.push([x+view.x,cvs.height-y+view.y]);
+    if(ctx.isPointInPath(bal.path2d(),x,y)&&mv==0&&developer){
         dm=0;
         mouse_down=1;
         document.addEventListener("mousemove",f1=(e1)=>{
@@ -176,7 +189,36 @@ cvs.onmousedown=(e)=>{
             mouse_down=0;
         });
     }
+    if(now_dm==0&&mv&&developer){
+        mouse_down=1;
+        document.addEventListener("mousemove",f1=(e1)=>{
+            let x2=e1.pageX,y2=e1.pageY;
+            let dx=(x2-x1)*ti,
+                dy=(y2-y1)*ti;
+            x1=e1.pageX,y1=e1.pageY;
+            view_move(dx,dy);
+            bk();
+            draw();
+        });
+        document.addEventListener('mouseup',f2=()=>{
+            document.removeEventListener('mouseup',f2);
+            document.removeEventListener('mousemove',f1);
+            mouse_down=0;
+        });
+    }
 };
+class game{
+    constructor(maxjp,maxwidth,maxheight,x,y,vx,vy,ww){
+        this.maxjp=maxjp;
+        this.maxwidth=maxwidth;
+        this.maxheight=maxheight;
+        this.live={
+            x,y,
+            vx,vy
+        };
+        this.ww=ww;
+    }
+}
 class wall{
     constructor(points,clr){
         this.points=points;//[x,y]
@@ -419,8 +461,7 @@ function hit(q){
             d=hit(1);
             if(d[1]==0)break;
             if(e>=50){
-                bal.x=live.x;
-                bal.y=live.y;
+                res();
                 break;
             }
         }
@@ -482,12 +523,28 @@ function view_move(dx,dy){
     bal.y+=dy;
     view.x-=dx;
     view.y+=dy;
+    if(view.x>maxwidth-cvs.width){
+        view_move(view.x-(maxwidth-cvs.width),0);
+    }else if(view.x<0){
+        view_move(view.x,0);
+    }
+    if(view.y>maxheight-cvs.height){
+        view_move(0,-view.y+(maxheight-cvs.height));
+    }else if(view.y<0){
+        view_move(0,-view.y);
+    }
 }
-function start(){
+function res(){
+    view_move(view.x,-view.y);
+    view_move(-live.vx,live.vy);
+    bal=new ball(live.x-view.x,live.y-view.y,0,0,30);
+}
+function start(g){
     clearInterval(interval);
-    dm=1;
-    stmp=0;
-    bal=new ball(live.x,live.y,0,0,30);
+    maxwidth=g.maxwidth;
+    maxheight=g.maxheight;
+    jp=0;
+    maxjp=g.maxjp;
     let l=new wall([[0,0],
                     [0,maxheight],
                     [-100,maxheight],
@@ -504,27 +561,30 @@ function start(){
                     [0,-100],
                     [maxwidth,-100],
                     [maxwidth,0]],"#888");
-    let e=new wall([[1350,-100],
-                    [1350,700],
-                    [500,0],
-                    [500,-100]],"#888");
-    let f=new wall([[650,200],
-                    [650,700],
-                    [800,700],
-                    [700,200]],"#888");
                     
     walls=[l,r,u,d];//left right up down
-    walls.push(e,f);
-    bk();
-    draw();
+    for(let i=0;i<g.ww.length;i++){
+        walls.push(new wall(g.ww[i],"#888"));
+    }
+    dm=1;
+    rs=0;
+    ls=0;
+    stmp=0;
+    lines=[];
+    keys=[];
+    mouse_down=0;
+    bal=new ball(live.x,live.y,0,0,30);
     let last_time={
         time:Date.now(),
         stmp:0
     };
+    bk();
+    draw();
+    res();
     interval=setInterval(()=>{
+        bk();
+        draw();
         if(dm){
-            bk();
-            draw();
             //press 'd'
             if(stmp-rs>1/t/1.5&&key['d']&&keys[keys.length-1]=='d')bal.vx=250*(key['Shift']/3+1);
             //press 'a'
@@ -542,21 +602,11 @@ function start(){
             }else if(bal.x<cvs.width*0.4&&view.x>0){
                 view_move(-dx,0);
             }
-            if(view.x>maxwidth-cvs.width){
-                view_move(view.x-(maxwidth-cvs.width),0);
-            }else if(view.x<0){
-                view_move(view.x,0);
-            }
             //move view.y
             if(bal.y<cvs.height*0.2&&view.y<maxheight-cvs.height){
                 view_move(0,-dy);
             }else if(bal.y>cvs.height*0.3&&view.y>0){
                 view_move(0,-dy);
-            }
-            if(view.y>maxheight-cvs.height){
-                view_move(0,-view.y+(maxheight-cvs.height));
-            }else if(view.y<0){
-                view_move(0,-view.y);
             }
 
             let new_time={
@@ -596,8 +646,13 @@ function start(){
         }
     },1000/fps);
 }
-start();
 focus_out();
+start(new game(2,2000,3000,100,1200,0,700,
+    [[[54,218],[72,44],[380,62]],
+     [[732,570],[520,188],[1058,152],[1050,474]],
+     [[762,952],[320,760],[1026,656],[910,900]]
+    ]));
+
         </script>
     </body>
 </html>
