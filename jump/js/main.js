@@ -1,87 +1,12 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>?</title>
-        <style>
-body{
-    background: #000;
-}
-* {
-    font-family: "Comic Sans MS", 標楷體;
-}
-#cvs{
-    height: 500px;
-}
-#wl{
-    display: flex;
-    align-items: flex-start;
-}
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-input:checked + .slider {
-  background-color: #2196F3;
-}
-input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
-}
-input:checked + .slider:before {
-  -webkit-transform: translateX(26px);
-  -ms-transform: translateX(26px);
-  transform: translateX(26px);
-}
-.slider.round {
-  border-radius: 34px;
-}
-.slider.round:before {
-  border-radius: 50%;
-}
-        </style>
-    </head>
-    <body>
-        <div id="wl">
-            <canvas id="cvs" width="1500" height="1000"></canvas>
-        </div>
-        <script>
 var ty=$("#ty");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     bal,dm=0,fps=120,t=1/fps,interval,
-    g=500,jp,maxjp,stmp,rs,ls,
+    g=-500,jp,maxjp,stmp,
     lines=[],keys=[],f1,f2,now_fps,
-    mouse_down,walls=[],
-    pins=[],developer=0,mv=0,
+    mouse_down,walls=[],rr=1,lv=1,
+    pins=[],developer=1,mv,hide,select,
 touch={
     top:0,
     bottom:0
@@ -101,6 +26,23 @@ key={
     'd':0,
     'Shift':0
 };
+/*
+虛座標
+(0,maxheight) . .(maxwidth,maxheight)
+. . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . .
+(0,0) . . . . . .(maxwidth,0)
+
+畫面座標
+(0,0) . . . . . . .(cvs.width,0)
+. . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . .
+(0,cvs.height). . .(cvs.width,cvs.height)
+*/
 
 document.onkeydown=(e)=>{
     if(e.key=='Shift'){
@@ -121,16 +63,18 @@ document.onkeydown=(e)=>{
     }
     if(e.key=="p"){
         if(mouse_down==0)dm^=1;
+        if(dm&&developer)hide=0;
+    }
+    if(e.key=="h"){
+        if(dm==0&&developer)hide^=1;
     }
     if(developer){
-        if(e.key=="k"){
-            if(dm==0){
+        if(dm==0){
+            if(e.key=="k"){
                 if(pins.length>0){
                     let a="";
                     for(let i=0;i<pins.length;i++){
                         a+=`[${pins[i][0]},${pins[i][1]}],`;
-                        pins[i][0]-=view.x;
-                        pins[i][1]-=view.y;
                     }
                     a=a.substr(0,a.length-1);
                     console.log(a);
@@ -139,13 +83,9 @@ document.onkeydown=(e)=>{
                     pins=[];
                 }
             }
-        }
-        if(e.key=="c"){
-            mv^=1;
-            if(mv){
+            if(e.key=="c"){
+                mv=1;
                 cvs.style.cursor="move";
-            }else{
-                cvs.style.cursor="";
             }
         }
     }
@@ -162,189 +102,78 @@ document.onkeyup=(e)=>{
         key['a']=0;
         if(keys.indexOf('a')>=0)keys.splice(keys.indexOf('a'),1);
     }
+    if(e.key=="c"&&developer){
+        mv=0;
+        cvs.style.cursor="";
+    }
 };
 cvs.onmousedown=(e)=>{
-    let x1=e.pageX,y1=e.pageY;
+    let x1=xc_a(e.pageX),y1=yc_a(e.pageY);
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
-    let now_dm=dm;
-    if(dm==0&&developer&&mv==0&&!ctx.isPointInPath(bal.path2d(),x,y))pins.push([x+view.x,cvs.height-y+view.y]);
-    if(ctx.isPointInPath(bal.path2d(),x,y)&&mv==0&&developer){
-        dm=0;
+    if(dm)return;
+    if(mouse_down)return;
+    if(developer==0)return;
+    if(hide==0&&mv==0&&ctx.isPointInPath(bal.path2d(),x,y)){
         mouse_down=1;
+        pins=[];
         document.addEventListener("mousemove",f1=(e1)=>{
-            let x2=e1.pageX,y2=e1.pageY;
+            let x2=xc_a(e1.pageX),y2=yc_a(e1.pageY);
             let dx=(x2-x1)*ti,
                 dy=(y2-y1)*ti;
-            x1=e1.pageX,y1=e1.pageY;
+            x1=x2,y1=y2;
             bal.x+=dx;
             bal.y+=dy;
-            bk();
-            draw();
         });
         document.addEventListener('mouseup',f2=()=>{
             document.removeEventListener('mouseup',f2);
             document.removeEventListener('mousemove',f1);
-            dm=now_dm;
             mouse_down=0;
         });
+        return;
     }
-    if(now_dm==0&&mv&&developer){
+    if(mv){
         mouse_down=1;
+        pins=[];
         document.addEventListener("mousemove",f1=(e1)=>{
-            let x2=e1.pageX,y2=e1.pageY;
-            let dx=(x2-x1)*ti,
-                dy=(y2-y1)*ti;
-            x1=e1.pageX,y1=e1.pageY;
-            view_move(dx,dy);
-            bk();
-            draw();
+            let x2=xc_a(e1.pageX),y2=yc_a(e1.pageY);
+            let dx=x2-x1,
+                dy=y2-y1;
+            view_move(-dx,-dy);
         });
         document.addEventListener('mouseup',f2=()=>{
             document.removeEventListener('mouseup',f2);
             document.removeEventListener('mousemove',f1);
             mouse_down=0;
         });
+        return;
     }
+    pins.push([xc_a(x),yc_a(y)]);
 };
-class game{
-    constructor(maxjp,maxwidth,maxheight,x,y,vx,vy,ww){
-        this.maxjp=maxjp;
-        this.maxwidth=maxwidth;
-        this.maxheight=maxheight;
-        this.live={
-            x,y,
-            vx,vy
-        };
-        this.ww=ww;
-    }
-}
-class wall{
-    constructor(points,clr){
-        this.points=points;//[x,y]
-        this.clr=clr;
-        for(let i=0;i<points.length;i++){
-            this.points[i][1]=cvs.height-this.points[i][1];
-        }
-    }
-    path2d(){
-        let a=new Path2D();
-        a.moveTo(this.points[0][0],this.points[1]);
-        for(let i=1;i<this.points.length;i++){
-            a.lineTo(this.points[i][0],this.points[i][1]);
-        }
-        a.lineTo(this.points[0][0],this.points[0][1]);
-        return a;
-    }
-}
-class ball{
-    constructor(x,y,vx,vy,r){
-        this.x=x;
-        this.y=y;
-        this.vx=vx;
-        this.vy=vy;
-        this.r=r;
-        this.clr="#f00";
-    }
-    move(){
-        if(!touch.bottom)this.vy+=g*t;
-        this.x+=this.vx*t;
-        this.y+=this.vy*t;
-        if(key['a']==0&&key['d']==0)
-            this.vx=parseInt(Math.abs(this.vx)*0.999)*Math.sign(this.vx);
-        if(this.vy==0&&key['a']==0&&key['d']==0)
-            this.vx=parseInt(Math.abs(this.vx)*0.9)*Math.sign(this.vx);
-        /*
-        if(this.x+this.r>=cvs.width&&this.vx>0){
-            this.vx=-this.vx;
-            if(this.vy!=0){
-                //this.vy=-300;
-                rs=stmp;
-            }else{
-                this.x=cvs.width-this.r;
-                this.vx=0;
-            }
-        }else if(this.x-this.r<=0&&this.vx<0){
-            this.vx=-this.vx;
-            if(this.vy!=0){
-                //this.vy=-300;
-                ls=stmp;
-            }else{
-                this.x=this.r;
-                this.vx=0;
-            }
-        }*/
-        /*
-        if(this.y+this.r>=cvs.height-5&&this.vy>0){
-            this.vy=0;
-            this.y=cvs.height-this.r;
-            jp=0;
-            touch.bottom=1;
-        }else if(this.y-this.r<=0&&this.vy<0){
-            this.vy=-this.vy;
-            touch.top=1;
-        }else{
-            touch.top=0;
-            touch.bottom=0;
-        }*/
-        this.clr=HSLToRGB(Math.abs((cvs.height-this.y+view.y)/maxheight-(view.x+this.x)/maxwidth)*360,100,50);
-    }
-    drawbl(){
-        this.clr=HSLToRGB(Math.abs((cvs.height-this.y+view.y)/maxheight-(view.x+this.x)/maxwidth)*360,100,50);
-        bl(this.x,this.y,this.r,this.clr);
-    }
-    path2d(){
-        let a=new Path2D();
-        a.arc(this.x,this.y,this.r,0,2*Math.PI);
-        return a;
-    }
-}
+cvs.onwheel=(e)=>{
+    return ;
+    if(e.ctrlKey)return;
+    if(dm)return;
+    if(developer==0)return;
+    let a=e.wheelDeltaY,
+        x=e.offsetX*ti,
+        y=e.offsetY*ti,
+        b=rr,
+        r_=0.2;
+    rr+=r_*(a>0)*2-r_;
+    if(rr>2)rr=2;
+    if(rr<r_)rr=r_;
+    let c=rr/b,d=1-c;
+    console.log(c,d,view.x*c+x*d,view.y*c+y*d);
+    view_move(view.x*c+x*d,view.y*c+y*d);
+};
+
 function bl(x,y,r,clr){
     ctx.fillStyle=clr;
     ctx.beginPath();
     ctx.arc(x,y,r,0,2*Math.PI);
     ctx.fill();
 };
-function $(el){
-    return document.querySelector(el);
-}
-function DegToRad(a){
-    return a*Math.PI/180;
-}
-function random(a,b){
-    return parseInt(Math.random()*(b-a+1))+a;
-}
-function HSLToRGB(h,s,l) {
-  s/=100;
-  l/=100;
-  let c=(1-Math.abs(2*l-1))*s,
-      x=c*(1-Math.abs((h/60)%2-1)),
-      m=l-c/2,
-      r=0,
-      g=0,
-      b=0;
-  if (0 <= h && h < 60) {
-    r = c; g = x; b = 0;  
-  } else if (60 <= h && h < 120) {
-    r = x; g = c; b = 0;
-  } else if (120 <= h && h < 180) {
-    r = 0; g = c; b = x;
-  } else if (180 <= h && h < 240) {
-    r = 0; g = x; b = c;
-  } else if (240 <= h && h < 300) {
-    r = x; g = 0; b = c;
-  } else if (300 <= h && h < 360) {
-    r = c; g = 0; b = x;
-  }
-  r = Math.round((r + m) * 255);
-  g = Math.round((g + m) * 255);
-  b = Math.round((b + m) * 255);
-
-  return "rgb(" + r + "," + g + "," + b + ")";
-}
-function distance(x1,y1,x2,y2){
-    return ((x1-x2)**2+(y1-y2)**2)**0.5;
-}
 function draw(){
     /*
     let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
@@ -365,13 +194,15 @@ function draw(){
         ctx.fill(walls[i].path2d());
     }
 
-    for(let i=0;i<lines.length;i++){
-        ctx.fillStyle=`rgb(255,255,255,${i/lines.length*0.3})`;
-        ctx.beginPath();
-        ctx.arc(lines[i][0],lines[i][1],bal.r*i/lines.length,0,2*Math.PI);
-        ctx.fill();
+    if(hide==0){
+        for(let i=0;i<lines.length;i++){
+            ctx.fillStyle=`rgb(255,255,255,${i/lines.length*0.3})`;
+            ctx.beginPath();
+            ctx.arc(xa_c(lines[i][0]),ya_c(lines[i][1]),bal.r*i/lines.length,0,2*Math.PI);
+            ctx.fill();
+        }
+        bal.drawbl();
     }
-    bal.drawbl();
     /*
     ctx.strokeStyle=HSLToRGB((Math.abs(bal.y/cvs.height)*360+180)%360,100,50);;
     ctx.lineWidth=2;
@@ -402,14 +233,14 @@ function bk(){
 }
 function jump(){
     if(jp>=maxjp)return 0;
-    bal.vy=-500;
+    bal.vy=500;
     jp+=1;
 }
 function rnd(stp,x0,y0){
     let a=[],min=-1,max=361;
     for(let i=0;i<360;i+=stp){
-        let x=x0+bal.r*Math.cos(DegToRad(i)),
-            y=y0+bal.r*Math.sin(DegToRad(i));
+        let x=xa_c(x0+bal.r*Math.cos(DegToRad(i))),
+            y=ya_c(y0+bal.r*Math.sin(DegToRad(i)));
         for(let j=0;j<walls.length;j++){
             if(ctx.isPointInPath(walls[j].path2d(),x,y)){
                 a.push(i);
@@ -424,15 +255,13 @@ function rnd(stp,x0,y0){
 function hit(q){
     let a,b,min,max,stp=3,wal;
     [a,min,max]=rnd(stp,bal.x,bal.y);
-    if(bal.vy<0)touch.bottom=0;
+    if(bal.vy>0)touch.bottom=0;
     if(a.length==0){
         touch.bottom=0;
         return [0,0];
     }
     b=0;
     for(let i=0;i<a.length;i++){
-        let x=bal.x+bal.r*Math.cos(DegToRad(a[i])),
-            y=bal.y+bal.r*Math.sin(DegToRad(a[i]));
         if(max-min>180&&a[i]>180)a[i]-=360;
         b+=a[i];
     }
@@ -460,14 +289,14 @@ function hit(q){
             e++;
             d=hit(1);
             if(d[1]==0)break;
-            if(e>=50){
+            if(e>=100){
                 res();
                 break;
             }
         }
     }
 
-    if(Math.abs(wal-90)<45&&bal.vy>0){//bottom
+    if(Math.abs(wal-270)<45&&bal.vy<0){//bottom
         jp=0;
         bal.vy=0;
         touch.bottom=1;
@@ -475,10 +304,10 @@ function hit(q){
     if(Math.abs(wal-180)>170){//right
         if(bal.vx>0)bal.vx=0;
     }
-    if(wal>170&&wal<190){//left
+    if(Math.abs(wal-180)<10){//left
         if(bal.vx<0)bal.vx=0;
     }
-    if(wal>190&&wal<350&&bal.vy<0){//top
+    if(Math.abs(wal-90)<80&&bal.vy>0){//top
         bal.vx=vx*0.8;
         bal.vy=vy*0.5;
     }
@@ -509,42 +338,32 @@ function focus_out(){
     }, 800);
 }
 function view_move(dx,dy){
-    for(let i=0;i<walls.length;i++){
-        for(let j=0;j<walls[i].points.length;j++){
-            walls[i].points[j][0]+=dx;
-            walls[i].points[j][1]+=dy;
-        }
-    }
-    for(let i=0;i<lines.length;i++){
-        lines[i][0]+=dx;
-        lines[i][1]+=dy;
-    }
-    bal.x+=dx;
-    bal.y+=dy;
-    view.x-=dx;
+    view.x+=dx;
     view.y+=dy;
     if(view.x>maxwidth-cvs.width){
-        view_move(view.x-(maxwidth-cvs.width),0);
+        view.x=maxwidth-cvs.width;
     }else if(view.x<0){
-        view_move(view.x,0);
+        view.x=0;
     }
     if(view.y>maxheight-cvs.height){
-        view_move(0,-view.y+(maxheight-cvs.height));
+        view.y=maxheight-cvs.height;
     }else if(view.y<0){
-        view_move(0,-view.y);
+        view.y=0;
     }
 }
 function res(){
-    view_move(view.x,-view.y);
-    view_move(-live.vx,live.vy);
+    view_move(-view.x,-view.y);
+    view_move(live.vx,-live.vy);
     bal=new ball(live.x-view.x,live.y-view.y,0,0,30);
 }
-function start(g){
+function start(game){
     clearInterval(interval);
-    maxwidth=g.maxwidth;
-    maxheight=g.maxheight;
+    maxwidth=game.maxwidth;
+    maxheight=game.maxheight;
+    hide=0;
+    mv=0;
     jp=0;
-    maxjp=g.maxjp;
+    maxjp=game.maxjp;
     let l=new wall([[0,0],
                     [0,maxheight],
                     [-100,maxheight],
@@ -563,32 +382,31 @@ function start(g){
                     [maxwidth,0]],"#888");
                     
     walls=[l,r,u,d];//left right up down
-    for(let i=0;i<g.ww.length;i++){
-        walls.push(new wall(g.ww[i],"#888"));
+    for(let i=0;i<game.ww.length;i++){
+        walls.push(new wall(game.ww[i],"#888"));
     }
     dm=1;
-    rs=0;
-    ls=0;
     stmp=0;
     lines=[];
     keys=[];
     mouse_down=0;
-    bal=new ball(live.x,live.y,0,0,30);
+    live.x=game.live.x;
+    live.y=game.live.y;
+    view.x=0;
+    view.y=0;
     let last_time={
         time:Date.now(),
         stmp:0
     };
-    bk();
-    draw();
     res();
     interval=setInterval(()=>{
         bk();
         draw();
         if(dm){
             //press 'd'
-            if(stmp-rs>1/t/1.5&&key['d']&&keys[keys.length-1]=='d')bal.vx=250*(key['Shift']/3+1);
+            if(key['d']&&keys[keys.length-1]=='d')bal.vx=250*(key['Shift']/3+1);
             //press 'a'
-            if(stmp-ls>1/t/1.5&&key['a']&&keys[keys.length-1]=='a')bal.vx=-250*(key['Shift']/3+1);
+            if(key['a']&&keys[keys.length-1]=='a')bal.vx=-250*(key['Shift']/3+1);
             
             hit();
             let x1=bal.x,y1=bal.y;
@@ -597,16 +415,16 @@ function start(g){
             let dx=x2-x1,dy=y2-y1;
 
             //move view.x
-            if(bal.x>cvs.width*0.6&&view.x<maxwidth-cvs.width){
-                view_move(-dx,0);
-            }else if(bal.x<cvs.width*0.4&&view.x>0){
-                view_move(-dx,0);
+            if(xa_c(bal.x)>cvs.width*0.6&&view.x<maxwidth-cvs.width){
+                view_move(dx,0);
+            }else if(xa_c(bal.x)<cvs.width*0.4&&view.x>0){
+                view_move(dx,0);
             }
             //move view.y
-            if(bal.y<cvs.height*0.2&&view.y<maxheight-cvs.height){
-                view_move(0,-dy);
-            }else if(bal.y>cvs.height*0.3&&view.y>0){
-                view_move(0,-dy);
+            if(ya_c(bal.y)<cvs.height*0.2&&view.y<maxheight-cvs.height){
+                view_move(0,dy);
+            }else if(ya_c(bal.y)>cvs.height*0.3&&view.y>0){
+                view_move(0,dy);
             }
 
             let new_time={
@@ -646,13 +464,17 @@ function start(g){
         }
     },1000/fps);
 }
+function xa_c(x){//虛座標->畫面座標
+    return x-view.x;
+}
+function ya_c(y){
+    return cvs.height+view.y-y;
+}
+function xc_a(x){//畫面座標->虛座標
+    return x+view.x;
+}
+function yc_a(y){
+    return cvs.height+view.y-y;
+}
 focus_out();
-start(new game(2,2000,3000,100,1200,0,700,
-    [[[54,218],[72,44],[380,62]],
-     [[732,570],[520,188],[1058,152],[1050,474]],
-     [[762,952],[320,760],[1026,656],[910,900]]
-    ]));
-
-        </script>
-    </body>
-</html>
+start(lvs[lv]);
