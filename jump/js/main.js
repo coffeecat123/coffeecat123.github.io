@@ -1,11 +1,12 @@
 var ty=$("#ty");
+var inff=document.querySelector("#inff");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     bal,dm=0,fps=120,t=1/fps,interval,
-    g=-500,jp,maxjp,stmp,lv=1,
+    g=-500,jp,maxjp,stmp,lv=1,infhd=1,
     lines=[],keys=[],f1,f2,now_fps,
-    mouse_down,walls=[],rr,rx,ry,ex,ey,
+    mouse_down,walls=[],rr,ex,ey,
     pins=[],developer=1,mv,hide,select,shi
 touch={
     top:0,
@@ -43,12 +44,31 @@ key={
 . . . . . . . . . . . . . . .
 (0,cvs.height). . .(cvs.width,cvs.height)
 */
-
+if(developer){
+    inff.innerText+=`
+z: copy all walls
+c: move
+k: build
+l: kill dot
+delete: delete wall`;
+}
+function inf(){
+    if(infhd){
+        inff.style.display="block";
+    }
+    else{
+        inff.style.display="none";
+    }
+    infhd^=1;
+}
 document.onkeydown=(e)=>{
+    if(e.key==" "){
+        e.preventDefault();
+    }
     if(e.key=='Shift'){
         key['Shift']=1;
     }
-    if(e.key==' '){
+    if(e.key==' '||e.key=='w'){
         if(dm)jump();
     }
     if(e.key=="d"||e.key=="D"){
@@ -63,30 +83,61 @@ document.onkeydown=(e)=>{
     }
     if(e.key=="p"){
         if(mouse_down==0)dm^=1;
-        if(dm&&developer)hide=0;
+        if(dm){
+            hide=0;
+            select=-1;
+            shi=-1;
+            pins=[];
+        }
     }
     if(e.key=="h"){
         if(dm==0&&developer)hide^=1;
     }
     if(developer){
         if(dm==0){
+            if(e.key=="z"){
+                let a="[\n";
+                for(let i=4;i<walls.length;i++){
+                    a+="[";
+                    for(let j=0;j<walls[i].points.length;j++){
+                        a+=`[${walls[i].points[j][0]},${walls[i].points[j][1]}],`;
+                    }
+                    a=a.substring(0,a.length-1);
+                    a+="],\n";
+                }
+                a=a.substring(0,a.length-2);
+                a+="\n]";
+                console.log(a);
+                navigator.clipboard.writeText(a);
+            }
+            if(e.key=="l"){
+                if(pins.length>0){
+                    pins.pop();
+                }
+            }
             if(e.key=="k"){
-                if(pins.length>0&&select==-1){
+                if(pins.length>0){
                     let a="";
-                    for(let i=0;i<pins.length;i++){
+                    for(let i=4;i<pins.length;i++){
                         a+=`[${pins[i][0]},${pins[i][1]}],`;
                     }
                     a=a.substring(0,a.length-1);
-                    console.log(a);
                     let b=new wall(pins,"#555");
                     walls.push(b);
                     pins=[];
                 }
             }
             if(e.key=="c"){
-                if(select==-1&&mouse_down==0){
+                if(mouse_down==0){
+                    shi=-1;
                     mv=1;
                     cvs.style.cursor="move";
+                }
+            }
+            if(e.key=="Delete"){
+                if(select!=-1&&mouse_down==0){
+                    walls.splice(select,1);
+                    select=-1;
                 }
             }
         }
@@ -105,19 +156,31 @@ document.onkeyup=(e)=>{
         if(keys.indexOf('a')>=0)keys.splice(keys.indexOf('a'),1);
     }
     if(e.key=="c"&&developer){
-        if(select==-1&&mouse_down==0){
+        if(mouse_down==0){
             mv=0;
             cvs.style.cursor="";
         }
     }
 };
+document.addEventListener('contextmenu',(e)=>{
+    if(dm)return;
+    if(developer==0)return;
+    e.preventDefault();
+});
 cvs.onmousedown=(e)=>{
+    e.preventDefault();
+    e.stopPropagation();
     let x1=xc_a(e.pageX*ti),y1=yc_a(e.pageY*ti);
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
     if(dm)return;
     if(mouse_down)return;
     if(developer==0)return;
+    if(e.button==1){
+        rr=1;
+        res();
+        return;
+    }
     if(hide==0&&mv==0&&ctx.isPointInPath(bal.path2d(),x,y)){
         pins=[];
         mouse_down=1;
@@ -158,96 +221,48 @@ cvs.onmousedown=(e)=>{
         return;
     }
     if(mv==0){
-        if(select==-1){
-            let a=0;
-            for(let i=walls.length-1;i>=0;i--){
-                if(ctx.isPointInPath(walls[i].path2d(),x,y)){
-                    select=i;
-                    shi=-1;
-                    a=1;
-                    cvs.style.cursor="grab";
-                    break;
-                }
+        select=-1;
+        let a=0;
+        for(let i=walls.length-1;i>=4;i--){
+            if(ctx.isPointInPath(walls[i].path2d(),x,y)){
+                select=i;
+                shi=-1;
+                a=1;
+                cvs.style.cursor="grab";
+                break;
             }
-            if(a){
-                mouse_down=1;
-                cvs.style.cursor="grabbing";
-                document.addEventListener("mousemove",f1=(e1)=>{
-                    let x2=xc_a(e1.pageX*ti),y2=yc_a(e1.pageY*ti);
-                    let dx=x2-x1,
-                        dy=y2-y1;
-                    x1=x2,y1=y2;
-                    for(let i=0;i<walls[select].points.length;i++){
-                        walls[select].points[i][0]+=dx;
-                        walls[select].points[i][1]+=dy;
-                    }
-                });
-                document.addEventListener('mouseup',f2=()=>{
-                    document.removeEventListener('mouseup',f2);
-                    document.removeEventListener('mousemove',f1);
-                    mouse_down=0;
-                    cvs.style.cursor="grab";
-                });
-                return;
-            }
-        }else{
-            if(!ctx.isPointInPath(walls[select].path2d(),x,y)){
-                select=-1;
-                let a=0;
-                for(let i=walls.length-1;i>=0;i--){
-                    if(ctx.isPointInPath(walls[i].path2d(),x,y)){
-                        select=i;
-                        shi=-1;
-                        a=1;
-                        cvs.style.cursor="grab";
-                        break;
-                    }
+        }
+        if(a){
+            mouse_down=1;
+            cvs.style.cursor="grabbing";
+            if(e.button==2){
+                let a="";
+                for(let i=4;i<walls[select].points.length;i++){
+                    a+=`[${walls[select].points[i][0]},${walls[select].points[i][1]}],`;
                 }
-                if(a){
-                    mouse_down=1;
-                    cvs.style.cursor="grabbing";
-                    document.addEventListener("mousemove",f1=(e1)=>{
-                        let x2=xc_a(e1.pageX*ti),y2=yc_a(e1.pageY*ti);
-                        let dx=x2-x1,
-                            dy=y2-y1;
-                        x1=x2,y1=y2;
-                        for(let i=0;i<walls[select].points.length;i++){
-                            walls[select].points[i][0]+=dx;
-                            walls[select].points[i][1]+=dy;
-                        }
-                    });
-                    document.addEventListener('mouseup',f2=()=>{
-                        document.removeEventListener('mouseup',f2);
-                        document.removeEventListener('mousemove',f1);
-                        mouse_down=0;
-                        cvs.style.cursor="grab";
-                    });
-                    return;
-                }
-            }else{
-                mouse_down=1;
-                cvs.style.cursor="grabbing";
-                document.addEventListener("mousemove",f1=(e1)=>{
-                    let x2=xc_a(e1.pageX*ti),y2=yc_a(e1.pageY*ti);
-                    let dx=x2-x1,
-                        dy=y2-y1;
-                    x1=x2,y1=y2;
-                    for(let i=0;i<walls[select].points.length;i++){
-                        walls[select].points[i][0]+=dx;
-                        walls[select].points[i][1]+=dy;
-                    }
-                });
-                document.addEventListener('mouseup',f2=()=>{
-                    document.removeEventListener('mouseup',f2);
-                    document.removeEventListener('mousemove',f1);
-                    mouse_down=0;
-                    cvs.style.cursor="grab";
-                });
+                a=a.substring(0,a.length-1);
+                console.log(a);
             }
+            document.addEventListener("mousemove",f1=(e1)=>{
+                let x2=xc_a(e1.pageX*ti),y2=yc_a(e1.pageY*ti);
+                let dx=x2-x1,
+                    dy=y2-y1;
+                x1=x2,y1=y2;
+                for(let i=0;i<walls[select].points.length;i++){
+                    walls[select].points[i][0]+=dx;
+                    walls[select].points[i][1]+=dy;
+                }
+            });
+            document.addEventListener('mouseup',f2=()=>{
+                document.removeEventListener('mouseup',f2);
+                document.removeEventListener('mousemove',f1);
+                mouse_down=0;
+                cvs.style.cursor="grab";
+            });
             return;
         }
     }
-    pins.push([xc_a(x),yc_a(y)]);
+    pins.push([parseInt(xc_a(x)),parseInt(yc_a(y))]);
 };
 cvs.onwheel=(e)=>{
     //return ;
@@ -284,7 +299,7 @@ cvs.onmousemove=(e)=>{
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
     let a=0;
-    for(let i=walls.length-1;i>=0;i--){
+    for(let i=walls.length-1;i>=4;i--){
         if(ctx.isPointInPath(walls[i].path2d(),x,y)){
             if(i!=select)shi=i;
             else shi=-1;
@@ -323,17 +338,21 @@ function draw(){
         if(i==select){
             ctx.save();
             ctx.strokeStyle="#08f";
-            ctx.lineWidth=7;
+            ctx.lineWidth=7*rr;
             ctx.stroke(walls[i].path2d());
             ctx.restore();
         }
         if(i==shi){
             ctx.save();
             ctx.strokeStyle="#f80";
-            ctx.lineWidth=7;
+            ctx.lineWidth=7*rr;
             ctx.stroke(walls[i].path2d());
             ctx.restore();
         }
+    }
+
+    for(let i=0;i<pins.length;i++){
+        bl(xa_c(pins[i][0]),ya_c(pins[i][1]),bal.r*rr/5,"#f00");
     }
 
     if(hide==0){
@@ -498,6 +517,9 @@ function view_move(dx,dy){
     }
 }
 function res(){
+    rr=1;
+    ex=0;
+    ey=0;
     view_move(-view.x,-view.y);
     view_move(live.vx,-live.vy);
     bal=new ball(live.x-view.x,live.y-view.y,0,0,30);
@@ -508,8 +530,6 @@ function start(game){
     maxheight=game.maxheight;
     hide=0;
     mv=0;
-    rx=0;
-    ry=0;
     ex=0;
     ey=0;
     rr=1;
@@ -561,8 +581,8 @@ function start(game){
             //press 'a'
             if(key['a']&&keys[keys.length-1]=='a')bal.vx=-250*(key['Shift']/3+1);
             
-            hit();
             let x1=bal.x,y1=bal.y;
+            hit();
             bal.move();
             let x2=bal.x,y2=bal.y;
             let dx=x2-x1,dy=y2-y1;
@@ -624,10 +644,10 @@ function ya_c(y){
     return cvs.height+(view.y-y)*rr;
 }
 function xc_a(x){//畫面座標->虛座標
-    return x/rr+view.x+rx;
+    return x/rr+view.x;
 }
 function yc_a(y){
-    return (cvs.height-y)/rr+view.y+ry;
+    return (cvs.height-y)/rr+view.y;
 }
 focus_out();
 start(lvs[lv]);

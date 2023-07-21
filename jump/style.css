@@ -61,3 +61,53 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
+svg#svg1{
+  fill: #fff;
+  position: relative;
+  top: 2px;
+  left: -2.7px;
+}
+svg#svg2{
+  fill: #a7a7a7;
+  position: relative;
+  top: 2.9px;
+  left: -1px;
+  cursor: pointer;
+}
+svg#svg2:hover{
+  fill: #ffffff;
+}
+#inff{
+  padding: 0px 4px 4px 4px;
+  border: 1.5px #00ffbf solid;
+  z-index: 5;
+  top: 0;
+  right: 0px;
+  position: fixed;
+  width: 250px;
+  white-space: pre;
+  color: #fff;
+  background: rgb(40, 40, 40);
+  display: none;
+}
+#inf{
+  z-index: 10;
+  position: fixed;
+  top: 5px;
+  right: 4px;
+}
+.tt{
+  color: #fff;
+  font-size: 25px;
+}
+button.btn,button.btn1 {
+  background: transparent;
+  border: none;
+  height: 30px;
+  width: 30px;
+  border-radius: 15px;
+  outline: none;
+}
+button.btn:hover {
+  background: #909090;
+}
