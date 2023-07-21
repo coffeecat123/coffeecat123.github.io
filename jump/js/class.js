@@ -46,11 +46,11 @@ class ball{
     }
     drawbl(){
         this.clr=HSLToRGB(Math.abs(this.y/maxheight-this.x/maxwidth)*360,100,50);
-        bl(xa_c(this.x),ya_c(this.y),this.r,this.clr);
+        bl(xa_c(this.x),ya_c(this.y),this.r*rr,this.clr);
     }
     path2d(){
         let a=new Path2D();
-        a.arc(xa_c(this.x),ya_c(this.y),this.r,0,2*Math.PI);
+        a.arc(xa_c(this.x),ya_c(this.y),this.r*rr,0,2*Math.PI);
         return a;
     }
 }
