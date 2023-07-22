@@ -68,7 +68,7 @@ document.onkeydown=(e)=>{
     if(e.key=='Shift'){
         key['Shift']=1;
     }
-    if(e.key==' '||e.key=='w'){
+    if(e.key==' '||e.key=='w'||e.key=='W'){
         if(dm)jump();
     }
     if(e.key=="d"||e.key=="D"){
