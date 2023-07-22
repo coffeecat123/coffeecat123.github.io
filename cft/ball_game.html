@@ -1129,9 +1129,10 @@ function draw(){
             else{
                 ctx.fillStyle=clr[0];
             }
+            ctx.textAlign="center";
             let _w=ctx.measureText(hp).width;
             if(_w>fms)_w=fms;
-            ctx.fillText(hp,_x+(wa-_w)/2,_y+(wa+fms)/2,fms);
+            ctx.fillText(hp,_x+wa/2,_y+(wa+fms*0.8)/2,fms);
         }
     }
     ctx.restore();
