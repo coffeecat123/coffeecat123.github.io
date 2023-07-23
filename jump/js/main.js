@@ -394,7 +394,7 @@ function bk(){
 }
 function jump(){
     if(jp>=maxjp)return 0;
-    bal.vy=500;
+    bal.vy=450;
     jp+=1;
 }
 function rnd(stp,x0,y0){

@@ -268,7 +268,10 @@ function dxy(x1,y1,x2,y2){
             y:kl/((_3**2+1)**0.5)*-1};
 }
 cvs.addEventListener("dblclick",(e)=>{
-    if(isMobile)e.preventDefault();
+    if(isMobile){
+        e.preventDefault();
+        e.stopPropagation();
+    }
     play_stop();
 });
 var mylatesttap=Date.now();
