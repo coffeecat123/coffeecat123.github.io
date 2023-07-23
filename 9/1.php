@@ -7,7 +7,6 @@
                 cursor:url(https://cur.cursors-4u.net/cursors/cur-1/cur1.png) 7 3,auto;
             }
         </style>
-        <script src="../remove.js"></script>
     </head>
     <body style="margin:0;user-select: none;
             -moz-user-select: none;

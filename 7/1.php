@@ -1,6 +1,5 @@
 <html>
     <head>
-        <script src="../remove.js"></script>
         <style>
             img{
                 width: 100px;
