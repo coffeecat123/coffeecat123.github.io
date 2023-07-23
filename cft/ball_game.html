@@ -527,11 +527,11 @@ tp:
             2:5,
             3:5,
             4:5,
-            5:20,
-            6:2,
-            7:2,
-            8:2,
-            9:15};
+            5:25,
+            6:1,
+            7:1,
+            8:1,
+            9:20};
     let _b=0;
     for(let i in _a){
         _b+=Number(_a[i]);
@@ -1095,18 +1095,18 @@ function draw(){
                 case 8:
                     ctx.beginPath();
                     ctx.moveTo(_x,_y+_c);
-                    ctx.lineTo(_x,_y+_d);
-                    ctx.lineTo(_x+wa,_y+_d);
-                    ctx.lineTo(_x+wa,_y+_c);
-                    ctx.lineTo(_x,_y+_c);
-                    ctx.fill();
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(_x+_c,_y);
+                    ctx.lineTo(_x+_c,_y+_c);
+                    ctx.lineTo(_x+_c,_y);
                     ctx.lineTo(_x+_d,_y);
+                    ctx.lineTo(_x+_d,_y+_c);
+                    ctx.lineTo(_x+wa,_y+_c);
+                    ctx.lineTo(_x+wa,_y+_d);
+                    ctx.lineTo(_x+_d,_y+_d);
                     ctx.lineTo(_x+_d,_y+wa);
                     ctx.lineTo(_x+_c,_y+wa);
-                    ctx.lineTo(_x+_c,_y);
+                    ctx.lineTo(_x+_c,_y+_d);
+                    ctx.lineTo(_x,_y+_d);
+                    ctx.lineTo(_x,_y+_c);
                     ctx.fill();
                     ctx.stroke();
                     break;
