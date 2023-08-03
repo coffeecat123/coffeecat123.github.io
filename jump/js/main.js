@@ -7,7 +7,7 @@ var ti=cvs.width/cvs.offsetWidth,
     g=-500,jp,maxjp,stmp,lv=1,infhd=1,
     lines=[],keys=[],f1,f2,now_fps,
     mouse_down,walls=[],rr,ex,ey,
-    pins=[],developer=0,mv,hide,select,shi
+    pins=[],developer=1,mv,hide,select,shi
 touch={
     top:0,
     bottom:0
@@ -237,7 +237,7 @@ cvs.onmousedown=(e)=>{
             cvs.style.cursor="grabbing";
             if(e.button==2){
                 let a="";
-                for(let i=4;i<walls[select].points.length;i++){
+                for(let i=0;i<walls[select].points.length;i++){
                     a+=`[${walls[select].points[i][0]},${walls[select].points[i][1]}],`;
                 }
                 a=a.substring(0,a.length-1);

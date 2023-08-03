@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+::-webkit-scrollbar-corner {
+    background:#181818;
+}
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    background-color: #303030;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #6c6c6c;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #a1a1a1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-resizer {
+    background: #828282;
+    outline: 2px solid #b6b6b6;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+        </div>
+        <script>
+var cvs=$("#cvs");
+var ctx=cvs.getContext("2d");
+var ti=cvs.width/cvs.offsetWidth;
+
+document.onkeydown=(e)=>{
+};
+cvs.onmousedown=(e)=>{
+    let x=e.offsetX*ti,
+        y=e.offsetY*ti;
+};
+function distance(p1,p2){
+    return ((p1.x-p2.x)**2+(p1.y-p2.y)**2)**0.5;
+}
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+function draw(){
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#181818";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+function star(){
+    let R=200,r=20,t=9,a=-90;
+    let x=cvs.width/2,
+        y=cvs.height/2;
+    
+    ctx.fillStyle="#f8e";
+    ctx.strokeStyle="#0ee";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo( x+R*Math.cos(DegToRad(a)),
+                y+R*Math.sin(DegToRad(a)));
+    for(let i=1;i<=t;i++){
+        let ang=360/t*i+a,
+            ang2=360/(t*2)*(i*2-1)+a;
+        ctx.lineTo( x+r*Math.cos(DegToRad(ang2)),
+                    y+r*Math.sin(DegToRad(ang2)));
+        ctx.lineTo( x+R*Math.cos(DegToRad(ang)),
+                    y+R*Math.sin(DegToRad(ang)));
+    }
+    ctx.lineTo( x+r*Math.cos(DegToRad(360/(t*2)+a)),
+                y+r*Math.sin(DegToRad(360/(t*2)+a)));
+    ctx.fill();
+    ctx.stroke();
+}
+bk();
+draw();
+star();
+        </script>
+    </body>
+</html>
