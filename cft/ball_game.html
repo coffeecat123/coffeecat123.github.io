@@ -9,7 +9,6 @@ body{
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
 }
 * {
     font-family: "Comic Sans MS",標楷體;
@@ -89,13 +88,14 @@ var ctx=cvs.getContext("2d");
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 if(isMobile){
     cvs.style.height="auto";
-    cvs.style.width="90vw";
+    cvs.style.width="80vw";
     inff.innerText=`\
 dbl click
 `;
 }
 else{
     cvs.style.height=`${innerHeight*(outerWidth/innerWidth)*0.95}px`;
+    document.body.style.height="100vh";
 }
 var abs=Math.abs;
 var agl,agn=5;
