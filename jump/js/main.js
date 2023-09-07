@@ -17,6 +17,10 @@ live={
     y:1200,
     vx:0,
     vy:700
+},
+ms={//mouse
+    x:-1,
+    y:-1
 }
 view={
     x:0,
@@ -170,7 +174,7 @@ document.addEventListener('contextmenu',(e)=>{
 cvs.onmousedown=(e)=>{
     e.preventDefault();
     e.stopPropagation();
-    let x1=xc_a(e.pageX*ti),y1=yc_a(e.pageY*ti);
+    let x1=xc_a(e.offsetX*ti),y1=yc_a(e.offsetY*ti);
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
     if(dm)return;
@@ -181,20 +185,25 @@ cvs.onmousedown=(e)=>{
         res();
         return;
     }
-    if(hide==0&&mv==0&&ctx.isPointInPath(bal.path2d(),x,y)){
+    if(e.button==0&&hide==0&&mv==0&&ctx.isPointInPath(bal.path2d(),x,y)){
         pins=[];
         mouse_down=1;
         document.addEventListener("mousemove",f1=(e1)=>{
-            let x2=xc_a(e1.pageX*ti),y2=yc_a(e1.pageY*ti);
+            let x2=xc_a(e1.offsetX*ti),y2=yc_a(e1.offsetY*ti);
             let dx=x2-x1,
                 dy=y2-y1;
-            x1=x2,y1=y2;
-            bal.x+=dx;
-            bal.y+=dy;
-            if(bal.x<bal.r)bal.x=bal.r;
-            if(bal.x>maxwidth-bal.r)bal.x=maxwidth-bal.r;
-            if(bal.y<bal.r)bal.y=bal.r;
-            if(bal.y>maxheight-bal.r)bal.y=maxheight-bal.r;
+            if(bal.x+dx<bal.r)bal.x=bal.r;
+            else if(bal.x+dx>maxwidth-bal.r)bal.x=maxwidth-bal.r;
+            else{
+                bal.x=x2;
+                x1=x2;
+            }
+            if(bal.y+dy<bal.r)bal.y=bal.r;
+            else if(bal.y+dy>maxheight-bal.r)bal.y=maxheight-bal.r;
+            else{
+                bal.y=y2;
+                y1=y2;
+            }
         });
         document.addEventListener('mouseup',f2=()=>{
             document.removeEventListener('mouseup',f2);
@@ -203,10 +212,10 @@ cvs.onmousedown=(e)=>{
         });
         return;
     }
-    if(mv&&ex+ey<2){
+    if(e.button==0&&mv&&ex+ey<2){
         mouse_down=1;
         document.addEventListener("mousemove",f1=(e1)=>{
-            let x2=xc_a(e1.pageX*ti),y2=yc_a(e1.pageY*ti);
+            let x2=xc_a(e1.offsetX*ti),y2=yc_a(e1.offsetY*ti);
             let dx=x2-x1,
                 dy=y2-y1;
             if(ex)dx=0;
@@ -221,6 +230,10 @@ cvs.onmousedown=(e)=>{
         return;
     }
     if(mv==0){
+        if(e.button==2){
+            select=-1;
+            return;
+        }
         select=-1;
         let a=0;
         for(let i=walls.length-1;i>=4;i--){
@@ -244,7 +257,7 @@ cvs.onmousedown=(e)=>{
                 console.log(a);
             }
             document.addEventListener("mousemove",f1=(e1)=>{
-                let x2=xc_a(e1.pageX*ti),y2=yc_a(e1.pageY*ti);
+                let x2=xc_a(e1.offsetX*ti),y2=yc_a(e1.offsetY*ti);
                 let dx=x2-x1,
                     dy=y2-y1;
                 x1=x2,y1=y2;
@@ -262,10 +275,9 @@ cvs.onmousedown=(e)=>{
             return;
         }
     }
-    pins.push([parseInt(xc_a(x)),parseInt(yc_a(y))]);
+    if(e.button=0)pins.push([parseInt(xc_a(x)),parseInt(yc_a(y))]);
 };
 cvs.onwheel=(e)=>{
-    //return ;
     if(e.ctrlKey)return;
     if(dm)return;
     if(mv)return;
@@ -275,7 +287,7 @@ cvs.onwheel=(e)=>{
         y=e.offsetY*ti,
         b=rr,
         r_=0.05,
-        r__=3;
+        r__=5;
     rr+=r_*(a>0)*2-r_;
     if(rr>r__)rr=r__;
     if(rr<r_)rr=r_;
@@ -290,8 +302,11 @@ cvs.onwheel=(e)=>{
         view.y=-(cvs.height-maxheight*rr)/rr/2;
     }
     else ey=0;
+    view_move(0,0);
 };
 cvs.onmousemove=(e)=>{
+    ms.x=xc_a(e.offsetX*ti);
+    ms.y=yc_a(e.offsetY*ti);
     if(mv)return;
     if(dm)return;
     if(mouse_down)return;
@@ -299,13 +314,15 @@ cvs.onmousemove=(e)=>{
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
     let a=0;
-    for(let i=walls.length-1;i>=4;i--){
-        if(ctx.isPointInPath(walls[i].path2d(),x,y)){
-            if(i!=select)shi=i;
-            else shi=-1;
-            a=1;
-            cvs.style.cursor="grab";
-            return;
+    if(!ctx.isPointInPath(bal.path2d(),x,y)){
+        for(let i=walls.length-1;i>=4;i--){
+            if(ctx.isPointInPath(walls[i].path2d(),x,y)){
+                if(i!=select)shi=i;
+                else shi=-1;
+                a=1;
+                cvs.style.cursor="grab";
+                return;
+            }
         }
     }
     shi=-1;
@@ -332,6 +349,7 @@ function draw(){
     ctx.lineTo(0,0);
     ctx.stroke();
     */
+
     for(let i=0;i<walls.length;i++){
         ctx.fillStyle=walls[i].clr;
         ctx.fill(walls[i].path2d());
@@ -339,6 +357,7 @@ function draw(){
             ctx.save();
             ctx.strokeStyle="#08f";
             ctx.lineWidth=7*rr;
+            ctx.lineJoin="round";
             ctx.stroke(walls[i].path2d());
             ctx.restore();
         }
@@ -346,6 +365,7 @@ function draw(){
             ctx.save();
             ctx.strokeStyle="#f80";
             ctx.lineWidth=7*rr;
+            ctx.lineJoin="round";
             ctx.stroke(walls[i].path2d());
             ctx.restore();
         }
@@ -384,6 +404,11 @@ function draw(){
         }
     }
     */
+    ctx.fillStyle=`#eee`;
+    let txt=`x:${ms.x.toFixed(2)}\ny:${ms.y.toFixed(2)}\n${rr.toFixed(2)}X`;
+    let fms=30;
+    ctx.font=`${fms}px Comic Sans MS,標楷體`;
+    ctx.fillText(txt,0,fms);
 }
 function bk(){
     ctx.clearRect(0,0,cvs.width,cvs.height);
@@ -502,15 +527,15 @@ function view_move(dx,dy){
     view.x+=dx;
     view.y+=dy;
     if(ex==0){
-        if(view.x>(maxwidth)*rr-cvs.width){
-            view.x=(maxwidth)*rr-cvs.width;
+        if(view.x>maxwidth-cvs.width/rr){
+            view.x=maxwidth-cvs.width/rr;
         }else if(view.x<0){
             view.x=0;
         }
     }
     if(ey==0){
-        if(view.y>(maxheight)*rr-cvs.height){
-            view.y=(maxheight)*rr-cvs.height;
+        if(view.y>maxheight-cvs.height/rr){
+            view.y=maxheight-cvs.height/rr;
         }else if(view.y<0){
             view.y=0;
         }

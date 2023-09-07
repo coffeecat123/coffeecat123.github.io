@@ -22,6 +22,7 @@ class wall{
             a.lineTo(xa_c(this.points[i][0]),ya_c(this.points[i][1]));
         }
         a.lineTo(xa_c(this.points[0][0]),ya_c(this.points[0][1]));
+        a.lineTo(xa_c(this.points[1][0]),ya_c(this.points[1][1]));
         return a;
     }
 }
