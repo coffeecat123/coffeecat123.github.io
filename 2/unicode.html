@@ -161,6 +161,25 @@ alsk4=["5 ","之","56","直","53","只","54","至","t ","吃","t6","持","t3","�
                         }
                     }
                     if(m==4){
+let text=d;
+let request = new XMLHttpRequest();
+text=text.replace(/ /g,"=");
+text=text.replace(/,/g,"%2C");
+text=encodeURI(text);
+request.open('GET', `https://inputtools.google.com/request?text=${text}&itc=zh-hant-t-i0-und&num=20&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage`);
+
+request.onload=function(){
+    let data=JSON.parse(this.response);
+    let rsp=data[1][0][1][0];
+    if(rsp!=undefined&&request.status>=200&&request.status<400){
+        console.log(data);
+        console.log(data[1][0][3]["annotation"][0].replace(/ /g,""));
+        console.log(d.substr(data[1][0][3]["annotation"][0].replace(/ /g,"").length,d.length));
+        d=rsp+d.substr(data[1][0][3]["annotation"][0].replace(/ /g,"").length,d.length);
+    }else{
+        console.log('error');
+    }
+                        /*
                         if(d.length>1000)return;
                         d=d.toLowerCase();
                         for(i=0;i<d.length;i++){
@@ -181,6 +200,7 @@ alsk4=["5 ","之","56","直","53","只","54","至","t ","吃","t6","持","t3","�
                         for(i=0;i<alsk4.length;i+=2){
                             d=d.replace(eval("/"+alsk4[i]+"/g"),alsk4[i+1]);
                         }
+                        */
                         jgd1="ㄅㄆㄇㄈㄉㄊㄋㄌˇㄍㄎㄏˋㄐㄑㄒㄓㄔㄕㄖˊㄗㄘㄙ˙ㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦ";
                         jgd2="1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik,9ol~0p;`-";
                         for(i=0;i<41;i++){
@@ -189,7 +209,9 @@ alsk4=["5 ","之","56","直","53","只","54","至","t ","吃","t6","持","t3","�
                         for(i=0;i<d.length;i++){
                             if(d[i]=="/")d=d.replace("/","ㄥ");
                         }
-                        b.value+=d;
+                        b.value=d;
+}
+request.send();
                     }
                     if(m==5){//768 879
                         if(d.length>1000)return;
