@@ -162,6 +162,10 @@ alsk4=["5 ","之","56","直","53","只","54","至","t ","吃","t6","持","t3","�
                     }
                     if(m==4){
 let text=d;
+if(text==""){
+    b.value="";
+    return;
+}
 let request = new XMLHttpRequest();
 text=text.replace(/ /g,"=");
 text=text.replace(/,/g,"%2C");
