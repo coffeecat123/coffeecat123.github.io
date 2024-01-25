@@ -274,8 +274,8 @@ cvs.onmousedown=(e)=>{
             });
             return;
         }
-        if(e.button=0)pins.push([parseInt(xc_a(x)),parseInt(yc_a(y))]);
     }
+    if(e.button=0)pins.push([parseInt(xc_a(x)),parseInt(yc_a(y))]);
 };
 cvs.onwheel=(e)=>{
     if(e.ctrlKey)return;
