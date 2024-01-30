@@ -206,12 +206,9 @@ request.onload=function(){
                         }
                         */
                         jgd1="ㄅㄆㄇㄈㄉㄊㄋㄌˇㄍㄎㄏˋㄐㄑㄒㄓㄔㄕㄖˊㄗㄘㄙ˙ㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦ";
-                        jgd2="1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik,9ol~0p;`-";
+                        jgd2="1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik,9ol.0p;/-";
                         for(i=0;i<41;i++){
-                            d=d.replace(eval("/"+jgd2[i]+"/g"),jgd1[i]);
-                        }
-                        for(i=0;i<d.length;i++){
-                            if(d[i]=="/")d=d.replace("/","ㄥ");
+                            d=d.replace(eval("/["+jgd2[i]+"]/g"),jgd1[i]);
                         }
                         b.value=d;
 }
