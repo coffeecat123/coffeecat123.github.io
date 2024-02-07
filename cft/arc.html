@@ -65,6 +65,56 @@ body{
 #div2{
     display: flex;
 }
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+.slider.round {
+  border-radius: 34px;
+}
+.slider.round:before {
+  border-radius: 50%;
+}
         </style>
     </head>
     <body>
@@ -83,6 +133,7 @@ body{
         <input id="rng1" type="range">
         <input id="rng2" type="range">
         <input id="rng3" type="range">
+        <input id="rng4" type="range">
         <script>
 var pre=$("#pre");
 var ipt1=$("#ipt1");
@@ -93,6 +144,7 @@ var cvs2=$("#cvs2");
 var rng1=$("#rng1");
 var rng2=$("#rng2");
 var rng3=$("#rng3");
+var rng4=$("#rng4");
 var ctx=cvs.getContext("2d");
 var ctx1=cvs1.getContext("2d");
 var ctx2=cvs2.getContext("2d");
@@ -100,7 +152,7 @@ var r1=400,
     r2=247,
     r3=57,
     rr=50;
-var stk=1,stp=1,step=5,wer=0,stop=0;
+var stk=1,stp=1,step=5,wer=0,stop=0,pd=1;
 var clr={
     a:"#000",
     b:"#fff",
@@ -115,12 +167,15 @@ var st={
 rng1.value=r1;
 rng2.value=r2;
 rng3.value=r3;
+rng4.value=step;
 rng1.min=0;
 rng1.max=500;
 rng2.min=0;
 rng2.max=r1;
 rng3.min=0;
 rng3.max=r2;
+rng4.min=1;
+rng4.max=720;
 rng1.oninput=()=>{
     r1=rng1.value;
     rng2.max=r1;
@@ -135,6 +190,10 @@ rng3.oninput=()=>{
     r3=rng3.value;
     wie();
 };
+rng4.oninput=()=>{
+    step=Number(rng4.value);
+    wie();
+};
 function cos(a){
     return Number(Math.cos(a*Math.PI/180).toFixed(3));
 }
@@ -142,14 +201,6 @@ function sin(a){
     return Number(Math.sin(a*Math.PI/180).toFixed(3));
 }
 document.onkeydown=(e)=>{
-    if(e.key=="ArrowLeft"){
-        step-=1;
-        wie();
-    }
-    if(e.key=="ArrowRight"){
-        step+=1;
-        wie();
-    }
     if(e.keyCode==13){
         stop=1;
     }
@@ -158,6 +209,12 @@ document.onkeydown=(e)=>{
     }
     if(e.key=='f'){
         ctx1.clearRect(0,0,cvs1.width,cvs1.height);
+    }
+    if(e.key=='p'){
+        pd^=1;
+    }
+    if(e.key=='l'&&ipt1.checked){
+        stk^=1;
     }
 };
 function play(){
@@ -197,12 +254,14 @@ function dr(p1,p2,pa){
         ctx2.arc(p1.x,p1.y,5,0,2*Math.PI);
         ctx2.fill();
     }
-    ctx1.lineWidth=3;
-    ctx1.strokeStyle=clr;
-    ctx1.beginPath();
-    ctx1.moveTo(p1.x,p1.y);
-    ctx1.lineTo(p2.x,p2.y);
-    ctx1.stroke();
+    if(pd){
+        ctx1.lineWidth=3;
+        ctx1.strokeStyle=clr;
+        ctx1.beginPath();
+        ctx1.moveTo(p1.x,p1.y);
+        ctx1.lineTo(p2.x,p2.y);
+        ctx1.stroke();
+    }
 }
 function HSLToRGB(h,s,l) {
   s/=100;
@@ -236,12 +295,13 @@ function $(el){
     return document.querySelector(el);
 }
 ipt1.oninput=()=>{
-    stk^=1;
-    if(stk){
+    if(ipt1.checked){
+        stk=1;
         cvs.style.display="block";
         cvs2.style.display="block";
     }
     else{
+        stk=0;
         cvs.style.display="none";
         cvs2.style.display="none";
     }
