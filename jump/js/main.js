@@ -120,7 +120,7 @@ document.onkeydown=(e)=>{
                 }
             }
             if(e.key=="k"){
-                if(pins.length>0){
+                if(pins.length>2){
                     let a="";
                     for(let i=4;i<pins.length;i++){
                         a+=`[${pins[i][0]},${pins[i][1]}],`;
@@ -234,6 +234,7 @@ cvs.onmousedown=(e)=>{
             select=-1;
             return;
         }
+        let last_select=select;
         select=-1;
         let a=0;
         for(let i=walls.length-1;i>=4;i--){
@@ -248,14 +249,6 @@ cvs.onmousedown=(e)=>{
         if(a){
             mouse_down=1;
             cvs.style.cursor="grabbing";
-            if(e.button==2){
-                let a="";
-                for(let i=0;i<walls[select].points.length;i++){
-                    a+=`[${walls[select].points[i][0]},${walls[select].points[i][1]}],`;
-                }
-                a=a.substring(0,a.length-1);
-                console.log(a);
-            }
             document.addEventListener("mousemove",f1=(e1)=>{
                 let x2=xc_a(e1.offsetX*ti),y2=yc_a(e1.offsetY*ti);
                 let dx=x2-x1,
@@ -274,8 +267,8 @@ cvs.onmousedown=(e)=>{
             });
             return;
         }
+        else if(e.button==0&&last_select==-1)pins.push([parseInt(xc_a(x)),parseInt(yc_a(y))]);
     }
-    if(e.button=0)pins.push([parseInt(xc_a(x)),parseInt(yc_a(y))]);
 };
 cvs.onwheel=(e)=>{
     if(e.ctrlKey)return;
@@ -352,7 +345,9 @@ function draw(){
 
     for(let i=0;i<walls.length;i++){
         ctx.fillStyle=walls[i].clr;
+        ctx.strokeStyle="#000";
         ctx.fill(walls[i].path2d());
+        //ctx.stroke(walls[i].path2d());
         if(i==select){
             ctx.save();
             ctx.strokeStyle="#08f";
