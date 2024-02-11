@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>gravity</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+::-webkit-scrollbar-corner {
+    background:#181818;
+}
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    background-color: #303030;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #6c6c6c;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #a1a1a1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-resizer {
+    background: #828282;
+    outline: 2px solid #b6b6b6;
+}
+.spn{
+    color: #eee;
+}
+#btn1{
+    width:50px;
+}
+#ipt{
+    width: 40px;
+}
+#ipt1{
+    width: 60px;
+}
+#d1{
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+#tbl {
+    color: #eee;
+}
+#tbl{
+    margin: 5px 5px 0 0;
+    background: #303030;
+    border-collapse: collapse;
+}
+#ty td {
+    width: 50px;
+    text-align: right;
+}
+#tbl th,#tbl td {
+    border: 1px #eee solid;
+}
+        </style>
+    </head>
+    <body>
+        <div id="d1">
+            <table id="tbl">
+                <thead>
+                    <tr>
+                        <th colspan="4">balls</th>
+                    </tr>
+                    <tr>
+                        <th>No.</th>
+                        <th>x</th>
+                        <th>y</th>
+                        <th>v</th>
+                    </tr>
+                </thead>
+                <tbody id="ty">
+                </tbody>
+            </table>
+        </div>
+        <div id="wl">
+            <canvas id="cvs" width="2000" height="1500"></canvas>
+        </div>
+        <button id="btn">restart</button>
+        <button id="btn1">play</button>
+        <span class="spn">angle:</span>
+        <input id="ipt" type="number">
+        <span class="spn">V:</span>
+        <input id="ipt1" type="number">
+        <span class="spn" id="spn"></span><script>
+var cvs=$("#cvs");
+var ipt=$("#ipt");
+var ipt1=$("#ipt1");
+var btn=$("#btn");
+var btn1=$("#btn1");
+var btn2=$("#btn2");
+var ty=$("#ty");
+var spn=$("#spn");
+var ctx=cvs.getContext("2d");
+var ti=cvs.width/cvs.offsetWidth,
+    balls=[],dm=0,fps=120,t=1/fps,interval,
+    uk=0.5,g=500,
+    angle=35,v0=900;
+
+ipt.value=angle;
+ipt1.value=v0;
+document.onkeydown=(e)=>{
+};
+ipt.oninput=()=>{
+    angle=ipt.value;
+    start();
+};
+ipt1.oninput=()=>{
+    v0=ipt1.value;
+    start();
+};
+btn.onclick=()=>{
+    start();
+};
+btn1.onclick=()=>{
+    dm^=1;
+    if(dm)btn1.innerHTML="pause";
+    else btn1.innerHTML="play";
+};
+class ball{
+    constructor(x,y,vx,vy,r){
+        this.x=x;
+        this.y=y;
+        this.vx=vx;
+        this.vy=vy;
+        this.r=r;
+    }
+    move(){
+        if(this.x+this.r>=cvs.width){
+            this.vx=-this.vx;
+            this.x=cvs.width-this.r;
+        }else if(this.x-this.r<=0){
+            this.vx=-this.vx;
+            this.x=this.r;
+        }
+        if(this.y+this.r>=cvs.height){
+            this.vy=-this.vy;
+            this.y=cvs.height-this.r;
+        }/*else if(this.y-this.r<=0){
+            this.vy=-this.vy;
+            this.y=this.r;
+        }*/
+        this.vy+=g*t;
+        this.x+=this.vx*t;
+        this.y+=this.vy*t;
+    }
+    drawbl(){
+        bl(this.x,this.y,this.r,"#eee");
+    }
+    path2d(){
+        let a=new Path2D();
+        a.arc(this.x,this.y,this.r,0,2*Math.PI);
+        return a;
+    }
+}
+function bl(x,y,r,clr){
+    ctx.fillStyle=clr;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,2*Math.PI);
+    ctx.fill();
+};
+function $(el){
+    return document.querySelector(el);
+}
+function DegToRad(a){
+    return a*Math.PI/180;
+}
+function random(a,b){
+    return parseInt(Math.random()*(b-a+1))+a;
+}
+function HSLToRGB(h,s,l) {
+  s/=100;
+  l/=100;
+  let c=(1-Math.abs(2*l-1))*s,
+      x=c*(1-Math.abs((h/60)%2-1)),
+      m=l-c/2,
+      r=0,
+      g=0,
+      b=0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;  
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+
+  return "rgb(" + r + "," + g + "," + b + ")";
+}
+function distance(x1,y1,x2,y2){
+    return ((x1-x2)**2+(y1-y2)**2)**0.5;
+}
+function draw(){
+    bl(1600,1400,35,"#f00");
+    /*
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+    */
+    for(let i=0;i<balls.length;i++){
+        balls[i].drawbl();
+    }
+    for(let i=0;i<balls.length;i++){
+        let b=balls[i];
+        ctx.strokeStyle="#0f0";
+        ctx.lineWidth=5;
+        ctx.beginPath();
+        ctx.moveTo(b.x,b.y);
+        ctx.lineTo(b.x+b.vx*0.1,b.y+b.vy*0.1);
+        ctx.stroke();
+    }
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#252525";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+function all_move(){
+    for(let i=0;i<balls.length;i++){
+        balls[i].move();
+    }
+    for(let i=0;i<balls.length-1;i++){
+        for(let j=i+1;j<balls.length;j++){
+            if(distance(balls[j].x,balls[j].y,balls[i].x,balls[i].y)<=5){
+                dm=0;
+                btn1.innerHTML="play";
+            }
+        }
+    }
+}
+function start(){
+    btn1.innerHTML="play";
+    clearInterval(interval);
+    dm=0;
+    ty.innerHTML='';
+    spn.textContent=parseInt((g*1500*(1+Math.tan(DegToRad(angle))**2)/(2*Math.tan(DegToRad(angle))))**0.5);
+    let h=1500*Math.tan(DegToRad(angle));
+    let a=new ball(100,1400,v0*Math.cos(DegToRad(angle)),-v0*Math.sin(DegToRad(angle)),30);
+    let b=new ball(1600,1400-h,0,0,30);
+    balls=[a,b];
+    bk();
+    draw();
+    interval=setInterval(()=>{
+        if(dm){
+            bk();
+            draw();
+            all_move();
+            for(let i=0;i<balls.length;i++){
+                let b=balls[i];
+                let c=ty.children[i];
+                let a=[c.children[0],
+                    c.children[1],
+                    c.children[2],
+                    c.children[3]];
+                let x=parseInt(b.x),y=parseInt(b.y),d=Math.round((b.vx**2+b.vy**2)**0.5);
+                if(a[1].innerHTML!=x)a[1].innerHTML=x;
+                if(a[2].innerHTML!=y)a[2].innerHTML=y;
+                if(a[3].innerHTML!=d)a[3].innerHTML=d;
+            }
+        }
+    },t*1000);
+    for(let i=0;i<balls.length;i++){
+        let b=balls[i];
+        let t=document.createElement("tr");
+        let a=[document.createElement("td"),
+            document.createElement("td"),
+            d=document.createElement("td"),
+            document.createElement("td")];
+        a[0].innerHTML=i+1;
+        a[1].innerHTML=parseInt(b.x);
+        a[2].innerHTML=parseInt(b.y);
+        a[3].innerHTML=Math.round((b.vx**2+b.vy**2)**0.5);
+        t.append(a[0],a[1],a[2],a[3]);
+        ty.append(t);
+    }
+}
+start();
+        </script>
+    </body>
+</html>

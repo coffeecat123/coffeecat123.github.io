@@ -61,8 +61,8 @@ var ipt1=$("#ipt1");
 var sp1=$("#sp1");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    g=2,μk=0.75,m=1,cr=50,balls=[],
-    maxf=50,minf=1,playing=0,ff;
+    g=2,μk=0.5,m=1,cr=30,balls=[],
+    maxf=50,minf=1,playing=0,ff,fps=120;
 
 var ee={
     x:0,
@@ -262,7 +262,7 @@ function moving(){
         if(balls[i].vx==0&&balls[i].vy==0)a++;
     }
     bk();
-    draw();
+    //draw();
     for(let i in balls){
         balls[i].drawbl();
     }
@@ -270,7 +270,7 @@ function moving(){
         playing=0;
         return;
     }
-    setTimeout(moving,10);
+    setTimeout(moving,1000/fps);
 }
 function bl(x,y,r,clr){
     ctx.fillStyle=clr;
@@ -300,7 +300,7 @@ function bk(){
     ctx.restore();
 }
 bk();
-draw();
+//draw();
 start();
         </script>
     </body>

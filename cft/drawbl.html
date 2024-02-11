@@ -56,13 +56,6 @@ class point{
         this.y=y;
     }
 }
-class line{
-    constructor(a,b,c){//ax+by=c
-        this.a=a;
-        this.b=b;
-        this.c=c;
-    }
-}
 document.onkeydown=(e)=>{
     if(e.key=='f'){
         if(pnt.length!=0)return;
@@ -128,11 +121,6 @@ cvs.onmousedown=(e)=>{
         md=0;
     });
 };
-function cal(p1,p2){
-    let xa=p1.x+p2.x,xb=p1.x-p2.x,
-        ya=p1.y+p2.y,yb=p1.y-p2.y;
-    return new line(xb,yb,(xa*xb+ya*yb)/2);
-}
 function midpnt(p1,p2){
     return new point((p1.x+p2.x)/2,(p1.y+p2.y)/2);
 }
