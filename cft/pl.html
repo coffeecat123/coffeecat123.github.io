@@ -56,13 +56,17 @@ body{
         <span id="sp1"></span>
         <script>
 var abs=Math.abs;
+var cos=Math.cos;
+var sin=Math.sin;
+var atan2=Math.atan2;
 var cvs=$("#cvs");
 var ipt1=$("#ipt1");
 var sp1=$("#sp1");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    g=2,μk=0.5,m=1,cr=30,balls=[],
-    maxf=50,minf=1,playing=0,ff,fps=120;
+    g=2,μk=0.1,m=1,cr=20,balls=[],
+    maxf=50,minf=1,playing=0,ff,fps=120,
+    wa=3;
 
 var ee={
     x:0,
@@ -120,6 +124,7 @@ ipt1.oninput=()=>{
 };
 class ball{
     constructor(x,y,clr){
+        this.idx;
         this.x=x;
         this.y=y;
         this.vx=0;
@@ -130,64 +135,71 @@ class ball{
         this.ud();
         this.p=0;//touch wall
         this.clr=clr;
-        this.lb=-1;
+        this.lb=-1;//last ball
     }
-    move(p){
-        if(this.vx==0&&this.vy==0&&this.ax==0&&this.ay==0)return;
+    move(idx){
         let thwl=0;
-        this.x+=this.vx;
-        this.y+=this.vy;
-        if(p!=1){
-            let fk=g*m*μk/((this.vx**2+this.vy**2)**0.5);
-            if((this.vx+this.ax>0)!=(this.vx>0)&&this.vx!=0)
-                this.vx=this.ax=0;
-            else this.vx+=this.ax;
-            if((this.vy+this.ay>0)!=(this.vy>0)&&this.vy!=0)
-                this.vy=this.ay=0;
-            else this.vy+=this.ay;
-            this.ax=((this.vx>=0)*2-1)*(abs(this.ax)-abs(fk*this.vx));
-            this.ay=((this.vy>=0)*2-1)*(abs(this.ay)-abs(fk*this.vy));
+        if(playing==1||(playing==0&&idx==-1)){
+            this.x+=this.vx;
+            this.y+=this.vy;
+            if(idx!=-1&&this.vx**2+this.vy**2>0){
+                let fk=g*m*μk/((this.vx**2+this.vy**2)**0.5);
+                if((this.vx+this.ax>0)!=(this.vx>0)&&this.vx!=0)
+                    this.vx=this.ax=0;
+                else this.vx+=this.ax;
+                if((this.vy+this.ay>0)!=(this.vy>0)&&this.vy!=0)
+                    this.vy=this.ay=0;
+                else this.vy+=this.ay;
+                this.ax=((this.vx>=0)*2-1)*(abs(this.ax)-abs(fk*this.vx));
+                this.ay=((this.vy>=0)*2-1)*(abs(this.ay)-abs(fk*this.vy));
+            }
+            let a=0;
+            if(this.x<this.r||this.x+this.r>cvs.width){
+                if(this.p==1)return;
+                this.vx*=-1;
+                this.p=1;
+                thwl=1;
+                a++;
+            }
+            else if(this.y<this.r||this.y+this.r>cvs.height){
+                if(this.p==2)return;
+                this.vy*=-1;
+                this.p=2;
+                thwl=1;
+                a++;
+            }
+            if(a==0)this.p=0;
+            this.ud();
         }
-        let a=0;
-        if(this.x<this.r||this.x+this.r>cvs.width){
-            if(this.p==1)return;
-            this.vx*=-1;
-            this.p=1;
-            thwl=1;
-            a++;
-        }
-        else if(this.y<this.r||this.y+this.r>cvs.height){
-            if(this.p==2)return;
-            this.vy*=-1;
-            this.p=2;
-            thwl=1;
-            a++;
-        }
-        if(a==0)this.p=0;
-        this.ud();
         for(let i in balls){
-            if(p==1&&i==0)continue;
+            if(idx==-1&&i==0)continue;
             let b=balls[i];
             if(b==this)continue;
+            
             if(this.lb==i){
-                this.lb=0;
+                this.lb=-1;
                 continue;
             }
+            
             if(((this.x-b.x)**2+(this.y-b.y)**2)**0.5<=this.r*2){
-                let a1=Math.atan2(this.y-b.y,this.x-b.x),
-                    a2=Math.atan2(-this.vy,-this.vx),
-                    a3=a1*2-a2,
-                    f=((this.vx**2)+(this.vy**2))**0.5;
-                this.vx=f*Math.cos(a3);
-                this.vy=f*Math.sin(a3);
-                this.ax=0;
-                this.ay=0;
-                thwl=1;
+                let theta=atan2(this.y-b.y,this.x-b.x);
+                let v1m=this.vx*sin(theta)+this.vy*-cos(theta);
+                let v1n=this.vx*cos(theta)+this.vy*sin(theta);
+                let v2m=b.vx*sin(theta)+b.vy*-cos(theta);
+                let v2n=b.vx*cos(theta)+b.vy*sin(theta);
+                
+                this.vx=v1m*sin(theta)+v2n*cos(theta);
+                this.vy=v1m*-cos(theta)+v2n*sin(theta);
+                b.vx=v2m*sin(theta)+v1n*cos(theta);
+                b.vy=v2m*-cos(theta)+v1n*sin(theta);
+
+                thwl=2;
                 this.lb=i;
+                b.lb=idx;
                 break;
             }
         }
-        if(p==1)return thwl;
+        if(idx==-1)return thwl;
     }
     drawbl(){
         bl(this.x,this.y,this.r,this.clr);
@@ -215,24 +227,53 @@ cvs.addEventListener(("mousemove"),(e2)=>{
     let d=((x1-x)**2+(y1-y)**2)**0.5;
     a.vx=cr/10*(x1-x)/d;
     a.vy=cr/10*(y1-y)/d;
-    while(1)if(a.move(1))break;
+    for(let i in balls){
+        balls[i].vx=0;
+        balls[i].vy=0;
+    }
+    let pt=[];
+    pt.push([x,y]);
+    for(let i=0;i<wa;i++){
+        let b;
+        while(1){
+            b=a.move(-1);
+            if(b)break;
+        }
+        pt.push([a.x,a.y]);
+        if(b==2)break;
+    }
     moving();
-    ctx.strokeStyle="#bbba";
-    drline(x,y,a.x,a.y);
-    drline(a.x,a.y,a.x+a.vx*5,a.y+a.vy*5);
-    ctx.stroke(a.t2);
+    console.log(pt);
+    for(let i=0;i<pt.length;i++){
+        ctx.strokeStyle="#bbba";
+        if(i!=pt.length-1){
+            console.log(i,i+1);
+            drline(pt[i][0],pt[i][1],pt[i+1][0],pt[i+1][1]);
+        }
+        if(i!=0){
+            ctx.beginPath();
+            ctx.arc(pt[i][0],pt[i][1],cr,0,Math.PI*2);
+            ctx.stroke();
+        }
+    }
+    drline(a.x,a.y,a.x+a.vx*30,a.y+a.vy*30);
     ee.x=x1;
     ee.y=y1;
 });
 cvs.addEventListener(("click"),()=>{
     if(playing)return;
     if(ee.t==0)return;
+    playing=1;
     ee.t=0;
     let x,y;
     x=balls[0].x;
     y=balls[0].y;
     let x1=ee.x,y1=ee.y;
-    let d=((x1-x)**2+(y1-y)**2)**0.5;
+    let d=((x1-x)**2+(y1-y)**2)**0.5*2;
+    for(let i in balls){
+        balls[i].vx=0;
+        balls[i].vy=0;
+    }
     balls[0].vx=ff*2*(x1-x)/d;
     balls[0].vy=ff*2*(y1-y)/d;
     moving();
@@ -245,32 +286,44 @@ function drline(x,y,x1,y1){
     ctx.stroke();
 }
 function start(){
-    let a=new ball(500,500,"#eee");
-    a.vx=random(-maxf,maxf);
-    a.vy=random(-maxf,maxf);
+    let a=new ball(1300,800,"#eee");
     balls.push(a);
-    let b=new ball(1500,500,"#a00a");
+    let b=new ball(1500,200,"#a00a");
     balls.push(b);
-    moving();
+    let c=new ball(1300,200,"#a00a");
+    balls.push(c);
+    let d=new ball(1100,200,"#a00a");
+    balls.push(d);
+    let e=new ball(900,200,"#a00a");
+    balls.push(e);
+    //moving();
 }
 function moving(){
-    playing=1;
     console.log(balls[0].vx,balls[0].vy,balls[0].ax,balls[0].ay);
     let a=0;
-    for(let i in balls){
-        balls[i].move();
-        if(balls[i].vx==0&&balls[i].vy==0)a++;
+    if(playing==1){
+        for(let i in balls){
+            balls[i].move(i);
+            if(balls[i].vx==0&&balls[i].vy==0)a++;
+        }
     }
     bk();
     //draw();
     for(let i in balls){
         balls[i].drawbl();
     }
+    for(let i in balls){
+        let b=balls[i];
+        if(playing==0){
+            ctx.strokeStyle="#bbba";
+            drline(b.x,b.y,b.x+b.vx*30,b.y+b.vy*30);
+        }
+    }
     if(a==balls.length){
         playing=0;
         return;
     }
-    setTimeout(moving,1000/fps);
+    if(playing==1)setTimeout(moving,1000/fps);
 }
 function bl(x,y,r,clr){
     ctx.fillStyle=clr;
