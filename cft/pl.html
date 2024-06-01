@@ -64,9 +64,9 @@ var ipt1=$("#ipt1");
 var sp1=$("#sp1");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    gμk=0.05,cr=20,balls=[],
+    gμk=0.08,cr=20,balls=[],
     maxf=100,minf=1,playing=0,ff,
-    wa=3,mm=4,vv=5,f1;
+    wa=100,mm=4,vv=5,f1,tt=3;
 
 var ee={
     x:0,
@@ -139,12 +139,12 @@ class ball{
     move(idx){
         let thwl=0;
         if(playing==1||(playing==0&&idx==-1)){
-            this.x+=this.vx;
-            this.y+=this.vy;
+            this.x+=this.vx/tt;
+            this.y+=this.vy/tt;
             if(this.vx**2+this.vy**2>0){
                 let theta=atan2(this.vy,this.vx);
-                this.ax=-gμk*cos(theta);
-                this.ay=-gμk*sin(theta);
+                this.ax=-gμk*cos(theta)/tt;
+                this.ay=-gμk*sin(theta)/tt;
                 if(this.vx!=0){
                     if((this.vx+this.ax)*this.vx<0)
                         this.vx=this.ax=0;
@@ -240,7 +240,7 @@ cvs.addEventListener(("mousemove"),f1=(e2)=>{
     }
     let pt=[];
     pt.push([x,y]);
-    for(let i=0;;i++){
+    for(let i=0;i<wa;i++){
         let b;
         while(1){
             b=a.move(-1);
@@ -300,22 +300,18 @@ function start(){
     balls.push(d);
     let e=new ball(900,200,"#a00a");
     balls.push(e);
-    //moving();
 }
 function moving(){
-    console.log(balls[0].vx,balls[0].vy,balls[0].ax,balls[0].ay);
     let a=0;
-    if(playing==1){
-        for(let i in balls){
-            balls[i].move(i);
-            if(balls[i].vx==0&&balls[i].vy==0)a++;
-        }
+    for(let i in balls){
+        balls[i].move(i);
+        if(balls[i].vx==0&&balls[i].vy==0)a++;
     }
     if(a==balls.length){
         playing=0;
         return;
     }
-    if(playing==1)setTimeout(moving,0);
+    setTimeout(moving,0);
 }
 function bl(x,y,r,clr){
     ctx.fillStyle=clr;
