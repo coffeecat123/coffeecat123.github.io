@@ -64,14 +64,11 @@ var ipt1=$("#ipt1");
 var sp1=$("#sp1");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    gμk=0.15,cr=20,balls=[],
-    maxf=100,minf=1,playing=0,ff,
-    wa=100,mm=4,vv=5,f1,tt=5;
+    gμk=0.15,cr=50,balls=[],
+    maxf=100,minf=50,playing=0,ff,
+    wa=100,mm=4,vv=5,tt=5,
+    ch=cvs.height,cw=cvs.width;
 
-var ee={
-    x:0,
-    y:0
-}
 ipt1.min=minf;
 ipt1.max=maxf;
 ipt1.value=maxf/2;
@@ -134,13 +131,15 @@ class ball{
         this.ud();
         this.p=0;//touch wall
         this.clr=clr;
-        this.lb=-1;//last ball
+        this.lb=[];//touch what ball
     }
     move(idx){
         let thwl=0;
         if(playing==1||(playing==0&&idx==-1)){
             this.x+=this.vx/tt;
             this.y+=this.vy/tt;
+            if(abs(this.vx)<0.001)this.vx=0;
+            if(abs(this.vy)<0.001)this.vy=0;
             if(this.vx**2+this.vy**2>0){
                 let theta=atan2(this.vy,this.vx);
                 this.ax=-gμk*cos(theta)/tt;
@@ -180,8 +179,7 @@ class ball{
             let b=balls[i];
             if(b==this)continue;
             
-            if(this.lb==i){
-                this.lb=-1;
+            if(this.lb.includes(i)){
                 continue;
             }
             
@@ -191,15 +189,15 @@ class ball{
                 let v1n=this.vx*cos(theta)+this.vy*sin(theta);
                 let v2m=b.vx*sin(theta)+b.vy*-cos(theta);
                 let v2n=b.vx*cos(theta)+b.vy*sin(theta);
-                
+                if(v1n>0&&v2n<0)continue;
                 this.vx=v1m*sin(theta)+v2n*cos(theta);
                 this.vy=v1m*-cos(theta)+v2n*sin(theta);
                 b.vx=v2m*sin(theta)+v1n*cos(theta);
                 b.vy=v2m*-cos(theta)+v1n*sin(theta);
 
                 thwl=2;
-                this.lb=i;
-                b.lb=idx;
+                this.lb.push(i);
+                b.lb.push(idx);
                 break;
             }
         }
@@ -217,17 +215,15 @@ class ball{
         this.t2=t2;
     }
 }
-cvs.addEventListener(("mousemove"),f1=(e2)=>{
+cvs.addEventListener(("mousemove"),(e)=>{
     if(playing)return;
     let x,y;
     x=balls[0].x;
     y=balls[0].y;
     let x1,y1;
-    x1=e2.offsetX;
-    y1=e2.offsetY;
+    x1=e.offsetX;
+    y1=e.offsetY;
     x1*=ti;y1*=ti;
-    ee.x=x1;
-    ee.y=y1;
     let a=new ball(x,y,"#00f");
     let dx=x1-x;
     let dy=y1-y;
@@ -263,13 +259,16 @@ cvs.addEventListener(("mousemove"),f1=(e2)=>{
     }
     drline(a.x,a.y,a.x+a.vx*vv,a.y+a.vy*vv);
 });
-cvs.addEventListener(("click"),()=>{
+cvs.addEventListener(("click"),(e)=>{
     if(playing)return;
     playing=1;
     let x,y;
     x=balls[0].x;
     y=balls[0].y;
-    let x1=ee.x,y1=ee.y;
+    let x1,y1;
+    x1=e.offsetX;
+    y1=e.offsetY;
+    x1*=ti;y1*=ti;
     let dx=x1-x;
     let dy=y1-y;
     let d=atan2(dy,dx);
@@ -290,19 +289,33 @@ function drline(x,y,x1,y1){
     ctx.stroke();
 }
 function start(){
-    let a=new ball(1300,800,"#eee");
-    balls.push(a);
-    let b=new ball(1500,200,"#a00a");
-    balls.push(b);
-    let c=new ball(1300,200,"#a00a");
-    balls.push(c);
-    let d=new ball(1100,200,"#a00a");
-    balls.push(d);
-    let e=new ball(900,200,"#a00a");
-    balls.push(e);
+    let bll=[
+        {//white ball
+            x:cw*0.2,
+            y:ch*0.5,
+            clr:"#fff"
+        }
+    ];
+    for(let i=0;i<5;i++){
+        for(let j=0;j<=i;j++){
+            bll.push({
+                x:cw*0.65+i*cr*3**0.5,
+                y:ch*0.5-i*cr+j*cr*2,
+                clr:HSLToRGB(360/15*(i*(i+1)/2+j),100,50)
+            })
+        }
+    }
+    for(let i in bll){
+        let a=new ball(bll[i].x,bll[i].y,bll[i].clr);
+        balls.push(a);
+    }
+    drbk();
 }
 function moving(){
     let a=0;
+    for(let i in balls){
+        balls[i].lb=[];
+    }
     for(let i in balls){
         balls[i].move(i);
         if(balls[i].vx==0&&balls[i].vy==0)a++;
@@ -348,7 +361,7 @@ function drbk(){
     }
     for(let i in balls){
         let b=balls[i];
-        if(playing==0){
+        if(playing>=0){
             ctx.strokeStyle="#bbba";
             drline(b.x,b.y,b.x+b.vx*vv,b.y+b.vy*vv);
         }
@@ -356,8 +369,6 @@ function drbk(){
     if(playing==0)return;
     window.requestAnimationFrame(drbk);
 }
-bk();
-//draw();
 start();
         </script>
     </body>
