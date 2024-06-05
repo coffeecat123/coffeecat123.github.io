@@ -64,10 +64,12 @@ var ipt1=$("#ipt1");
 var sp1=$("#sp1");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    gμk=0.15,cr=30,balls=[],
+    gμk=0.2,cr=30,balls=[],
     maxf=100,minf=50,playing=0,ff,
-    wa=100,mm=4,vv=5,tt=5,
+    wa=100,mm=2.5,vv=5,tt=5,
     ch=cvs.height,cw=cvs.width;
+
+const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 
 ipt1.min=minf;
 ipt1.max=maxf;
@@ -215,14 +217,26 @@ class ball{
         this.t2=t2;
     }
 }
-cvs.addEventListener(("mousemove"),(e)=>{
+cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     if(playing)return;
     let x,y;
     x=balls[0].x;
     y=balls[0].y;
     let x1,y1;
-    x1=e.offsetX;
-    y1=e.offsetY;
+    if(isMobile){
+        if(e.touches.length==1){
+            e.preventDefault();
+        }
+        else{
+            return;
+        }
+        x1=e.changedTouches[0].pageX-cvs.offsetLeft;
+        y1=e.changedTouches[0].pageY-cvs.offsetTop;
+    }
+    else{
+        x1=e.offsetX;
+        y1=e.offsetY;
+    }
     x1*=ti;y1*=ti;
     let a=new ball(x,y,"#00f");
     let dx=x1-x;
@@ -259,15 +273,21 @@ cvs.addEventListener(("mousemove"),(e)=>{
     }
     drline(a.x,a.y,a.x+a.vx*vv,a.y+a.vy*vv);
 });
-cvs.addEventListener(("click"),(e)=>{
+cvs.addEventListener(mt_switch("click"),(e)=>{
     if(playing)return;
     playing=1;
     let x,y;
     x=balls[0].x;
     y=balls[0].y;
     let x1,y1;
-    x1=e.offsetX;
-    y1=e.offsetY;
+    if(isMobile){
+        x1=e.changedTouches[0].pageX-cvs.offsetLeft;
+        y1=e.changedTouches[0].pageY-cvs.offsetTop;
+    }
+    else{
+        x1=e.offsetX;
+        y1=e.offsetY;
+    }
     x1*=ti;y1*=ti;
     let dx=x1-x;
     let dy=y1-y;
@@ -332,6 +352,15 @@ function bl(x,y,r,clr){
     ctx.arc(x,y,r,0,2*Math.PI);
     ctx.fill();
 };
+function mt_switch(a){
+    if(isMobile){
+        if(a=="mousemove")return "touchmove";
+        if(a=="mousedown")return "touchstart";
+        if(a=="mouseup")return "touchend";
+        if(a=="click")return "touchend";
+    }
+    return a;
+}
 function draw(){
     let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
     gdt.addColorStop(1,"#f00");
@@ -356,6 +385,7 @@ function bk(){
 function drbk(){
     bk();
     //draw();
+    ctx.strokeStyle="#000";
     for(let i in balls){
         balls[i].drawbl();
     }
