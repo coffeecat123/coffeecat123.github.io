@@ -224,9 +224,9 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        alert(e.touches.length);
+        //alert(e.touches.length);
         if(e.touches.length==1){
-            e.preventDefault();
+            //e.preventDefault();
             two_tch=0;
         }
         else{
@@ -284,10 +284,7 @@ cvs.addEventListener(mt_switch("click"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        if(two_tch){
-            two_tch=0;
-            return;
-        }
+        if(two_tch)return;
         x1=e.changedTouches[0].pageX-cvs.offsetLeft;
         y1=e.changedTouches[0].pageY-cvs.offsetTop;
     }
