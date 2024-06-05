@@ -284,7 +284,10 @@ cvs.addEventListener(mt_switch("click"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        if(two_tch)return;
+        if(two_tch){
+            two_tch=0;
+            return;
+        }
         x1=e.changedTouches[0].pageX-cvs.offsetLeft;
         y1=e.changedTouches[0].pageY-cvs.offsetTop;
     }
