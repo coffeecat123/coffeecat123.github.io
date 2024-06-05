@@ -224,9 +224,8 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        //alert(e.touches.length);
         if(e.touches.length==1){
-            //e.preventDefault();
+            e.preventDefault();
             two_tch=0;
         }
         else{
