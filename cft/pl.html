@@ -277,12 +277,12 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     drline(a.x,a.y,a.x+a.vx*vv,a.y+a.vy*vv);
 });
 cvs.addEventListener(mt_switch("click"),(e)=>{
+    tch--;
     if(playing)return;
     let x,y;
     x=balls[0].x;
     y=balls[0].y;
     let x1,y1;
-    tch--;
     if(isMobile){
         if(tch>0)return;
         x1=e.changedTouches[0].pageX-cvs.offsetLeft;
