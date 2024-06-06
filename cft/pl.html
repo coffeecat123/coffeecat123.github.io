@@ -227,7 +227,6 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
         if(e.touches.length==1){
             e.preventDefault();
             two_tch=0;
-            alert(two_tch);
         }
         else{
             two_tch=1;
@@ -278,7 +277,6 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
 });
 cvs.addEventListener(mt_switch("click"),(e)=>{
     if(playing)return;
-    playing=1;
     let x,y;
     x=balls[0].x;
     y=balls[0].y;
@@ -302,6 +300,7 @@ cvs.addEventListener(mt_switch("click"),(e)=>{
     }
     balls[0].vx=ff*cos(d)/mm;
     balls[0].vy=ff*sin(d)/mm;
+    playing=1;
     drbk();
     moving();
 });
