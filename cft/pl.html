@@ -66,7 +66,7 @@ var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     gμk=0.2,cr=30,balls=[],
     maxf=100,minf=50,playing=0,ff,
-    wa=100,mm=2.5,vv=5,tt=5,two_tch=0,
+    wa=100,mm=2.5,vv=5,tt=5,tch=0,
     ch=cvs.height,cw=cvs.width;
 
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
@@ -217,6 +217,9 @@ class ball{
         this.t2=t2;
     }
 }
+cvs.addEventListener(mt_switch("mousedown"),(e)=>{
+    tch++;
+});
 cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     if(playing)return;
     let x,y;
@@ -224,12 +227,10 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        if(e.touches.length==1){
+        if(tch==1){
             e.preventDefault();
-            two_tch=0;
         }
         else{
-            two_tch=1;
             return;
         }
         x1=e.changedTouches[0].pageX-cvs.offsetLeft;
@@ -281,8 +282,9 @@ cvs.addEventListener(mt_switch("click"),(e)=>{
     x=balls[0].x;
     y=balls[0].y;
     let x1,y1;
+    tch--;
     if(isMobile){
-        if(two_tch)return;
+        if(tch>0)return;
         x1=e.changedTouches[0].pageX-cvs.offsetLeft;
         y1=e.changedTouches[0].pageY-cvs.offsetTop;
     }
