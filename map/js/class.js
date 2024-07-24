@@ -6,6 +6,7 @@ class ball{
         this.vy=vy;
         this.r=r;
         this.clr=clr;
+        this.lc;
     }
     move(){
         let lx=this.x,ly=this.y;
@@ -22,9 +23,11 @@ class ball{
         }
         for(let i in balls){
             let b=balls[i];
+            if(b===this.lb)continue;
             if(bgclr.join()==b.clr.join())continue;
             if(distance(this.x,this.y,b.x,b.y)<this.r+b.r){
                 chbk(b.clr.slice(),random(500,1000));
+                this.lb=b;
             }
         }
     }
