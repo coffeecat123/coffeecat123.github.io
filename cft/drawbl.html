@@ -135,8 +135,9 @@ cvs.addEventListener(mt_switch("mousedown"),(e)=>{
             w+=distance(a,pp[i])**2;
         }
         w=(w/pl-r**2)**0.5/r;
-let score = getCircularityScore(pp);
-console.log(`分數: ${score}`);
+        let score = getCircularityScore(pp);
+        console.log(`分數: ${score}`);
+        if(isNaN(score))return;
         drawpnt(a);
         ctx.strokeStyle="#eee";
         ctx.beginPath();
