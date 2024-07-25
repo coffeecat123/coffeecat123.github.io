@@ -1,14 +1,16 @@
 var inff=document.querySelector("#inff");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
+var abs=Math.abs;
 var ti=cvs.width/cvs.offsetWidth,
     fps=120,t=1/fps,developer=1,infhd=1,
     keys=[],now_fps,stmp,maxwidth,maxheight,
     playing=0,bal,balls=[],walls=[],
     bgclr=[37,37,37],lsclr=bgclr.slice(0),
     toclr=bgclr.slice(0),tm=0,tms=0,
-    gw=800,gh=800,mw=30,mh=30,mz=[],
+    gw=800,gh=800,mw,mh,mz=[],
     dx=[0,1,0,-1],dy=[-1,0,1,0],
+    st={},sd,clrs=[],
 key={
     'w':0,
     'a':0,
@@ -87,30 +89,64 @@ cvs.onwheel=(e)=>{
 };
 cvs.onmousemove=(e)=>{
 }
-
-function mkmz(){
-    for(let i=0;i<mh;i++){
-        mz[i]=new Array();
-        for(let j=0;j<mw;j++){
-            mz[i][j]=0;
+function mkmz() {
+	mz=Array(mh).fill().map(()=>Array(mw).fill(0));
+	let stack = [];
+	let startX = Math.floor(Math.random() * Math.floor((mw - 1) / 2)) * 2 + 1;
+	let startY = Math.floor(Math.random() * Math.floor((mh - 1) / 2)) * 2 + 1;
+	stack.push([startX, startY]);
+	mz[startY][startX] = 1;
+    let c=0;
+	while (stack.length > 0) {
+		let [x, y] = stack[stack.length - 1];
+		let directions = [0, 1, 2, 3];
+		for (let i = directions.length - 1; i > 0; i--) {
+			let j = Math.floor(Math.random() * (i + 1));
+			[directions[i], directions[j]] = [directions[j], directions[i]];
+		}
+		let moved = false;
+		for (let dir of directions) {
+			let nx = x + dx[dir] * 2;
+			let ny = y + dy[dir] * 2;
+			if (nx >= 0 && nx < mw && ny >= 0 && ny < mh && mz[ny][nx] == 0) {
+				mz[y + dy[dir]][x + dx[dir]] = 1;
+				mz[ny][nx] = 1;
+                c++;
+				stack.push([nx, ny]);
+				moved = true;
+				break;
+			}
+		}
+		if (!moved) {
+			stack.pop();
+		}
+	}
+    let wl=[],el=[];
+    for(let i=1;i<mh-1;i++){
+        for(let j=1;j<mw-1;j++){
+            if(mz[i][j]==0){
+                wl.push([i, j]);
+            }
+            if(mz[i][j]==1){
+                el.push([i, j]);
+            }
         }
     }
-    mkmz2(random(0,mw-1),random(0,mh-1));
-}
-function mkmz2(x,y){
-    let d=[0,1,2,3];
-    for(let i=d.length-1;i>0;i--){
-        let j=random(0,i);
-        [d[i],d[j]]=[d[j],d[i]];
+    for(let i=wl.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1));
+        [wl[i], wl[j]] = [wl[j], wl[i]];
     }
-    for(let i of d){
-        let nx=x+dx[i]*2,ny=y+dy[i]*2;
-        if(nx<0||nx>=mw||ny<0||ny>=mh)continue;
-        if(mz[ny][nx])continue;
-        mz[ny][nx]=1;
-        mz[x+dx[i]][y+dy[i]]=1;
-        mkmz2(nx,ny);
+    for(let i=el.length-1;i>0;i--){
+        let j=Math.floor(Math.random()*(i+1));
+        [el[i], el[j]] = [el[j], el[i]];
     }
+    for(let i=0;i<(mh*mw)/20;i++){
+        mz[wl[i][0]][wl[i][1]]=2;
+    }
+    for(let i=0;i<(mh+mw)/4;i++){
+        mz[el[i][0]][el[i][1]]=3;
+    }
+    return [startX, startY];
 }
 function bl(x,y,r,clr,l){
     ctx.fillStyle=clr;
@@ -141,6 +177,12 @@ function draw(){
     ctx.lineTo(0,0);
     ctx.stroke();
 
+    
+    for(let i in walls){
+        let w=walls[i];
+        ctx.fillStyle=`rgb(${w.clr.join()})`;
+        ctx.fill(w.path2d());
+    }
     for(let i in balls){
         let b=balls[i];
         if(b==undefined)continue;
@@ -189,17 +231,56 @@ function focus_out(){
         }
     }, 800);
 }
+function ComputeCollision(w, h, r, rx, ry) {
+	var dx = Math.min(rx, w * 0.5);
+	var dx1 = Math.max(dx, -w * 0.5);
+	var dy = Math.min(ry, h * 0.5);
+	var dy1 = Math.max(dy, -h * 0.5);
+	return (dx1 - rx) * (dx1 - rx) + (dy1 - ry) * (dy1 - ry) <= r * r;
+}
 function start(){
     maxwidth=1000;
     maxheight=500;
     keys=[];
+    clrs=[];
     stmp=0;
     playing=1;
-    bal=new ball(cvs.width/2,cvs.height/2,0,0,30,[223.6,0,0]);
+    bal=new ball(0,0,0,0,10,[255,255,255]);
     balls=[];
-    for(let i=0;i<10;i++){
-        let b=new ball(random(0,cvs.width),random(0,cvs.height),0,0,10,[random(0,255),random(0,255),random(0,255)]);
-        balls.push(b);
+    sd=bal.r*2*2;
+    mh=Math.floor(cvs.height/sd-1);
+    mw=Math.floor(cvs.width/sd-1);
+    mh=mh-((mh^1)&1);
+    mw=mw-((mw^1)&1);
+    [st.x,st.y]=mkmz();
+    bal.x=cvs.width/2-sd*mw/2+(st.x+0.5)*sd;
+    bal.y=cvs.height/2-sd*mh/2+(st.y+0.5)*sd;
+    let clrl=3;
+    for(let i=0;i<clrl;i++){
+        let a=HSLToRGB(360/clrl*i,50,50)
+        clrs.push(a.substring(4,a.length-1).split(','));
+
+    }
+    for(let i=0;i<mh;i++){
+        for(let j=0;j<mw;j++){
+            if(mz[i][j]==1)continue;
+            let c;
+            if(mz[i][j]==0){
+                c=[128,128,128];
+            }
+            if(mz[i][j]==2){
+                c=clrs[random(0,clrl-1)];
+            }
+            if(mz[i][j]==3){
+                balls.push(new ball(cvs.width/2-sd*mw/2+(j+0.5)*sd,cvs.height/2-sd*mh/2+(i+0.5)*sd,0,0,bal.r/2,clrs[random(0,clrl-1)]));
+                continue;
+            }
+            walls.push(new wall([
+[cvs.width/2-sd*mw/2+j*sd,cvs.height/2-sd*mh/2+i*sd],
+[cvs.width/2-sd*mw/2+(j+1)*sd,cvs.height/2-sd*mh/2+i*sd],
+[cvs.width/2-sd*mw/2+(j+1)*sd,cvs.height/2-sd*mh/2+(i+1)*sd],
+[cvs.width/2-sd*mw/2+j*sd,cvs.height/2-sd*mh/2+(i+1)*sd]],c));
+        }
     }
     let last_time={
         time:Date.now(),
@@ -211,6 +292,9 @@ function start(){
                 (lsclr[1]*tm+toclr[1]*(tms-tm))/tms,
                 (lsclr[2]*tm+toclr[2]*(tms-tm))/tms];
             tm--;
+            if(tm==0){
+                bgclr=toclr.slice(0);
+            }
         }
         bk();
         draw();

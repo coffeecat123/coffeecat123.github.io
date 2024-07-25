@@ -30,6 +30,29 @@ class ball{
                 this.lb=b;
             }
         }
+        let ax=0,ay=0,wx,wy;
+        for(let i in walls){
+            let w=walls[i];
+            if(w.clr.join()==bgclr.join())continue;
+            if(distance(this.x,this.y,w.cx,w.cy)>this.r+sd/2**0.5)continue;
+            if(ComputeCollision(sd,sd,this.r,this.x-w.cx,this.y-w.cy)){
+                if(abs(lx-w.cx)<this.r+sd/2){
+                    ay=1;
+                    wy=w;
+                }
+                if(abs(ly-w.cy)<this.r+sd/2){
+                    ax=1;
+                    wx=w;
+                }
+                if(ax+ay==2)break;
+            }
+        }
+        if(ax){
+            this.x=lx+(wx==wy)*((this.x>wx.cx)-(this.x<wx.cx))*this.r/100;
+        }
+        if(ay){
+            this.y=ly+(wx==wy)*((this.y>wy.cy)-(this.y<wy.cy))*this.r/100;
+        }
     }
     drawbl(l){
         bl(this.x,this.y,this.r,`rgb(${this.clr.join()})`,l);
@@ -43,6 +66,14 @@ class ball{
 class wall{
     constructor(points,clr){
         this.points=points;//[x,y]
+        this.cx=0;
+        this.cy=0;
+        for(let i in points){
+            this.cx+=points[i][0];
+            this.cy+=points[i][1];
+        }
+        this.cx/=points.length;
+        this.cy/=points.length;
         this.clr=clr;
     }
     path2d(){
