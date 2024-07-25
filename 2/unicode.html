@@ -46,7 +46,7 @@
     <body>
         轉換器(<span class="cc">By coffeecat </span>)<button style="width: 300px;" id='bt' onclick="butn()">點我</button><script>
             document.write("<style>textarea{height:"+(document.body.clientHeight-document.body.clientWidth/3.25)/2+"}</style>");
-            wo=["encode","decode","自創密碼","自創解碼","英轉注音","酷酷的","utf8_to_b64","b64_to_utf8"];
+            wo=["encode","decode","encodeURI","decodeURI","自創密碼","自創解碼","英轉注音","酷酷的","utf8_to_b64","b64_to_utf8"];
             w=wo.length;
             document.write("<select id='asdc' onchange='asdf()'>")
             for(i=0;i<w;i++){
@@ -124,12 +124,18 @@ alsk4=["5 ","之","56","直","53","只","54","至","t ","吃","t6","持","t3","�
                     // 轉為16進位制陣列
                     //code16 = code.toString(16); // "4e2d"
                     if(m==0){
-                        b.value=encodeURI(d);
+                        b.value=encodeURIComponent(d);
                     }
                     if(m==1){
-                        b.value=decodeURI(d);
+                        b.value=decodeURIComponent(d);
                     }
                     if(m==2){
+                        b.value=encodeURI(d);
+                    }
+                    if(m==3){
+                        b.value=decodeURI(d);
+                    }
+                    if(m==4){
                         if(d.length>1000)return;
                         for(i in d){
                             cz=d.charCodeAt(i);
@@ -142,7 +148,7 @@ alsk4=["5 ","之","56","直","53","只","54","至","t ","吃","t6","持","t3","�
                             b.value+=cz+kk2;
                         }
                     }
-                    if(m==3){
+                    if(m==5){
                         for(i=0;i<d.length;i++){
                             sd="";
                             while(d[i]!=kk2){
@@ -160,7 +166,7 @@ alsk4=["5 ","之","56","直","53","只","54","至","t ","吃","t6","持","t3","�
                             b.value+=String.fromCharCode(sd);
                         }
                     }
-                    if(m==4){
+                    if(m==6){
 let text=d.toLowerCase();
 if(text==""){
     b.value="";
@@ -214,7 +220,7 @@ request.onload=function(){
 }
 request.send();
                     }
-                    if(m==5){//768 879
+                    if(m==7){//768 879
                         if(d.length>1000)return;
                         for(i=0;i<d.length;i++){
                             b.value+=d[i];
@@ -228,10 +234,10 @@ request.send();
                             }
                         }
                     }
-                    if(m==6){
+                    if(m==8){
                         b.value=window.btoa(unescape(encodeURIComponent(d)));
                     }
-                    if(m==7){
+                    if(m==9){
                         b.value=decodeURIComponent(escape(window.atob(d)));
                     }
                     b.style.color="rgb("+cr[c.length%6][0]+","+cr[c.length%6][1]+","+cr[c.length%6][2]+")";
