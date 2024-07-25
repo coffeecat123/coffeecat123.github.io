@@ -68,6 +68,7 @@ document.onkeydown=(e)=>{
     }
 };
 cvs.addEventListener(mt_switch("mousedown"),(e)=>{
+    if(md)return;
     md=1;
     bk();
     draw();
