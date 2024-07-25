@@ -272,7 +272,7 @@ function start(){
                 c=clrs[random(0,clrl-1)];
             }
             if(mz[i][j]==3){
-                balls.push(new ball(cvs.width/2-sd*mw/2+(j+0.5)*sd,cvs.height/2-sd*mh/2+(i+0.5)*sd,0,0,bal.r/2,clrs[random(0,clrl-1)]));
+                balls.push(new ball(cvs.width/2-sd*mw/2+(j+0.5)*sd,cvs.height/2-sd*mh/2+(i+0.5)*sd,0,0,(sd/2**0.5-bal.r*2)*1.1,clrs[random(0,clrl-1)]));
                 continue;
             }
             walls.push(new wall([
