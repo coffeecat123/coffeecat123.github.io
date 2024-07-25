@@ -184,7 +184,7 @@ function DegToRad(a){
     return a*Math.PI/180;
 }
 function random(a,b){
-    return parseInt(Math.random()*(b-a+1))+a;
+    return Math.floor(Math.random()*(b-a+1))+a;
 }
 function HSLToRGB(h,s,l) {
   s/=100;
@@ -271,7 +271,7 @@ function start(){
     clearInterval(interval);
     dm=0;
     ty.innerHTML='';
-    spn.textContent=parseInt((g*1500*(1+Math.tan(DegToRad(angle))**2)/(2*Math.tan(DegToRad(angle))))**0.5);
+    spn.textContent=Math.floor((g*1500*(1+Math.tan(DegToRad(angle))**2)/(2*Math.tan(DegToRad(angle))))**0.5);
     let h=1500*Math.tan(DegToRad(angle));
     let a=new ball(100,1400,v0*Math.cos(DegToRad(angle)),-v0*Math.sin(DegToRad(angle)),30);
     let b=new ball(1600,1400-h,0,0,30);
@@ -290,7 +290,7 @@ function start(){
                     c.children[1],
                     c.children[2],
                     c.children[3]];
-                let x=parseInt(b.x),y=parseInt(b.y),d=Math.round((b.vx**2+b.vy**2)**0.5);
+                let x=Math.floor(b.x),y=Math.floor(b.y),d=Math.round((b.vx**2+b.vy**2)**0.5);
                 if(a[1].innerHTML!=x)a[1].innerHTML=x;
                 if(a[2].innerHTML!=y)a[2].innerHTML=y;
                 if(a[3].innerHTML!=d)a[3].innerHTML=d;
@@ -305,8 +305,8 @@ function start(){
             d=document.createElement("td"),
             document.createElement("td")];
         a[0].innerHTML=i+1;
-        a[1].innerHTML=parseInt(b.x);
-        a[2].innerHTML=parseInt(b.y);
+        a[1].innerHTML=Math.floor(b.x);
+        a[2].innerHTML=Math.floor(b.y);
         a[3].innerHTML=Math.round((b.vx**2+b.vy**2)**0.5);
         t.append(a[0],a[1],a[2],a[3]);
         ty.append(t);

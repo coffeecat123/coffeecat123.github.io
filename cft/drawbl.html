@@ -50,6 +50,9 @@ var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var pnt=[],md=0,ti=cvs.width/cvs.offsetWidth;
 
+const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+
+
 class point{
     constructor(x,y){
         this.x=x;
@@ -64,7 +67,7 @@ document.onkeydown=(e)=>{
         draw();
     }
 };
-cvs.onmousedown=(e)=>{
+cvs.addEventListener(mt_switch("mousedown"),(e)=>{
     md=1;
     bk();
     draw();
@@ -78,7 +81,7 @@ cvs.onmousedown=(e)=>{
     ctx.strokeStyle="#888";
     ctx.lineCap="round";
     ctx.lineWidth=3;
-    document.addEventListener('mousemove',f1=(e1)=>{
+    document.addEventListener('mt_switch("mousemove")',f1=(e1)=>{
         let x2=e1.pageX,y2=e1.pageY;
         let xa=x+(x2-x1)*ti,
             ya=y+(y2-y1)*ti;
@@ -94,7 +97,7 @@ cvs.onmousedown=(e)=>{
     });
     document.addEventListener('mouseup',f2=()=>{
         document.removeEventListener('mouseup',f2);
-        document.removeEventListener('mousemove',f1);
+        document.removeEventListener('mt_switch("mousemove")',f1);
         let a=new point(0,0),r=0,e=0,pl=pp.length;
         for(let i in pp){
             a.x+=pp[i].x;
@@ -120,7 +123,16 @@ cvs.onmousedown=(e)=>{
         ctx.fillText(`score: ${(10000/e).toFixed(2)}`,10,50);
         md=0;
     });
-};
+});
+function mt_switch(a){
+    if(isMobile){
+        if(a=="mousemove")return "touchmove";
+        if(a=="mousedown")return "touchstart";
+        if(a=="mouseup")return "touchend";
+        if(a=="click")return "touchend";
+    }
+    return a;
+}
 function midpnt(p1,p2){
     return new point((p1.x+p2.x)/2,(p1.y+p2.y)/2);
 }
@@ -147,7 +159,7 @@ function DegToRad(a){
     return a*Math.PI/180;
 }
 function random(a,b){
-    return parseInt(Math.random()*(b-a+1))+a;
+    return Math.floor(Math.random()*(b-a+1))+a;
 }
 function HSLToRGB(h,s,l) {
   s/=100;

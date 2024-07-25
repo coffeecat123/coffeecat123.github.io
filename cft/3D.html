@@ -231,7 +231,7 @@ function hilit(ky){
     for(let i in r1){
         if(r1[i]=="")continue;
         let x=r1[i];
-        let a=parseInt(x.substring(0,x.length-1)),
+        let a=Math.floor(x.substring(0,x.length-1)),
             b=x.substring(x.length-1);
         qq+=`<font class="num">${a}</font><font class="trn">${b}</font>`;
         e_+=x.length;
@@ -251,7 +251,7 @@ function hilit(ky){
         let c=a.split(".");
         for(let i in c){
             let x=c[i];
-            let g=parseInt(x.substring(0,x.length-1)),
+            let g=Math.floor(x.substring(0,x.length-1)),
                 h=x.substring(x.length-1);
             qq+=`<font class="num">${g}</font><font class="trn">${h}</font>`;
             e_+=x.length;
@@ -365,7 +365,7 @@ function dd(ky){
     for(let i in r1){
         if(r1[i]=="")continue;
         let x=r1[i];
-        let a=parseInt(x.substring(0,x.length-1)),
+        let a=Math.floor(x.substring(0,x.length-1)),
             b=x.substring(x.length-1);
         pnts.push(pnt(pnts[a].x,pnts[a].y,ra,b));
     }
@@ -381,7 +381,7 @@ function dd(ky){
         }
     }
     draw();
-    let w=`x: ${parseInt(st.x)} , y: ${parseInt(st.y)}`;
+    let w=`x: ${Math.floor(st.x)} , y: ${Math.floor(st.y)}`;
     ctx.fillStyle="#f00";
     ctx.font="20px sans-serif";
     ctx.fillText(w,20,cvs.height-20);
@@ -396,7 +396,7 @@ function fl(s){
     ctx.fillStyle=b;
     for(let i in c){
         let x=c[i];
-        let g=parseInt(x.substring(0,x.length-1)),
+        let g=Math.floor(x.substring(0,x.length-1)),
             h=x.substring(x.length-1);
         pp.push(pnt(pnts[g].x,pnts[g].y,ra*rb,h));
     }

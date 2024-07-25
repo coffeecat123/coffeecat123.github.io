@@ -4,10 +4,11 @@ var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
     fps=120,t=1/fps,developer=1,infhd=1,
     keys=[],now_fps,stmp,maxwidth,maxheight,
-    playing=0,bal,balls=[],
+    playing=0,bal,balls=[],walls=[],
     bgclr=[37,37,37],lsclr=bgclr.slice(0),
     toclr=bgclr.slice(0),tm=0,tms=0,
-    gw=800,gh=800,
+    gw=800,gh=800,mw=30,mh=30,mz=[],
+    dx=[0,1,0,-1],dy=[-1,0,1,0],
 key={
     'w':0,
     'a':0,
@@ -85,6 +86,31 @@ cvs.onmousedown=(e)=>{
 cvs.onwheel=(e)=>{
 };
 cvs.onmousemove=(e)=>{
+}
+
+function mkmz(){
+    for(let i=0;i<mh;i++){
+        mz[i]=new Array();
+        for(let j=0;j<mw;j++){
+            mz[i][j]=0;
+        }
+    }
+    mkmz2(random(0,mw-1),random(0,mh-1));
+}
+function mkmz2(x,y){
+    let d=[0,1,2,3];
+    for(let i=d.length-1;i>0;i--){
+        let j=random(0,i);
+        [d[i],d[j]]=[d[j],d[i]];
+    }
+    for(let i of d){
+        let nx=x+dx[i]*2,ny=y+dy[i]*2;
+        if(nx<0||nx>=mw||ny<0||ny>=mh)continue;
+        if(mz[ny][nx])continue;
+        mz[ny][nx]=1;
+        mz[x+dx[i]][y+dy[i]]=1;
+        mkmz2(nx,ny);
+    }
 }
 function bl(x,y,r,clr,l){
     ctx.fillStyle=clr;

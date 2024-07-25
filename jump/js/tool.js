@@ -5,7 +5,7 @@ function DegToRad(a){
     return a*Math.PI/180;
 }
 function random(a,b){
-    return parseInt(Math.random()*(b-a+1))+a;
+    return Math.floor(Math.random()*(b-a+1))+a;
 }
 function HSLToRGB(h,s,l) {
   s/=100;

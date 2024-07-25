@@ -64,7 +64,7 @@ ipt.step=1;
 document.onkeydown=(e)=>{
 };
 btn.onclick=()=>{
-    start(parseInt(ipt.value));
+    start(Math.floor(ipt.value));
 };
 function start(n){
     if(playing||n==0)return;
@@ -142,7 +142,7 @@ function start(n){
     }
     play(0);
     function play(a){
-        let b=parseInt(a/spd);
+        let b=Math.floor(a/spd);
         if(b==move.length){
             playing=0;
             return;
@@ -150,7 +150,7 @@ function start(n){
         let x_=x,y_=y;
         x+=dx[move[b]]*stp/spd;
         y+=dy[move[b]]*stp/spd;
-        ctx.strokeStyle=HSLToRGB((clr+parseInt(b/move.length*360))%360,100,50);
+        ctx.strokeStyle=HSLToRGB((clr+Math.floor(b/move.length*360))%360,100,50);
         ctx.beginPath();
         ctx.moveTo(x_,y_);
         ctx.lineTo(x,y);
@@ -161,7 +161,7 @@ function start(n){
     }
 }
 function random(a,b){
-    return parseInt(Math.random()*(b-a+1))+a;
+    return Math.floor(Math.random()*(b-a+1))+a;
 }
 function HSLToRGB(h,s,l) {
   s/=100;

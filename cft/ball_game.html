@@ -514,8 +514,8 @@ function fltxt(text,fms,h,clr,max=0){
     else ctx.fillText(text,(cvs.width-ctx.measureText(text).width)/2,h);
 }
 function pw(x,y){
-    let a=parseInt(Math.random()*100),b,c;
-    let hp=lv*10+parseInt(Math.random()*10)-5;
+    let a=Math.floor(Math.random()*100),b,c;
+    let hp=lv*10+Math.floor(Math.random()*10)-5;
 /*
 tp:
 0    none
@@ -540,7 +540,7 @@ tp:
     for(let i in _a){
         _b+=Number(_a[i]);
     }
-    let _c=parseInt(Math.random()*_b)+1;
+    let _c=Math.floor(Math.random()*_b)+1;
     for(let i in _a){
         if(_c<=_a[i]&&_c>0){
             if(i==0){
@@ -716,7 +716,7 @@ class ball{
             for(let k=0;k<wc;k++){
                 walls[i][k].hp=0;
             }
-            score+=parseInt(walls[i][j].lv**1.01*50);
+            score+=Math.floor(walls[i][j].lv**1.01*50);
             return 1;
         }
         return 0;
@@ -728,7 +728,7 @@ class ball{
             for(let k=0;k<walls.length;k++){
                 walls[k][j].hp=0;
             }
-            score+=parseInt(walls[i][j].lv**1.01*10*wc/2);
+            score+=Math.floor(walls[i][j].lv**1.01*10*wc/2);
             return 1;
         }
         return 0;
@@ -743,7 +743,7 @@ class ball{
             for(let k=0;k<walls.length;k++){
                 walls[k][j].hp=0;
             }
-            score+=parseInt(walls[i][j].lv**1.01*50);
+            score+=Math.floor(walls[i][j].lv**1.01*50);
             return 1;
         }
         return 0;
@@ -902,7 +902,7 @@ class ball{
 function tchwl(wl){
     wl.hp-=1;
     if(wl.hp<=0){
-        score+=parseInt(wl.lv**1.01*10);
+        score+=Math.floor(wl.lv**1.01*10);
     }
 }
 function bl(x,y,r,clr){
