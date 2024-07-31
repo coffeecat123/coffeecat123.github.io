@@ -121,6 +121,7 @@ cvs.addEventListener(mt_switch("mousedown"),(e)=>{
         document.removeEventListener(mt_switch("mouseup"),f2);
         document.removeEventListener(mt_switch("mousemove"),f1);
         let a=new point(0,0),r=0,w=0,pl=pp.length;
+        md=0;
         for(let i in pp){
             a.x+=pp[i].x;
             a.y+=pp[i].y;
@@ -145,7 +146,6 @@ cvs.addEventListener(mt_switch("mousedown"),(e)=>{
         ctx.stroke();
         ctx.fillStyle="#0f0";
         ctx.fillText(`score: ${score}`,10,50);
-        md=0;
     });
 });
 function calculateCenter(points) {
