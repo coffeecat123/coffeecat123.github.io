@@ -93,6 +93,7 @@ function HSLToRGB(h,s,l) {
   return "rgb(" + r + "," + g + "," + b + ")";
 }
 cvs.onpointerdown=(e)=>{
+    if(md)return;
     md=1;
     let x1=e.pageX,y1=e.pageY;
     document.addEventListener('pointerup',f2=(e1)=>{
