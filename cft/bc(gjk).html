@@ -276,60 +276,16 @@ function bc() {
             let dx = s1.pt[0].x - s2.pt[0].x;
             let dy = s1.pt[0].y - s2.pt[0].y;
             if (dx * dx + dy * dy <= (s1.r + s2.r) * (s1.r + s2.r)) {
-                b.push([i, j]);;
+                b.push([i, j]);
             }
-        } 
+        }
         else if (s1.pl == 1 || s2.pl == 1) {
             if (s2.pl === 1) [s1, s2] = [s2, s1];
-        
-            let circle = s1;
-            let polygon = s2;
 
-            let axes = [...polygon.nm];
-
-            let circleCenter = circle.pt[0];
-            let closestVertex = polygon.pt.reduce((closest, vertex) => {
-                let dx = vertex.x - circleCenter.x;
-                let dy = vertex.y - circleCenter.y;
-                let distanceSquared = dx * dx + dy * dy;
-
-                if (distanceSquared < closest.distanceSquared) {
-                    return { vertex, distanceSquared };
-                }
-                return closest;
-            }, { vertex: null, distanceSquared: Infinity }).vertex;
-
-            if (closestVertex) {
-                let vectorToVertex = {
-                    x: closestVertex.x - circleCenter.x,
-                    y: closestVertex.y - circleCenter.y
-                };
-                axes.push(vectorToVertex);
-            }
-
-            let collision = true;
-            for (let axis of axes) {
-                let projectionCircle = getProjectionRangeCircle(circle, axis);
-                let projectionPolygon = getProjectionRange(polygon.pt, axis);
-
-                if (!overlap(projectionCircle, projectionPolygon)) {
-                    collision = false;
-                    break;
-                }
-            }
-
-            if (collision)b.push([i, j]);
         }
         else {
-            let collision = [...s1.nm, ...s2.nm].every(nm => {
-                let r1 = getProjectionRange(s1.pt, nm);
-                let r2 = getProjectionRange(s2.pt, nm);
-                return overlap(r1, r2);
-            });
-            if (collision)b.push([i, j]);
         }
     }
-
     return b;
 }
 function getProjectionRange(polygon, axis) {
