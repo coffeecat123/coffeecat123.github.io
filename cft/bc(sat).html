@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>?</title>
+        <style>
+body{
+    background: #000;
+}
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+#cvs{
+    height: 500px;
+    touch-action: none;
+}
+#wl{
+    display: flex;
+    align-items: flex-start;
+}
+::-webkit-scrollbar-corner {
+    background:#181818;
+}
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    background-color: #303030;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #6c6c6c;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #a1a1a1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-resizer {
+    background: #828282;
+    outline: 2px solid #b6b6b6;
+}
+        </style>
+    </head>
+    <body>
+        <div id="wl">
+            <canvas id="cvs" width="1000" height="1000"></canvas>
+        </div>
+        <script>
+const $=(s)=>document.querySelector(s);
+const $$=(s)=>[...document.querySelectorAll(s)];
+var cvs=$("#cvs");
+var ctx=cvs.getContext("2d");
+var ti=cvs.width/cvs.offsetWidth,
+    shapes=[],tree,idx,isTouch=[],md,
+    fps=60,fpsInterval,startTime,now,then,elapsed;
+
+class AABB {
+    constructor(min, max,idx) {
+        this.min = min;
+        this.max = max;
+        this.idx = idx;
+    }
+
+    intersects(other) {
+        return !(this.max.x < other.min.x || this.min.x > other.max.x ||
+                 this.max.y < other.min.y || this.min.y > other.max.y);
+    }
+
+    static merge(aabb1, aabb2) {
+        return new AABB(
+            {x: Math.min(aabb1.min.x, aabb2.min.x), y: Math.min(aabb1.min.y, aabb2.min.y)},
+            {x: Math.max(aabb1.max.x, aabb2.max.x), y: Math.max(aabb1.max.y, aabb2.max.y)}
+        );
+    }
+}
+class AABBNode {
+    constructor(aabb, left = null, right = null) {
+        this.aabb = aabb;
+        this.left = left;
+        this.right = right;
+    }
+
+    isLeaf() {
+        return this.left === null && this.right === null;
+    }
+}
+class AABBTree {
+    constructor() {
+        this.root = null;
+    }
+    insert(aabb) {
+        if (this.root === null) {
+            this.root = new AABBNode(aabb);
+        } else {
+            this.root = this._insert(this.root, aabb);
+        }
+    }
+    _insert(node, aabb) {
+        if (node.isLeaf()) {
+            const newNode = new AABBNode(AABB.merge(node.aabb, aabb), node, new AABBNode(aabb));
+            return newNode;
+        }
+        const leftAabb = node.left ? node.left.aabb : null;
+        const rightAabb = node.right ? node.right.aabb : null;
+
+        const leftMerge = leftAabb ? AABB.merge(leftAabb, aabb) : AABB.merge(node.aabb, aabb);
+        const rightMerge = rightAabb ? AABB.merge(rightAabb, aabb) : AABB.merge(node.aabb, aabb);
+
+        const leftAreaIncrease = leftAabb ? this._areaIncrease(leftAabb, aabb) : Infinity;
+        const rightAreaIncrease = rightAabb ? this._areaIncrease(rightAabb, aabb) : Infinity;
+
+        if (leftAreaIncrease < rightAreaIncrease) {
+            node.left = this._insert(node.left, aabb);
+        } else {
+            node.right = this._insert(node.right, aabb);
+        }
+
+        node.aabb = AABB.merge(node.left ? node.left.aabb : node.aabb, node.right ? node.right.aabb : node.aabb);
+
+        return node;
+    }
+
+    _areaIncrease(aabb1, aabb2) {
+        const mergedAABB = AABB.merge(aabb1, aabb2);
+        const mergedArea = (mergedAABB.max.x - mergedAABB.min.x) * (mergedAABB.max.y - mergedAABB.min.y);
+        const originalArea = (aabb1.max.x - aabb1.min.x) * (aabb1.max.y - aabb1.min.y);
+        return mergedArea - originalArea;
+    }
+
+    query(aabb) {
+        const results = [];
+        this._query(this.root, aabb, results);
+        return results;
+    }
+
+    _query(node, aabb, results) {
+        if (node === null) return;
+
+        if (node.aabb.intersects(aabb)) {
+            if (node.isLeaf()) {
+                results.push(node.aabb);
+            } else {
+                this._query(node.left, aabb, results);
+                this._query(node.right, aabb, results);
+            }
+        }
+    }
+}
+function createtree(){
+    let tr=new AABBTree();
+    for(let i in shapes){
+        tr.insert(shapes[i].aabb);
+    }
+    return tr;
+}
+class shape{
+    constructor(pt,clr,r){
+        this.pt=pt.map(([x,y])=>{
+            return {x,y};
+        });
+        this.pl=this.pt.length;
+        this.clr=clr;
+        if(r)this.r=r;
+        //pl:1 => circle
+        //pl>2 => polygon
+        if(this.pl==1){
+            this.minx=this.pt[0].x-this.r;
+            this.maxx=this.pt[0].x+this.r;
+            this.miny=this.pt[0].y-this.r;
+            this.maxy=this.pt[0].y+this.r;
+        }
+        else{
+            ({minx:this.minx,maxx:this.maxx,miny:this.miny,maxy:this.maxy}=this.pt.reduce(({minx, maxx, miny, maxy}, {x, y}) => {
+                return {
+                    minx:minx<x?minx:x,
+                    maxx:maxx>x?maxx:x,
+                    miny:miny<y?miny:y,
+                    maxy:maxy>y?maxy:y
+                };
+            }, {minx: this.pt[0].x, 
+                maxx: this.pt[0].x, 
+                miny: this.pt[0].y, 
+                maxy: this.pt[0].y }));
+        }
+        this.idx=idx;
+        idx++;
+        this.aabb=this.createaabb();
+        this.pd=this.path2d();
+        if(this.pl>=3){
+            let m=[];
+            for(let k=0;k<this.pl;k++){
+                m.push([this.pt[k].x-this.pt[(k+1)%this.pl].x,
+                        this.pt[k].y-this.pt[(k+1)%this.pl].y]);
+            }
+            m=m.map(([x,y])=>{
+                return {x:-y,y:x};
+            });
+            this.nm=m;
+        }
+    }
+    createaabb(){
+        return new AABB({x:this.minx,y:this.miny},{x:this.maxx,y:this.maxy},this.idx);
+    }
+    path2d(){
+        let a=new Path2D();
+        if(this.pl==1){
+            a.arc(this.pt[0].x,this.pt[0].y,this.r,0,2*Math.PI);
+        }
+        else{
+            a.moveTo(this.pt[0].x,this.pt[0].y);
+            for(let i=1;i<this.pl;i++){
+                a.lineTo(this.pt[i].x,this.pt[i].y);
+            }
+            a.closePath();
+        }
+        return a;
+    }
+}
+function draw(){
+    //shapes
+    let ist=[...isTouch];
+    let b={};
+    for(let i in ist){
+        b[ist[i][0]]=1;
+        b[ist[i][1]]=1;
+    }
+    for(let i in shapes){
+        let s=shapes[i];
+        ctx.fillStyle=s.clr;
+        if(b[i])ctx.fillStyle="#000";
+        ctx.fill(s.pd);
+        if(!b[i])continue;
+        ctx.strokeStyle="#fff";
+        ctx.lineWidth=1;
+        ctx.stroke(s.pd);
+    }
+    //------------bg---------------
+    let gdt=ctx.createLinearGradient(0,0,cvs.width,cvs.height);
+    gdt.addColorStop(1,"#f00");
+    gdt.addColorStop(0,"#f0f");
+    ctx.strokeStyle=gdt;
+    ctx.lineWidth=10;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(0,cvs.height);
+    ctx.lineTo(cvs.width,cvs.height);
+    ctx.lineTo(cvs.width,0);
+    ctx.lineTo(0,0);
+    ctx.stroke();
+}
+function bk(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.save();
+    ctx.fillStyle="#181818";
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.restore();
+}
+function bc() {
+    let a = [];
+    shapes.forEach((sh, idx) => {
+        let aabb = sh.aabb;
+        let p = tree.query(aabb);
+        p.forEach(k => {
+            if (idx >= k.idx) return;
+            a.push([idx, k.idx]);
+        });
+    });
+    let b=[];
+    if (a.length == 0) return b;
+    for (let [i, j] of a) {
+        let s1 = shapes[i];
+        let s2 = shapes[j];
+
+        if (s1.pl == 1 && s2.pl == 1) {
+            let dx = s1.pt[0].x - s2.pt[0].x;
+            let dy = s1.pt[0].y - s2.pt[0].y;
+            if (dx * dx + dy * dy <= (s1.r + s2.r) * (s1.r + s2.r)) {
+                b.push([i, j]);;
+            }
+        } 
+        else if (s1.pl == 1 || s2.pl == 1) {
+            if (s2.pl === 1) [s1, s2] = [s2, s1];
+        
+            let circle = s1;
+            let polygon = s2;
+
+            let axes = [...polygon.nm];
+
+            let circleCenter = circle.pt[0];
+            let closestVertex = polygon.pt.reduce((closest, vertex) => {
+                let dx = vertex.x - circleCenter.x;
+                let dy = vertex.y - circleCenter.y;
+                let distanceSquared = dx * dx + dy * dy;
+
+                if (distanceSquared < closest.distanceSquared) {
+                    return { vertex, distanceSquared };
+                }
+                return closest;
+            }, { vertex: null, distanceSquared: Infinity }).vertex;
+
+            if (closestVertex) {
+                let vectorToVertex = {
+                    x: closestVertex.x - circleCenter.x,
+                    y: closestVertex.y - circleCenter.y
+                };
+                axes.push(vectorToVertex);
+            }
+
+            let collision = true;
+            for (let axis of axes) {
+                let projectionCircle = getProjectionRangeCircle(circle, axis);
+                let projectionPolygon = getProjectionRange(polygon.pt, axis);
+
+                if (!overlap(projectionCircle, projectionPolygon)) {
+                    collision = false;
+                    break;
+                }
+            }
+
+            if (collision)b.push([i, j]);
+        }
+        else {
+            let collision = [...s1.nm, ...s2.nm].every(nm => {
+                let r1 = getProjectionRange(s1.pt, nm);
+                let r2 = getProjectionRange(s2.pt, nm);
+                return overlap(r1, r2);
+            });
+            if (collision)b.push([i, j]);
+        }
+    }
+
+    return b;
+}
+function getProjectionRange(polygon, axis) {
+    let min = axis.x * polygon[0].x + axis.y * polygon[0].y;
+    let max = min;
+    for (let i = 1; i < polygon.length; i++) {
+        let projection = axis.x * polygon[i].x + axis.y * polygon[i].y;
+        if (projection < min) min = projection;
+        if (projection > max) max = projection;
+    }
+    return { min, max };
+}
+function getProjectionRangeCircle(circle, axis) {
+    let dotProduct = axis.x * circle.pt[0].x + axis.y * circle.pt[0].y;
+    
+    let axisLength = Math.hypot(axis.x, axis.y);
+    let radiusProjection = circle.r * axisLength;
+    return {
+        min: dotProduct - radiusProjection,
+        max: dotProduct + radiusProjection
+    };
+}
+function overlap(range1, range2) {
+    return !(range1.max < range2.min || range2.max < range1.min);
+}
+function generateRandomShape() {
+    const shapeType = Math.random() < 0.2 ? 'circle' : 'polygon'; // 隨機選擇圓形或多邊形
+    const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // 隨機顏色
+    const maxRadius = 100;
+    const maxVertices = 7;
+    const maxPolygonRadius = 150;
+
+    if (shapeType === 'circle') {
+        const x = Math.random() * (cvs.width - maxRadius * 2) + maxRadius;
+        const y = Math.random() * (cvs.height - maxRadius * 2) + maxRadius;
+        const radius = Math.random() * (maxRadius - 10) + 10; // 半徑在10到maxRadius之間
+        return new shape([[x, y]], color, radius);
+    } else {
+        const centerX = Math.random() * cvs.width;
+        const centerY = Math.random() * cvs.height;
+        const numVertices = Math.floor(Math.random() * (maxVertices - 3) + 3); // 隨機數量的頂點，最少3個
+        const radius = Math.random() * (maxPolygonRadius - 30) + 30; // 半徑在30到maxPolygonRadius之間
+        const initialAngle = Math.random() * 2 * Math.PI; // 隨機初始角度
+
+        const vertices = [];
+        for (let i = 0; i < numVertices; i++) {
+            const angle = initialAngle + (i / numVertices) * 2 * Math.PI;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            vertices.push([x, y]);
+        }
+        return new shape(vertices, color);
+    }
+}
+function getRandomColor() {
+    const r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    const g = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    const b = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+}
+function start(){
+    fpsInterval = 1000 / fps;
+    then = Date.now();
+    startTime = then;
+    idx=0;
+    md=0;
+    for (let i = 0; i < 10; i++) {
+        shapes.push(generateRandomShape());
+    }
+    tree = createtree();
+    ani();
+}
+function ani(timestamp){
+    requestAnimationFrame(ani);
+    now = Date.now();
+    elapsed = now - then;
+    if (elapsed > fpsInterval) {
+        last_time=timestamp;
+        then = now - (elapsed % fpsInterval);
+        bk();
+        draw();
+        isTouch=bc();
+    }
+}
+cvs.onpointerdown=(e)=>{
+    if(md)return;
+    let x=e.offsetX*ti,
+        y=e.offsetY*ti;
+    let x1=x,y1=y;
+    if(e.button==2)return;
+    let select=-1;
+    let a=0;
+    for(let i=shapes.length-1;i>=0;i--){
+        if(ctx.isPointInPath(shapes[i].path2d(),x,y)){
+            select=i;
+            a=1;
+            break;
+        }
+    }
+    if(a){
+        md=1;
+        cvs.style.cursor="grabbing";
+        let f1,f2;
+        let ss=shapes[select];
+        document.addEventListener("pointermove",f1=(e1)=>{
+            let x2=e1.offsetX*ti,y2=e1.offsetY*ti;
+            let dx=x2-x1,
+                dy=y2-y1;
+            x1=x2,y1=y2;
+            for(let i=0;i<ss.pl;i++){
+                ss.pt[i].x+=dx;
+                ss.pt[i].y+=dy;
+            }
+            ss.minx+=dx;ss.maxx+=dx;
+            ss.miny+=dy;ss.maxy+=dy;
+            ss.pd=ss.path2d();
+            ss.aabb=ss.createaabb();
+            tree=createtree();
+        });
+        document.addEventListener('pointerup',f2=()=>{
+            document.removeEventListener('pointerup',f2);
+            document.removeEventListener('pointermove',f1);
+            cvs.style.cursor="grab";
+            md=0;
+        });
+    }
+};
+cvs.onpointermove=(e)=>{
+    if(md)return;
+    let x=e.offsetX*ti,
+        y=e.offsetY*ti;
+        
+    for(let i=shapes.length-1;i>=0;i--){
+        if(ctx.isPointInPath(shapes[i].path2d(),x,y)){
+            cvs.style.cursor="grab";
+            return;
+        }
+    }
+    cvs.style.cursor="";
+};
+start();
+        </script>
+    </body>
+</html>
