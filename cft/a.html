@@ -105,7 +105,7 @@ document.onkeydown=(e)=>{
 inputclr.oninput=()=>{
     clr=inputclr.value;
 };
-cvs.onmousedown=(e)=>{
+cvs.onpointerdown=(e)=>{
     md=1;
     let x1=e.pageX,y1=e.pageY;
     let x=e.offsetX*ti,
@@ -115,7 +115,7 @@ cvs.onmousedown=(e)=>{
     ctx.strokeStyle="#fff";
     ctx.lineCap="round";
     ctx.lineWidth=4;
-    document.addEventListener('mousemove',f1=(e1)=>{
+    document.addEventListener('pointermove',f1=(e1)=>{
         let x2=e1.pageX,y2=e1.pageY;
         let xa=x+(x2-x1)*ti,
             ya=y+(y2-y1)*ti;
@@ -144,9 +144,9 @@ cvs.onmousedown=(e)=>{
         x1=x2;
         y1=y2;
     });
-    document.addEventListener('mouseup',f2=()=>{
-        document.removeEventListener('mouseup',f2);
-        document.removeEventListener('mousemove',f1);
+    document.addEventListener('pointerup',f2=()=>{
+        document.removeEventListener('pointerup',f2);
+        document.removeEventListener('pointermove',f1);
         md=0;
         psh();
     });
