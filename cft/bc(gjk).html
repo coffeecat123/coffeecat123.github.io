@@ -55,6 +55,35 @@ var ti=cvs.width/cvs.offsetWidth,
     shapes=[],tree,idx,isTouch=[],md,
     fps=60,fpsInterval,startTime,now,then,elapsed;
 
+function subtract(v1,v2){
+    return {x:v1.x-v2.x,y:v1.y-v2.y};
+}
+function dot(v1,v2){
+    return v1.x*v2.x+v1.y*v2.y;
+}
+function negative(v){
+    return {x:-v.x,y:-v.y};
+}
+class Simplex {
+    constructor() {
+        this.points = [];
+    }
+    add(point) {
+        this.points.push(point);
+    }
+    lspt(){
+        return this.points[this.points.length-1];
+    }
+    remove(p){
+        this.points.splice(this.points.indexOf(p),1);
+    }
+}
+function support(s1, s2, d) {
+    let p1=s1.gfpd(d);
+    let p2=s2.gfpd(negative(d));
+    let p3=subtract(p1,p2);
+    return p3;
+}
 class AABB {
     constructor(min, max,idx) {
         this.min = min;
@@ -154,7 +183,7 @@ function createtree(){
     }
     return tr;
 }
-class shape{
+class Shape{
     constructor(pt,clr,r){
         this.pt=pt.map(([x,y])=>{
             return {x,y};
@@ -201,6 +230,32 @@ class shape{
     }
     createaabb(){
         return new AABB({x:this.minx,y:this.miny},{x:this.maxx,y:this.maxy},this.idx);
+    }
+    gfpd(d){//getFarthestPointInDirection
+        if(this.pl==1){
+            let l=Math.hypot(d.x,d.y);
+            let normalizedDirection={x:d.x/l,y:d.y/l};
+            let farthestPoint = {
+                x: this.pt[0].x + this.r * normalizedDirection.x,
+                y: this.pt[0].y + this.r * normalizedDirection.y
+            };
+            
+            return farthestPoint;
+        }
+        let farthestPoint = this.pt[0];
+        let maxDotProduct = dot(farthestPoint,d);
+
+        for (let i = 1; i < this.pl; i++) {
+            let point = this.pt[i];
+            let dotProd = dot(point,d);
+
+            if (dotProd > maxDotProduct) {
+                maxDotProduct = dotProd;
+                farthestPoint = point;
+            }
+        }
+
+        return farthestPoint;
     }
     path2d(){
         let a=new Path2D();
@@ -279,14 +334,64 @@ function bc() {
                 b.push([i, j]);
             }
         }
-        else if (s1.pl == 1 || s2.pl == 1) {
-            if (s2.pl === 1) [s1, s2] = [s2, s1];
-
-        }
         else {
+            let d={x:1,y:0};
+            let s=new Simplex();
+            s.add(support(s1,s2,d));
+            d=negative(d);
+            while(1){
+                s.add(support(s1,s2,d));
+                if(dot(s.lspt(),d)<=0){
+                    break;
+                }
+                else{
+                    let c=containO(s,d);
+                    d=c[1];
+                    if(c[0]){
+                        b.push([i, j]);
+                        break;
+                    }
+                }
+            }
         }
     }
     return b;
+}
+function containO(s,d){
+    let a=s.lspt();
+    let ao=negative(a);
+    if(s.points.length==3){
+        let b=s.points[1];
+        let c=s.points[0];
+        let ab=subtract(b,a);
+        let ac=subtract(c,a);
+        let abPerp=tripleProduct(ac,ab,ab);
+        let acPerp=tripleProduct(ab,ac,ac);
+        if(dot(abPerp,ao)>0){
+            s.remove(c);
+            d=abPerp;
+        }else{
+            if(dot(acPerp,ao)>0){
+                s.remove(b);
+                d=acPerp;
+            }else{
+                return [true,d];
+            }
+        }
+    }else{
+        let b=s.points[0];
+        let ab=subtract(b,a);
+        let abPerp=tripleProduct(ab,ao,ab);
+        d=abPerp;
+    }
+    return [false,d];
+}
+function tripleProduct(a,b,c) {
+    let ac=dot(a,c);
+    let bc=dot(b,c);
+    let perp={x:b.x*ac-a.x*bc,
+              y:b.y*ac-a.y*bc};
+    return perp;
 }
 function getProjectionRange(polygon, axis) {
     let min = axis.x * polygon[0].x + axis.y * polygon[0].y;
@@ -322,7 +427,7 @@ function generateRandomShape() {
         const x = Math.random() * (cvs.width - maxRadius * 2) + maxRadius;
         const y = Math.random() * (cvs.height - maxRadius * 2) + maxRadius;
         const radius = Math.random() * (maxRadius - 10) + 10; // 半徑在10到maxRadius之間
-        return new shape([[x, y]], color, radius);
+        return new Shape([[x, y]], color, radius);
     } else {
         const centerX = Math.random() * cvs.width;
         const centerY = Math.random() * cvs.height;
@@ -337,7 +442,7 @@ function generateRandomShape() {
             const y = centerY + radius * Math.sin(angle);
             vertices.push([x, y]);
         }
-        return new shape(vertices, color);
+        return new Shape(vertices, color);
     }
 }
 function getRandomColor() {
