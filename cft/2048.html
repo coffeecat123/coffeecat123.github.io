@@ -11,6 +11,7 @@ body{
 }
 #cvs{
     height: 500px;
+    touch-action: none;
 }
 #wl{
     display: flex;
@@ -51,7 +52,7 @@ var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth
     ba=10,maze=[],score=0,playing=0,
-    nu=[],wa=cvs.width/ba;
+    nu=[],wa=cvs.width/ba,md=0;
 //maze:ba*ba
 //maze[x][y]=type
 function $(el){
@@ -90,6 +91,23 @@ function HSLToRGB(h,s,l) {
   b = Math.round((b + m) * 255);
 
   return "rgb(" + r + "," + g + "," + b + ")";
+}
+cvs.onpointerdown=(e)=>{
+    md=1;
+    let x1=e.pageX,y1=e.pageY;
+    document.addEventListener('pointerup',f2=(e1)=>{
+        let x2=e1.pageX,y2=e1.pageY;
+        let dx=x2-x1,dy=y2-y1;
+        if(Math.abs(dx)>Math.abs(dy)){
+            if(dx>0)rt();
+            else if(dx<0)lt();
+        }else{
+            if(dy>0)dw();
+            else if(dy<0)up();
+        }
+        document.removeEventListener('pointerup',f2);
+        md=0;
+    });
 }
 document.onkeydown=(e)=>{
     if(e.key=='a'||e.key=='ArrowLeft'){
