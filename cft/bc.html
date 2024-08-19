@@ -384,7 +384,10 @@ function generateRandomShape() {
     }
 }
 function getRandomColor() {
-    return '#' + Math.floor(Math.random() * 16777215).toString(16);
+    const r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    const g = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    const b = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
 }
 function start(){
     fpsInterval = 1000 / fps;
@@ -410,7 +413,7 @@ function ani(timestamp){
         isTouch=bc();
     }
 }
-cvs.onmousedown=(e)=>{
+cvs.onpointerdown=(e)=>{
     if(md)return;
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
@@ -430,7 +433,7 @@ cvs.onmousedown=(e)=>{
         cvs.style.cursor="grabbing";
         let f1,f2;
         let ss=shapes[select];
-        document.addEventListener("mousemove",f1=(e1)=>{
+        document.addEventListener("pointermove",f1=(e1)=>{
             let x2=e1.offsetX*ti,y2=e1.offsetY*ti;
             let dx=x2-x1,
                 dy=y2-y1;
@@ -445,15 +448,15 @@ cvs.onmousedown=(e)=>{
             ss.aabb=ss.createaabb();
             tree=createtree();
         });
-        document.addEventListener('mouseup',f2=()=>{
-            document.removeEventListener('mouseup',f2);
-            document.removeEventListener('mousemove',f1);
+        document.addEventListener('pointerup',f2=()=>{
+            document.removeEventListener('pointerup',f2);
+            document.removeEventListener('pointermove',f1);
             cvs.style.cursor="grab";
             md=0;
         });
     }
 };
-cvs.onmousemove=(e)=>{
+cvs.onpointermove=(e)=>{
     if(md)return;
     let x=e.offsetX*ti,
         y=e.offsetY*ti;
