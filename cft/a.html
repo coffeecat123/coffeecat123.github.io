@@ -116,6 +116,8 @@ cvs.onpointerdown=(e)=>{
     ctx.lineCap="round";
     ctx.lineWidth=4;
     document.addEventListener('pointermove',f1=(e1)=>{
+        e1.preventDefault();
+        e1.stopPropagation();
         let x2=e1.pageX,y2=e1.pageY;
         let xa=x+(x2-x1)*ti,
             ya=y+(y2-y1)*ti;
