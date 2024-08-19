@@ -356,8 +356,8 @@ function overlap(range1, range2) {
     return !(range1.max < range2.min || range2.max < range1.min);
 }
 function generateRandomShape() {
-    const shapeType = Math.random() < 0.2 ? 'circle' : 'polygon'; // 隨機選擇圓形或多邊形
-    const color = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // 隨機顏色
+    const shapeType = Math.random() < 0.2 ? 'circle' : 'polygon';
+    const color = getRandomColor();
     const maxRadius = 100;
     const maxVertices = 7;
     const maxPolygonRadius = 150;
