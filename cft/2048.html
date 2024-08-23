@@ -50,9 +50,9 @@ body{
 var inputclr=$("#inputclr");
 var cvs=$("#cvs");
 var ctx=cvs.getContext("2d");
-var ti=cvs.width/cvs.offsetWidth
-    ba=10,maze=[],score=0,playing=0,
-    nu=[],wa=cvs.width/ba,md=0;
+var ti=cvs.width/cvs.offsetWidth,
+    ba=4,maze=[],score=0,playing=0,
+    nu=[],wa,md=0;
 //maze:ba*ba
 //maze[x][y]=type
 function $(el){
@@ -138,6 +138,7 @@ function lt(){
             else if(a==b){
                 a=0;
                 maze[c++][i]=b+1;
+                score+=2**(b+1);
                 continue;
             }
             maze[c++][i]=a;
@@ -170,6 +171,7 @@ function rt(){
             else if(a==b){
                 a=0;
                 maze[c--][i]=b+1;
+                score+=2**(b+1);
                 continue;
             }
             maze[c--][i]=a;
@@ -202,6 +204,7 @@ function up(){
             else if(a==b){
                 a=0;
                 maze[i][c++]=b+1;
+                score+=2**(b+1);
                 continue;
             }
             maze[i][c++]=a;
@@ -234,6 +237,7 @@ function dw(){
             else if(a==b){
                 a=0;
                 maze[i][c--]=b+1;
+                score+=2**(b+1);
                 continue;
             }
             maze[i][c--]=a;
@@ -264,6 +268,7 @@ function start(){
             maze[i].push(0);
         }
     }
+    wa=cvs.width/ba;
     playing=1;
     play();
     play();
@@ -312,6 +317,9 @@ function chk(){
 }
 function game_over(){
     console.log("Game Over");
+    setTimeout(()=>{
+        alert('Game Over\nScore:'+score);
+    },100);
 }
 function draw(){
     for(let i=0;i<ba;i++){
