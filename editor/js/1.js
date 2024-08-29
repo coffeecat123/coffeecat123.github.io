@@ -13,11 +13,7 @@ window.onload = function () {
 
     ok.onclick = () => {
         if (window.parent && window.parent !== window) {
-          const iframe = window.frameElement;
-          if (iframe) {
-            iframe.parentNode.removeChild(iframe);
-            console.log(iframe);
-          }
+            window.parent.postMessage('REMOVE_IFRAME', '*');
         }
     };
     p.onclick = () => {
