@@ -5,7 +5,7 @@ var cvs = $("#cvs");
 var ctx = cvs.getContext("2d");
 var ti = cvs.width / cvs.offsetWidt;
 var default_clr = "#ff0000", snakes, cnt, foods;
-var rr = 30;
+var rr, is_active;
 let lastTime, frameCount, fps, showFps;
 var map = {
     width: 0,
@@ -35,8 +35,21 @@ let camera = {
     width: cvs.width,
     height: cvs.height
 };
+
+window.onfocus = () => {
+    is_active = 1;
+};
+window.onblur = () => {
+    is_active = 0;
+};
+document.onfocusin = () => {
+    is_active = 1;
+};
+document.onfocusout = () => {
+    is_active = 0;
+};
 class Snake {
-    constructor(x, y, dx = 0, dy = 0, clr = "#ff0000") {
+    constructor(x, y, dx, dy, clr, type) {
         //body[0] is head
         this.body = [{ x, y }];
         this.dx = dx;
@@ -45,40 +58,95 @@ class Snake {
         this.waitTime = random(5000, 10000);
         this.lastTime = Date.now();
         this.score = 0;
+        this.type = type;
+        this.err = [];//food error status
+        this.err[1]={
+            lastTime:0,
+            waitTime:0
+        }
+        //type:0 player
+        //type:1-9 computer smart to stupid
     }
-    move(idx) {
-        if (idx > 0 && (Date.now() - this.lastTime > this.waitTime)) {
-            this.lastTime = Date.now();
-            this.waitTime = random(5000, 10000);
-            this.dx = random(-200, 200);
-            this.dy = random(-200, 200);
-        }
+    move() {
         let [x, y] = [this.body[0].x, this.body[0].y];
-        if (fps > 0) {
-            x += this.dx / fps;
-            y += this.dy / fps;
+        let b = this.body;
+        if (this.type > 0 && (Date.now() - this.lastTime > this.waitTime)) {
+            this.set_v(x, y);
         }
-
+        let dx = this.dx / fps, dy = this.dy / fps;
+        if (Date.now() - this.err[1].lastTime < this.err[1].waitTime) {
+            dx *= -1;
+            dy *= -1;
+        }
+        x += dx;
+        y += dy;
+        if ((cmp(1, this.type, 5)) && (x > map.width - rr || x < rr || y > map.height - rr || y < rr)) {
+            this.set_v(x, y);
+        }
         x = Math.max(rr, Math.min(x, map.width - rr));
         y = Math.max(rr, Math.min(y, map.height - rr));
 
         for (let i = 0; i < foods.length; i++) {
             let f = foods[i];
-            if (Math.hypot(x - f.x, y - f.y) < rr / 2) {
-                if (f.type == 0) {
+            if (f.type == 0) {
+                if (Math.hypot(x - f.x, y - f.y) < rr / 1.8) {
                     [x, y] = [f.dt.to.x, f.dt.to.y];
+                    f.x = random(rr, map.width - rr);
+                    f.y = random(rr, map.height - rr);
                     this.score++;
+                    break;
+                }
+            }
+            if (f.type == 1) {
+                if (Math.hypot(x - f.x, y - f.y) < rr + f.dt.r) {
+                    this.err[1].lastTime = Date.now();
+                    this.err[1].waitTime = random(1000, 3000);
+                    break;
                 }
             }
         }
-        if (x != this.body[0].x || y != this.body[0].y) {
-            this.body.unshift({ x, y });
+        if (x != b[0].x || y != b[0].y) {
+            b.unshift({ x, y });
         }
-        else if (this.body.length > 1) {
-            this.body.pop();
+        else if (b.length > 1) {
+            b.pop();
         }
-        if (this.body.length > fps * 2 && this.body.length > 1) {
-            this.body.pop();
+        if (b.length > fps * 2 && b.length > 1) {
+            b.pop();
+        }
+    }
+    set_v(x, y) {
+        this.lastTime = Date.now();
+        this.waitTime = random(this.type * 500, this.type * 1000);
+        let closestFood = null;
+        let minDistance = Infinity;
+        for (let i = 0; i < foods.length; i++) {
+            let f = foods[i];
+            if(f.type!=0)continue;
+            let dx = f.x - x;
+            let dy = f.y - y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestFood = f;
+            }
+        }
+        const p = Math.random();
+        if (closestFood && p < 0.7) {
+            let dx = closestFood.x - x;
+            let dy = closestFood.y - y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > 0) {
+                dx /= distance;
+                dy /= distance;
+            }
+            const speed = random(200, 500);
+            this.dx = dx * speed;
+            this.dy = dy * speed;
+        }
+        else {
+            this.dx = random(-200, 200);
+            this.dy = random(-200, 200);
         }
     }
 }
@@ -93,6 +161,32 @@ class Food {
         1:reverse
         */
     }
+    do() {
+        let [x, y] = [this.x, this.y];
+        if (this.type == 0) {
+            return;
+        }
+        if (this.type == 1) {
+            if (fps > 0) {
+                x += this.dt.v.dx / fps;
+                y += this.dt.v.dy / fps;
+            }
+            if (x > map.width - this.dt.r || x < this.dt.r) {
+                this.dt.v.dx *= -1;
+            }
+            if (y > map.height - this.dt.r || y < this.dt.r) {
+                this.dt.v.dy *= -1;
+            }
+            x = Math.max(this.dt.r, Math.min(x, map.width - this.dt.r));
+            y = Math.max(this.dt.r, Math.min(y, map.height - this.dt.r));
+            this.x = x;
+            this.y = y;
+            return;
+        }
+    }
+}
+function cmp(a, b, c) {
+    return a <= b && b <= c;
 }
 function getRandomColor() {
     const r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
@@ -214,6 +308,20 @@ function draw() {
             fillText(f.dt.text[0], f.x, f.y, "#ff0000");
             fillText(f.dt.text[1], f.dt.to.x, f.dt.to.y, "#ff0000");
         }
+        if (f.type == 1) {
+            ctx.fillStyle = f.dt.clr;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
+            ctx.fill();
+            fillText(f.dt.text[0], f.x, f.y, "#ff0000");
+        }
+        if (f.type == 2) {
+            ctx.fillStyle = f.dt.clr;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
+            ctx.fill();
+            fillText(f.dt.text[0], f.x, f.y, "#ff0000");
+        }
     }
 
     //draw snakes
@@ -229,8 +337,12 @@ function draw() {
             ctx.arc(b.x, b.y, r, 0, 2 * Math.PI);
             ctx.fill();
         }
-        fillText(s.score, s.body[0].x, s.body[0].y, "#fff", `${rr / 1.5}px Arial`);
-
+        if(Date.now()-s.err[1].lastTime<s.err[1].waitTime){
+            fillText('?', s.body[0].x, s.body[0].y, "#fff", `${rr}px Arial`);
+        }
+        else{
+            fillText(s.score, s.body[0].x, s.body[0].y, "#fff", `${rr / 1.5}px Arial`);
+        }
     }
 
     //draw fps
@@ -245,7 +357,8 @@ function draw() {
         ctx.fillText(text, x, y);
     }
 }
-function fillText(text, x, y, clr, font = '40px Arial') {
+function fillText(text, x, y, clr, font = `${rr * 1.3}px Arial`) {
+    ctx.save();
     ctx.font = font;
     ctx.fillStyle = clr;
     let textMetrics = ctx.measureText(text);
@@ -256,6 +369,7 @@ function fillText(text, x, y, clr, font = '40px Arial') {
     x -= camera.x;
     y -= camera.y;
     ctx.fillText(text, x, y);
+    ctx.restore();
 }
 function bk() {
     ctx.clearRect(0, 0, cvs.width, cvs.height);
@@ -289,7 +403,10 @@ function bindCamera(ctx, camera) {
 }
 function move() {
     for (let i = 0; i < snakes.length; i++) {
-        snakes[i].move(i);
+        snakes[i].move();
+    }
+    for (let i = 0; i < foods.length; i++) {
+        foods[i].do();
     }
 }
 function player_move() {
@@ -337,7 +454,7 @@ function updateFps() {
     if (lastTime) {
         const deltaTime = time - lastTime;
         frameCount++;
-        if (deltaTime > 1000) {
+        if (deltaTime > 100) {
             fps = Math.round(frameCount * 1000 / deltaTime);
             frameCount = 0;
             lastTime = time;
@@ -346,14 +463,16 @@ function updateFps() {
 }
 function update() {
     updateFps();
-    player_move();
-    move();
+    if (is_active && fps > 10) {
+        player_move();
+        move();
+    }
     updateCamera();
     bk();
     draw();
     requestAnimationFrame(update);
 }
-function start(w, h) {
+function start(w=3000, h=3000) {
     map.width = w;
     map.height = h;
     lastTime = Date.now();
@@ -361,14 +480,16 @@ function start(w, h) {
     frameCount = 0;
     cnt = 0;
     showFps = 1;
+    is_active = 1;
+    rr = 30;
     default_clr = "#ff0000";
     chclr.value = default_clr;
     foods = [];
-    snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr)];
+    snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr, 0)];
     for (let i = 0; i < 10; i++) {
-        snakes.push(new Snake(random(0, map.width), random(0, map.height), random(-200, 200), random(-200, 200), getRandomColor()));
+        snakes.push(new Snake(random(0, map.width), random(0, map.height), random(-200, 200), random(-200, 200), getRandomColor(), random(1, 9)));
     }
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < w*h/1000000*3; i++) {
         foods.push(new Food(random(rr, map.width - rr), random(rr, map.height - rr), 0,
             {
                 clr: '#555555', r: rr * 1.3, text: ['🍎', 'X'],
@@ -378,7 +499,26 @@ function start(w, h) {
                 }
             }));
     }
+    for (let i = 0; i < w*h/1000000/1.5; i++) {
+        foods.push(new Food(random(rr, map.width - rr), random(rr, map.height - rr), 1,
+            {
+                clr: '#555555', r: rr * 1.3, text: ['🍄', 'X'],
+                v: {
+                    dx: random(-200, 200), dy: random(-200, 200)
+                }
+            }));
+    }
+    for (let i = 0; i < w*h/1000000; i++) {
+        foods.push(new Food(random(rr, map.width - rr), random(rr, map.height - rr), 2,
+            {
+                clr: '#555555', r: rr * 1.3, text: ['🍇', 'X'],
+                v: {
+                    dx: 0, dy: 0
+                },
+                is_shoot: 0
+            }));
+    }
     update();
 }
 bindCamera(ctx, camera);
-start(3000, 3000);
+start(1000,1000);
