@@ -16,6 +16,7 @@ window.onload = function () {
           const iframe = window.frameElement;
           if (iframe) {
             iframe.parentNode.removeChild(iframe);
+            console.log(iframe);
           }
         }
     };
