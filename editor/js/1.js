@@ -12,9 +12,11 @@ window.onload = function () {
     txt.style.fontSize = font_size + "px";
 
     ok.onclick = () => {
-        const iframe = window.frameElement;
-        if (iframe) {
+        if (window.parent && window.parent !== window) {
+          const iframe = window.frameElement;
+          if (iframe) {
             iframe.parentNode.removeChild(iframe);
+          }
         }
     };
     p.onclick = () => {
