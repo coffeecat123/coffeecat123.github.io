@@ -76,6 +76,7 @@ body {
     min-width: 5vh;
     background-color: #eee;
     color: #000;
+    user-select: none;
     transition: ease 0.3s color, background-color;
 }
 
