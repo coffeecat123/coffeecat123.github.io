@@ -12,7 +12,7 @@ window.onload = function () {
     txt.style.fontSize = font_size + "px";
 
     ok.onclick = () => {
-        if (window.parent && window.parent !== window) {
+        if (window.self !== window.top) {
             window.parent.postMessage('REMOVE_IFRAME', '*');
             console.log('removed iframe');
         }
