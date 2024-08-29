@@ -14,6 +14,7 @@ window.onload = function () {
     ok.onclick = () => {
         if (window.parent && window.parent !== window) {
             window.parent.postMessage('REMOVE_IFRAME', '*');
+            console.log('removed iframe');
         }
     };
     p.onclick = () => {
