@@ -4,7 +4,7 @@ var cvs = $("#cvs");
 var ctx = cvs.getContext("2d");
 var ti;
 var default_clr = "#ff0000", buttons, snakes, foods;
-var rr, paused, cnt;
+var rr, paused, cnt, pointers = new Map();
 var lastTime, frameCount, fps, showFps;
 const margin = 50;
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
@@ -28,15 +28,36 @@ var camera = {
 var joystick = {
     x: 0,
     y: 0,
-    r: 100
+    default_x: 0,
+    default_y: 0,
+    active: 0,
+    id: -1,
+    sx: 0,
+    sy: 0,
+    r: 90
 };
 var add_speed = {
     x: 0,
     y: 0,
-    r: 100
+    default_x: 0,
+    default_y: 0,
+    id: -1,
+    r: 90 - 5,
+    active: 0
 };
 
 //tool functions
+function generateRandomUsername(length = 8) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let username = '';
+    for (let i = 0; i < length; i++) {
+        username += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return username;
+}
+function getSmallerAbsoluteValue(a, b) {
+    return Math.abs(a) < Math.abs(b) ? a : b;
+}
 function addOpacity(hex, opacity) {
     const alpha = Math.round(opacity * 255);
     const alphaHex = alpha.toString(16).padStart(2, '0');
@@ -148,9 +169,25 @@ cvs.addEventListener('pointerdown', (e) => {
             d.push(b);
         }
     }
-    for (let i in d) {
-        let b = d[i];
-        b.do();
+    if (d.length > 0) {
+        for (let i in d) {
+            let b = d[i];
+            b.do();
+        }
+    } else if(paused==0) {
+        if (x < cvs.width / 2) {
+            joystick.id = e.pointerId;
+            joystick.active = 1;
+            joystick.x = x;
+            joystick.y = y;
+            joystick.sx = 0;
+            joystick.sy = 0;
+        } else {
+            add_speed.id = e.pointerId;
+            add_speed.active = 1;
+            add_speed.x = x;
+            add_speed.y = y;
+        }
     }
 });
 cvs.addEventListener('pointermove', (e) => {
@@ -160,6 +197,29 @@ cvs.addEventListener('pointermove', (e) => {
     for (let i in buttons) {
         let b = buttons[i];
         b.hover = b.containsPoint(x, y);
+    }
+    if (e.pointerId == joystick.id) {
+        let j = joystick;
+        let dx = x - joystick.x;
+        let dy = y - joystick.y;
+        let dd = Math.hypot(dx, dy);
+        j.sx = getSmallerAbsoluteValue(j.r * dx / dd, dx);
+        j.sy = getSmallerAbsoluteValue(j.r * dy / dd, dy);
+        let d2 = Math.hypot(j.sx, j.sy);
+        if (dd > j.r) {
+            j.x += j.sx / d2;
+            j.y += j.sy / d2;
+        }
+    }
+});
+cvs.addEventListener('pointerup', (e) => {
+    if (e.pointerId == joystick.id) {
+        joystick.id = -1;
+        joystick.active = 0;
+    }
+    if (e.pointerId == add_speed.id) {
+        add_speed.id = -1;
+        add_speed.active = 0;
     }
 });
 document.onkeydown = (e) => {
@@ -201,13 +261,14 @@ document.onkeyup = (e) => {
 }
 //classes
 class Snake {
-    constructor(x, y, dx, dy, clr, type) {
+    constructor(x, y, dx, dy, clr, type,name) {
         //body[0] is head
         this.body = [{ x, y }];
         this.dx = dx;
         this.dy = dy;
         this.clr = clr;
         this.type = type;
+        this.name = name;
         this.score = 0;
         this.setTime();
         this.chscs = [];
@@ -251,16 +312,18 @@ class Snake {
             }
             if (f.type == 1) {
                 if (Math.hypot(x - f.x, y - f.y) < rr + f.dt.r) {
-                    this.err[1].lastTime = Date.now();
-                    this.err[1].waitTime = random(1000, 3000);
-                    this.chscore(-0.5);
+                    if (Date.now() - this.err[1].lastTime > 1000 / 10) {
+                        this.chscore(-0.5);
+                        this.err[1].lastTime = Date.now();
+                        this.err[1].waitTime = random(1000, 3000);
+                    }
                     break;
                 }
             }
             if (f.type == 2) {
                 if (Math.hypot(x - f.x, y - f.y) < (rr + f.dt.r) * 0.9) {
                     if (f.last_snake != this) {
-                        this.chscore(-1);
+                        this.chscore(-5);
                     }
                     f.last_snake = this;
                     let v = Math.hypot(this.dx, this.dy) * (1 + Math.random());
@@ -495,11 +558,21 @@ class Button {
 function setcvswh() {
     let w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
     let h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-    cvs.width = w;
-    cvs.height = h;
+    if (w > h) {
+        cvs.width = w / h * 600;
+        cvs.height = 600;
+    }
+    else {
+        cvs.width = 600;
+        cvs.height = h / w * 600;
+    }
     ti = cvs.width / cvs.offsetWidth;
     camera.width = cvs.width;
     camera.height = cvs.height;
+    joystick.default_x = cvs.width / 5;
+    joystick.default_y = cvs.height / 4 * 3;
+    add_speed.default_x = cvs.width / 5 * 4;
+    add_speed.default_y = cvs.height / 4 * 3;
 }
 function fillText(text, x, y, clr, a, font = `${rr * 1.3}px Arial`) {
     ctx.save();
@@ -560,6 +633,57 @@ function draw() {
     for (let i = snakes.length - 1; i >= 0; i--) {
         snakes[i].draw();
     }
+    //joystick
+    if (isMobile && !paused) {
+        let j = joystick;
+        ctx.beginPath();
+        ctx.strokeStyle = "#0005";
+        ctx.fillStyle = "#fff3";
+        if (j.active) {
+            ctx._arc(j.x, j.y, j.r, 0, Math.PI * 2);
+        } else {
+            ctx._arc(j.default_x, j.default_y, j.r, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = "#0005";
+        ctx.fillStyle = "#fff3";
+        if (j.active) {
+            ctx._arc(j.x, j.y, j.r / 1.6, 0, Math.PI * 2);
+        } else {
+            ctx._arc(j.default_x, j.default_y, j.r / 1.6, 0, Math.PI * 2);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.fillStyle = "#fff5";
+        if (j.active) {
+            ctx._arc(j.x + j.sx, j.y + j.sy, j.r / 4, 0, Math.PI * 2);
+        } else {
+            ctx._arc(j.default_x, j.default_y, j.r / 4, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.stroke();
+    }
+    //add_speed
+    if (isMobile && !paused) {
+        let d = add_speed;
+        ctx.beginPath();
+        ctx.beginPath();
+        ctx.strokeStyle = "#0005";
+        ctx.fillStyle = addOpacity("#fff", 0.2 + d.active / 3);
+        if (d.active) {
+            ctx._arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        } else {
+            ctx._arc(d.default_x, d.default_y, d.r, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        if (d.active) {
+            fillText("🍌", d.x, d.y, addOpacity("#000", 0.7 + d.active / 10 * 3), 0, `${d.r}px Arial`);
+        } else {
+            fillText("🍌", d.default_x, d.default_y, addOpacity("#000", 0.7 + d.active / 10 * 3), 0, `${d.r}px Arial`);
+        }
+    }
     //blur
     if (paused) {
         ctx.fillStyle = "#18181860";
@@ -577,15 +701,15 @@ function draw() {
     }
     //rank
     if (paused) {
-        let lx = cvs.width/3;
+        let lx = cvs.width / 3 - 10;
         let ly = 130;
-        let r=200;
+        let r = Math.min(200, cvs.width / 3);
         ctx.font = '40px Arial';
         ctx.fillStyle = '#f00';
         ctx.textAlign = 'right';
         ctx.fillText(`rank`, lx, ly);
-        ctx.fillText(`name`, lx+200, ly);
-        ctx.fillText(`score`, lx+400, ly);
+        ctx.fillText(`name`, lx + r, ly);
+        ctx.fillText(`score`, lx + r * 2, ly);
         const s = [...snakes].sort((a, b) => b.score - a.score);
         let a = 0;
         let t;
@@ -593,18 +717,18 @@ function draw() {
             if (s[i].score != s[i - 1]?.score) {
                 a++;
             }
-            if(s[i].name=='0'){
+            if (s[i].name == '🐍') {
                 ctx.save();
-                ctx.fillStyle="#3aa8";
-                ctx._fillRect(lx-r+100+5,i * 40+5 +ly, r*3-100, 40);
+                ctx.fillStyle = "#3aa8";
+                ctx._fillRect(lx - 85, i * 40 + 5 + ly, r * 2 + 90, 40);
                 ctx.restore();
             }
-            t=`${a}`;
-            ctx.fillText(t, lx, (i + 1) * 40 +ly,r-20);
-            t=`${s[i].name}`;
-            ctx.fillText(t, lx+r, (i + 1) * 40 +ly,r-20);
-            t=`${s[i].score}`;
-            ctx.fillText(t, lx+r*2, (i + 1) * 40 +ly,r-20);
+            t = `${a}`;
+            ctx.fillText(t, lx, (i + 1) * 40 + ly, r - 20);
+            t = `${s[i].name}`;
+            ctx.fillText(t, lx + r, (i + 1) * 40 + ly, r - 20);
+            t = `${s[i].score}`;
+            ctx.fillText(t, lx + r * 2, (i + 1) * 40 + ly, r - 20);
         }
     }
 
@@ -614,7 +738,7 @@ function draw() {
         ctx.font = '40px Arial';
         ctx.fillStyle = '#0f0';
         ctx.textAlign = 'right';
-        let x = cvs.width -10;
+        let x = cvs.width - 10;
         let y = 40;
         ctx.fillText(text, x, y);
     }
@@ -663,7 +787,13 @@ function player_move() {
     const speed = 250;;
     let dx = 0, dy = 0;
     if (isMobile) {
-        let v = speed * (1 + buttons[2].hover);
+        let j = joystick;
+        if (j.active && (j.sx != 0 && j.sy != 0)) {
+            let v = speed * (1 + add_speed.active);
+            let vv = Math.hypot(j.sx, j.sy);
+            dx = getSmallerAbsoluteValue(j.sx / vv * v, j.sx * v / j.r * 2);
+            dy = getSmallerAbsoluteValue(j.sy / vv * v, j.sy * v / j.r * 2);
+        }
     } else {
         let v = speed * (1 + keys.shift);
         if ((keys.w || keys.s) && (keys.a || keys.d)) {
@@ -719,8 +849,11 @@ function updateFps() {
 function update() {
     updateFps();
     if (paused == 0 && fps > 10) {
+        cvs.style.touchAction = 'none';
         player_move();
         move();
+    }else{
+        cvs.style.touchAction = 'auto';
     }
     updateCamera();
     bk();
@@ -740,17 +873,14 @@ function start(w = 3000, h = 3000) {
     rr = 30;
     default_clr = "#ff0000";
 
-    snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr, 0)];
-    for (let i = 0; i < 1; i++) {
+    snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr, 0,'🐍')];
+    for (let i = 0; i < 10; i++) {
         const k = 1.1;
         let t = Math.ceil(Math.log(1 + Math.random() * (k ** 8 - 1)) / Math.log(k) + 1);
         snakes.push(new Snake(
             random(0, map.width), random(0, map.height),
             random(-200, 200), random(-200, 200),
-            getRandomColor(), 1));
-    }
-    for (let i = 0; i < snakes.length; i++) {
-        snakes[i].name = i;
+            getRandomColor(), t,generateRandomUsername(random(4,8))));
     }
     foods = [];
     //w * h / 1000000 * 3
@@ -833,11 +963,11 @@ function start(w = 3000, h = 3000) {
     //fullscreen
     let button2 = new Button(1, () => {
         setTimeout(() => {
-        if (isFullScreen()) {
-            exitFullScreen();
-        } else {
-            enterFullScreen();
-        }
+            if (isFullScreen()) {
+                exitFullScreen();
+            } else {
+                enterFullScreen();
+            }
         }, 100);
     });
     button2.addShape(
@@ -862,4 +992,4 @@ function start(w = 3000, h = 3000) {
     update();
 }
 bindCamera(ctx, camera);
-start(1000, 1000);
+start();

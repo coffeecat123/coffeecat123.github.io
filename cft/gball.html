@@ -11,6 +11,7 @@ body{
 }
 #cvs{
     height: 500px;
+    touch-action: none;
 }
 #wl{
     display: flex;
@@ -52,7 +53,7 @@ var ti=cvs.width/cvs.offsetWidth,
     gravity=0.6,
     damping=0.9,
     traction=0.8,dm=1,qp=0.1,qp2=qp*3;
-cvs.onmousedown=(e)=>{
+cvs.onpointerdown=(e)=>{
     let x=e.pageX,y=e.pageY,
         _x=pd.x,_y=pd.y;
     let x1=e.offsetX*ti,y1=e.offsetY*ti;
@@ -60,7 +61,7 @@ cvs.onmousedown=(e)=>{
         dm=0;
         pd.vx=0;
         pd.vy=0;
-        document.onmousemove=(f)=>{
+        document.onpointermove=(f)=>{
             let x=f.pageX,y=f.pageY;
             bk();
             draw();
@@ -72,11 +73,11 @@ cvs.onmousedown=(e)=>{
             ctx.lineTo(pd.x+(x*ti-_x)*qp2,pd.y+(y*ti-_y)*qp2);
             ctx.stroke();
         };
-        document.onmouseup=(f)=>{
+        document.onpointerup=(f)=>{
             dm=1;
             let x=f.pageX,y=f.pageY;
-            document.onmousemove="";
-            document.onmouseup="";
+            document.onpointermove="";
+            document.onpointerup="";
             if(Math.abs(x*ti-_x)<1&&Math.abs(y*ti-_y)<1)return;
             pd.vx=(x*ti-_x)*qp;
             pd.vy=(y*ti-_y)*qp;
