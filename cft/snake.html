@@ -4,13 +4,13 @@
         <title>?</title>
         <style>
 body{
+    margin: 0;
     background: #000;
 }
 * {
     font-family: "Comic Sans MS", 標楷體;
 }
 #cvs{
-    height: 500px;
     touch-action: none;
 }
 #wl{
@@ -41,11 +41,11 @@ body{
     outline: 2px solid #b6b6b6;
 }
         </style>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, orientation=landscape">
     </head>
     <body>
         <div id="wl">
-            <canvas id="cvs" width="1000" height="1000"></canvas>
-            <input type="color" id="chclr">
+            <canvas id="cvs"></canvas>
         </div>
         <script src="snake.js"></script>
     </body>

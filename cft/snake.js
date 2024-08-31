@@ -1,12 +1,13 @@
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
-var chclr = $("#chclr");
 var cvs = $("#cvs");
 var ctx = cvs.getContext("2d");
-var ti = cvs.width / cvs.offsetWidt;
-var default_clr = "#ff0000", snakes, cnt, foods;
-var rr, is_active;
-let lastTime, frameCount, fps, showFps;
+var ti;
+var default_clr = "#ff0000", buttons, snakes, foods;
+var rr, paused, cnt;
+var lastTime, frameCount, fps, showFps;
+const margin = 50;
+const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 var map = {
     width: 0,
     height: 0
@@ -18,175 +19,69 @@ var keys = {
     d: 0,
     shift: 0
 };
-const margin = 50;
-
-chclr.oninput = () => {
-    if (snakes[0].clr) {
-        snakes[0].clr = chclr.value;
-        for (let i in keys) {
-            keys[i] = 0;
-        }
-    }
-};
-
-let camera = {
+var camera = {
     x: 0,
     y: 0,
     width: cvs.width,
     height: cvs.height
 };
+var joystick = {
+    x: 0,
+    y: 0,
+    r: 100
+};
+var add_speed = {
+    x: 0,
+    y: 0,
+    r: 100
+};
 
-window.onfocus = () => {
-    is_active = 1;
-};
-window.onblur = () => {
-    is_active = 0;
-};
-document.onfocusin = () => {
-    is_active = 1;
-};
-document.onfocusout = () => {
-    is_active = 0;
-};
-class Snake {
-    constructor(x, y, dx, dy, clr, type) {
-        //body[0] is head
-        this.body = [{ x, y }];
-        this.dx = dx;
-        this.dy = dy;
-        this.clr = clr;
-        this.waitTime = random(5000, 10000);
-        this.lastTime = Date.now();
-        this.score = 0;
-        this.type = type;
-        this.err = [];//food error status
-        this.err[1]={
-            lastTime:0,
-            waitTime:0
-        }
-        //type:0 player
-        //type:1-9 computer smart to stupid
+//tool functions
+function addOpacity(hex, opacity) {
+    const alpha = Math.round(opacity * 255);
+    const alphaHex = alpha.toString(16).padStart(2, '0');
+    if (hex.length === 4) {
+        hex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`;
     }
-    move() {
-        let [x, y] = [this.body[0].x, this.body[0].y];
-        let b = this.body;
-        if (this.type > 0 && (Date.now() - this.lastTime > this.waitTime)) {
-            this.set_v(x, y);
-        }
-        let dx = this.dx / fps, dy = this.dy / fps;
-        if (Date.now() - this.err[1].lastTime < this.err[1].waitTime) {
-            dx *= -1;
-            dy *= -1;
-        }
-        x += dx;
-        y += dy;
-        if ((cmp(1, this.type, 5)) && (x > map.width - rr || x < rr || y > map.height - rr || y < rr)) {
-            this.set_v(x, y);
-        }
-        x = Math.max(rr, Math.min(x, map.width - rr));
-        y = Math.max(rr, Math.min(y, map.height - rr));
-
-        for (let i = 0; i < foods.length; i++) {
-            let f = foods[i];
-            if (f.type == 0) {
-                if (Math.hypot(x - f.x, y - f.y) < rr / 1.8) {
-                    [x, y] = [f.dt.to.x, f.dt.to.y];
-                    f.x = random(rr, map.width - rr);
-                    f.y = random(rr, map.height - rr);
-                    this.score++;
-                    break;
-                }
-            }
-            if (f.type == 1) {
-                if (Math.hypot(x - f.x, y - f.y) < rr + f.dt.r) {
-                    this.err[1].lastTime = Date.now();
-                    this.err[1].waitTime = random(1000, 3000);
-                    break;
-                }
-            }
-        }
-        if (x != b[0].x || y != b[0].y) {
-            b.unshift({ x, y });
-        }
-        else if (b.length > 1) {
-            b.pop();
-        }
-        if (b.length > fps * 2 && b.length > 1) {
-            b.pop();
-        }
-    }
-    set_v(x, y) {
-        this.lastTime = Date.now();
-        this.waitTime = random(this.type * 500, this.type * 1000);
-        let closestFood = null;
-        let minDistance = Infinity;
-        for (let i = 0; i < foods.length; i++) {
-            let f = foods[i];
-            if(f.type!=0)continue;
-            let dx = f.x - x;
-            let dy = f.y - y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestFood = f;
-            }
-        }
-        const p = Math.random();
-        if (closestFood && p < 0.7) {
-            let dx = closestFood.x - x;
-            let dy = closestFood.y - y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance > 0) {
-                dx /= distance;
-                dy /= distance;
-            }
-            const speed = random(200, 500);
-            this.dx = dx * speed;
-            this.dy = dy * speed;
-        }
-        else {
-            this.dx = random(-200, 200);
-            this.dy = random(-200, 200);
-        }
-    }
-}
-class Food {
-    constructor(x, y, type, dt) {
-        this.x = x;
-        this.y = y;
-        this.type = type;
-        this.dt = dt;//detail
-        /*type:
-        0:tp
-        1:reverse
-        */
-    }
-    do() {
-        let [x, y] = [this.x, this.y];
-        if (this.type == 0) {
-            return;
-        }
-        if (this.type == 1) {
-            if (fps > 0) {
-                x += this.dt.v.dx / fps;
-                y += this.dt.v.dy / fps;
-            }
-            if (x > map.width - this.dt.r || x < this.dt.r) {
-                this.dt.v.dx *= -1;
-            }
-            if (y > map.height - this.dt.r || y < this.dt.r) {
-                this.dt.v.dy *= -1;
-            }
-            x = Math.max(this.dt.r, Math.min(x, map.width - this.dt.r));
-            y = Math.max(this.dt.r, Math.min(y, map.height - this.dt.r));
-            this.x = x;
-            this.y = y;
-            return;
-        }
-    }
+    return hex + alphaHex;
 }
 function cmp(a, b, c) {
     return a <= b && b <= c;
+}
+function svgarc(x, y, r) {
+    return `M ${x},${y} m ${-r},0 a ${r},${r} 0 1 1 ${r * 2},0 a ${r},${r} 0 1 1 ${-r * 2},0`;
+}
+function svgrec(x, y, w, h) {
+    return `M ${x},${y} L ${x + w},${y} L ${x + w},${y + h} L ${x},${y + h} Z`;
+}
+function isFullScreen() {
+    return !!(document.fullscreenElement ||
+        document.mozFullScreenElement ||
+        document.webkitFullscreenElement ||
+        document.msFullscreenElement);
+}
+function enterFullScreen() {
+    const element = document.documentElement;
+    if (element.requestFullscreen) {
+        element.requestFullscreen();
+    } else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen();
+    } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+    } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+    }
+}
+function exitFullScreen() {
+    if (document.exitFullscreen) {
+        document.exitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+    }
 }
 function getRandomColor() {
     const r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
@@ -228,6 +123,45 @@ function HSLToRGB(h, s, l) {
 
     return "rgb(" + r + "," + g + "," + b + ")";
 }
+//events
+window.onfocus = () => {
+    //paused = 0;
+};
+window.onblur = () => {
+    paused = 1;
+};
+document.onfocusin = () => {
+    //paused = 0;
+};
+document.onfocusout = () => {
+    paused = 1;
+};
+window.addEventListener('resize', setcvswh);
+cvs.addEventListener('pointerdown', (e) => {
+    const rect = cvs.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * ti;
+    const y = (e.clientY - rect.top) * ti;
+    let d = [];
+    for (let i in buttons) {
+        let b = buttons[i];
+        if (b.containsPoint(x, y)) {
+            d.push(b);
+        }
+    }
+    for (let i in d) {
+        let b = d[i];
+        b.do();
+    }
+});
+cvs.addEventListener('pointermove', (e) => {
+    const rect = cvs.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * ti;
+    const y = (e.clientY - rect.top) * ti;
+    for (let i in buttons) {
+        let b = buttons[i];
+        b.hover = b.containsPoint(x, y);
+    }
+});
 document.onkeydown = (e) => {
     if (e.key == 'ArrowUp' || e.key == 'w' || e.key == 'W') {
         keys.w = Date.now();
@@ -261,8 +195,329 @@ document.onkeyup = (e) => {
     if (e.key == 'Shift') {
         keys.shift = 0;
     }
+    if (e.key == 'Escape') {
+        paused ^= 1;
+    }
+}
+//classes
+class Snake {
+    constructor(x, y, dx, dy, clr, type) {
+        //body[0] is head
+        this.body = [{ x, y }];
+        this.dx = dx;
+        this.dy = dy;
+        this.clr = clr;
+        this.type = type;
+        this.score = 0;
+        this.setTime();
+        this.chscs = [];
+        this.err = [];//food error status
+        this.err[1] = {
+            lastTime: 0,
+            waitTime: 0
+        }
+        //type:0 player
+        //type:1-9 computer smart to stupid
+    }
+    move() {
+        let [x, y] = [this.body[0].x, this.body[0].y];
+        let b = this.body;
+        if (this.type > 0 && (Date.now() - this.lastTime > this.waitTime)) {
+            this.set_v(x, y);
+        }
+        let dx = this.dx / fps, dy = this.dy / fps;
+        if (Date.now() - this.err[1].lastTime < this.err[1].waitTime) {
+            dx *= -1;
+            dy *= -1;
+        }
+        x += dx;
+        y += dy;
+        if ((cmp(1, this.type, 5)) && (x > map.width - rr || x < rr || y > map.height - rr || y < rr)) {
+            this.set_v(x, y);
+        }
+        x = Math.max(rr, Math.min(x, map.width - rr));
+        y = Math.max(rr, Math.min(y, map.height - rr));
+
+        for (let i = 0; i < foods.length; i++) {
+            let f = foods[i];
+            if (f.type == 0) {
+                if (Math.hypot(x - f.x, y - f.y) < rr / 1.8) {
+                    [x, y] = [f.dt.to.x, f.dt.to.y];
+                    f.x = random(rr, map.width - rr);
+                    f.y = random(rr, map.height - rr);
+                    this.chscore(1);
+                    break;
+                }
+            }
+            if (f.type == 1) {
+                if (Math.hypot(x - f.x, y - f.y) < rr + f.dt.r) {
+                    this.err[1].lastTime = Date.now();
+                    this.err[1].waitTime = random(1000, 3000);
+                    this.chscore(-0.5);
+                    break;
+                }
+            }
+            if (f.type == 2) {
+                if (Math.hypot(x - f.x, y - f.y) < (rr + f.dt.r) * 0.9) {
+                    if (f.last_snake != this) {
+                        this.chscore(-1);
+                    }
+                    f.last_snake = this;
+                    let v = Math.hypot(this.dx, this.dy) * (1 + Math.random());
+                    let vv = Math.hypot(f.x - x, f.y - y);
+                    f.dt.v.dx = (f.x - x) / vv * v;
+                    f.dt.v.dy = (f.y - y) / vv * v;
+                    break;
+                }
+            }
+        }
+        if (x != b[0].x || y != b[0].y) {
+            b.unshift({ x, y });
+        }
+        else if (b.length > 1) {
+            b.pop();
+        }
+        let g = (x) => {
+            return (x + 1) / 20 + Math.log10(x + 1) / Math.log10(100);
+        };
+        if (b.length > fps * g(this.score) / 2 && b.length > 1) {
+            b.pop();
+        }
+    }
+    setTime() {
+        this.lastTime = Date.now();
+        this.waitTime = random(this.type * 500, this.type * 1000);
+    }
+    set_v(x, y) {
+        this.setTime();
+        let closestFood = null;
+        let minDistance = Infinity;
+        for (let i = 0; i < foods.length; i++) {
+            let f = foods[i];
+            if (f.type != 0) continue;
+            let dx = f.x - x;
+            let dy = f.y - y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestFood = f;
+            }
+        }
+        const p = Math.random();
+        if (closestFood && p < (this.type - 9) ** 2 / 128 + 0.5) {
+            let dx = closestFood.x - x;
+            let dy = closestFood.y - y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > 0) {
+                dx /= distance;
+                dy /= distance;
+            }
+            const speed = random(200, 500);
+            this.dx = dx * speed;
+            this.dy = dy * speed;
+        }
+        else {
+            this.dx = random(-200, 200);
+            this.dy = random(-200, 200);
+        }
+    }
+    chscore(n) {
+        this.score += n;
+        if (this.score < 0) {
+            this.score = 0;
+            return;
+        }
+        let c = {};
+        c.lastTime = Date.now();
+        c.waitTime = 1000;
+        if (n > 0) {
+            c.txt = `+${n}`;
+        }
+        else {
+            c.txt = `${n}`;
+        }
+        this.chscs.push(c);
+    }
+    draw() {
+        let s = this;
+        for (let i = s.body.length - 1; i >= 0; i--) {
+            let b = s.body[i];
+            let alpha = Math.floor((1 - i / s.body.length) * 255);
+            let r = rr * (1 - i / s.body.length);
+            alpha = alpha.toString(16).padStart(2, '0').toLowerCase();
+            ctx.fillStyle = `${s.clr}${alpha}`;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, r, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        if (Date.now() - s.err[1].lastTime < s.err[1].waitTime) {
+            fillText('?', s.body[0].x, s.body[0].y, "#fff", 1, `${rr}px Arial`);
+        }
+        else {
+            fillText(s.score, s.body[0].x, s.body[0].y, "#fff", 1, `${rr / 1.5}px Arial`);
+        }
+        for (let i = 0; i < s.chscs.length; i++) {
+            let c = s.chscs[i];
+            if (Date.now() - c.lastTime < c.waitTime) {
+                fillText(c.txt, s.body[0].x, s.body[0].y - rr - rr * 2 * (Date.now() - c.lastTime) / c.waitTime, addOpacity("#fff", 1 - (Date.now() - c.lastTime) / c.waitTime), 1, `${rr / 1.5}px Arial`);
+            } else {
+                s.chscs.splice(i, 1);
+            }
+        }
+    }
+}
+class Food {
+    constructor(x, y, type, dt) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.dt = dt;//detail
+        /*type:
+        0:tp
+        1:reverse
+        */
+    }
+    do() {
+        let [x, y] = [this.x, this.y];
+        if (this.type == 0) {
+            return;
+        }
+        if (this.type == 1 || this.type == 2) {
+            x += this.dt.v.dx / fps;
+            y += this.dt.v.dy / fps;
+            if (x > map.width - this.dt.r || x < this.dt.r) {
+                this.dt.v.dx *= -1;
+            }
+            if (y > map.height - this.dt.r || y < this.dt.r) {
+                this.dt.v.dy *= -1;
+            }
+            x = Math.max(this.dt.r, Math.min(x, map.width - this.dt.r));
+            y = Math.max(this.dt.r, Math.min(y, map.height - this.dt.r));
+            this.x = x;
+            this.y = y;
+            return;
+        }
+    }
+    draw() {
+        let f = this;
+        if (f.type == 0) {
+            ctx.fillStyle = f.dt.clr;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
+            ctx.arc(f.dt.to.x, f.dt.to.y, f.dt.r, 0, 2 * Math.PI);
+            ctx.fill();
+            fillText(f.dt.text[0], f.x, f.y, "#ff0000", 1);
+            fillText(f.dt.text[1], f.dt.to.x, f.dt.to.y, "#ff0000", 1);
+        }
+        if (f.type == 1) {
+            ctx.fillStyle = f.dt.clr;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
+            ctx.fill();
+            fillText(f.dt.text[0], f.x, f.y, "#ff0000", 1);
+        }
+        if (f.type == 2) {
+            ctx.fillStyle = f.dt.clr;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
+            ctx.fill();
+            fillText(f.dt.text[0], f.x, f.y, "#ff0000", 1);
+        }
+    }
+}
+class Button {
+    constructor(pausedShow, doAction) {
+        this.shapes = [];
+        this.pausedShow = pausedShow;
+        this.hover = false;
+        this.doAction = doAction;
+    }
+    do() {
+        this.doAction();
+    }
+    containsPoint(x, y) {
+        if (this.pausedShow != paused && this.pausedShow >= 0) return false;
+
+        for (const shape of this.shapes) {
+            let isInside = false;
+            switch (shape.type) {
+                case 'fill':
+                    isInside = ctx.isPointInPath(shape.path, x, y);
+                    break;
+
+                case 'stroke':
+                    isInside = ctx.isPointInStroke(shape.path, x, y);
+                    break;
+
+                case 'both':
+                    isInside = ctx.isPointInPath(shape.path, x, y) || ctx.isPointInStroke(shape.path, x, y);
+                    break;
+
+                default:
+                    console.warn(`Unknown shape type: ${shape.type}`);
+                    isInside = false;
+                    break;
+            }
+            if (isInside) {
+                return true;
+            }
+        }
+
+        return false;
+
+    }
+    addShape(path, color, hover, type = 'fill') {
+        //hover:-1 means any
+        //hover:0 means not hover
+        //hover:1 means hover
+        //type: fill, stroke, both
+        this.shapes.push({ path: new Path2D(path), color, hover, type });
+    }
+    draw() {
+        if (this.pausedShow != paused && this.pausedShow >= 0) return;
+
+        for (const shape of this.shapes) {
+            if (shape.hover != this.hover && shape.hover >= 0) continue;
+            ctx.strokeStyle = shape.color;
+            ctx.fillStyle = shape.color;
+            if (shape.type === 'fill') {
+                ctx.fill(shape.path);
+            } else if (shape.type === 'stroke') {
+                ctx.stroke(shape.path);
+            } else if (shape.type === 'both') {
+                ctx.fill(shape.path);
+                ctx.stroke(shape.path);
+            }
+        }
+    }
+}
+//main functions
+function setcvswh() {
+    let w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    let h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+    cvs.width = w;
+    cvs.height = h;
+    ti = cvs.width / cvs.offsetWidth;
+    camera.width = cvs.width;
+    camera.height = cvs.height;
+}
+function fillText(text, x, y, clr, a, font = `${rr * 1.3}px Arial`) {
+    ctx.save();
+    ctx.font = font;
+    ctx.fillStyle = clr;
+    ctx.textAlign = 'center';
+    let textMetrics = ctx.measureText(text);
+    y += textMetrics.actualBoundingBoxAscent / 2 - textMetrics.actualBoundingBoxDescent / 2;
+    if (a) {
+        x -= camera.x;
+        y -= camera.y;
+    }
+    ctx.fillText(text, x, y);
+    ctx.restore();
 }
 function draw() {
+    ctx.save();
+
     //draw grid
     ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
     ctx.lineWidth = 1;
@@ -298,50 +553,52 @@ function draw() {
 
     //draw foods
     for (let i = 0; i < foods.length; i++) {
-        let f = foods[i];
-        if (f.type == 0) {
-            ctx.fillStyle = f.dt.clr;
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
-            ctx.arc(f.dt.to.x, f.dt.to.y, f.dt.r, 0, 2 * Math.PI);
-            ctx.fill();
-            fillText(f.dt.text[0], f.x, f.y, "#ff0000");
-            fillText(f.dt.text[1], f.dt.to.x, f.dt.to.y, "#ff0000");
-        }
-        if (f.type == 1) {
-            ctx.fillStyle = f.dt.clr;
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
-            ctx.fill();
-            fillText(f.dt.text[0], f.x, f.y, "#ff0000");
-        }
-        if (f.type == 2) {
-            ctx.fillStyle = f.dt.clr;
-            ctx.beginPath();
-            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
-            ctx.fill();
-            fillText(f.dt.text[0], f.x, f.y, "#ff0000");
-        }
+        foods[i].draw();
     }
 
     //draw snakes
     for (let i = snakes.length - 1; i >= 0; i--) {
-        let s = snakes[i];
-        for (let i = s.body.length - 1; i >= 0; i--) {
-            let b = s.body[i];
-            let alpha = Math.floor((1 - i / s.body.length) * 255);
-            let r = rr * (1 - i / s.body.length);
-            alpha = alpha.toString(16).padStart(2, '0').toLowerCase();
-            ctx.fillStyle = `${s.clr}${alpha}`;
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, r, 0, 2 * Math.PI);
-            ctx.fill();
-        }
-        if(Date.now()-s.err[1].lastTime<s.err[1].waitTime){
-            fillText('?', s.body[0].x, s.body[0].y, "#fff", `${rr}px Arial`);
-        }
-        else{
-            fillText(s.score, s.body[0].x, s.body[0].y, "#fff", `${rr / 1.5}px Arial`);
+        snakes[i].draw();
+    }
+    //blur
+    if (paused) {
+        ctx.fillStyle = "#18181860";
+        ctx._fillRect(0, 0, cvs.width, cvs.height);
+    }
+
+    ctx.lineWidth = 8;
+    //buttons
+    for (let i = 0; i < buttons.length; i++) {
+        buttons[i].draw();
+    }
+    if (paused) {
+        fillText("fps", 210, 50, addOpacity("#0f0", 1 - buttons[3].hover / 3), 0);
+        fillText("flsc", 130, 50, addOpacity("#0f0", 1 - buttons[2].hover / 3), 0);
+    }
+    //rank
+    if (paused) {
+        let lx = 400;
+        let ly = 80;
+        let r=200;
+        ctx.font = '40px Arial';
+        ctx.fillStyle = '#f00';
+        ctx.textAlign = 'right';
+        ctx.fillText(`rank`, lx, ly);
+        ctx.fillText(`name`, lx+200, ly);
+        ctx.fillText(`score`, lx+400, ly);
+        const s = [...snakes].sort((a, b) => b.score - a.score);
+        let a = 0;
+        let t;
+        for (let i = 0; i < s.length; i++) {
+            if (s[i].score != s[i - 1]?.score) {
+                a++;
+            }
+            t=`${a}`;
+            ctx.fillText(t, lx, (i + 1) * 40 +ly,r-20);
+            t=`${s[i].name}`;
+            ctx.fillText(t, lx+r, (i + 1) * 40 +ly,r-20);
+            t=`${s[i].score}`;
+            ctx.fillText(t, lx+r*2, (i + 1) * 40 +ly,r-20);
         }
     }
 
@@ -350,25 +607,12 @@ function draw() {
         let text = `fps:${fps}`;
         ctx.font = '40px Arial';
         ctx.fillStyle = '#0f0';
-        let textWidth = ctx.measureText(text).width;
-        let x = cvs.width - textWidth - 5;
+        ctx.textAlign = 'right';
+        let x = cvs.width -10;
         let y = 40;
-
         ctx.fillText(text, x, y);
     }
-}
-function fillText(text, x, y, clr, font = `${rr * 1.3}px Arial`) {
-    ctx.save();
-    ctx.font = font;
-    ctx.fillStyle = clr;
-    let textMetrics = ctx.measureText(text);
-    let textWidth = textMetrics.width;
-    x -= textWidth / 2;
-    y += textMetrics.actualBoundingBoxAscent / 2 - textMetrics.actualBoundingBoxDescent / 2;
 
-    x -= camera.x;
-    y -= camera.y;
-    ctx.fillText(text, x, y);
     ctx.restore();
 }
 function bk() {
@@ -410,23 +654,28 @@ function move() {
     }
 }
 function player_move() {
-    let v = 250 * (1 + keys.shift);
+    const speed = 250;;
     let dx = 0, dy = 0;
-    if ((keys.w || keys.s) && (keys.a || keys.d)) {
-        v /= Math.sqrt(2);
-    }
-    if (keys.w || keys.s) {
-        if (keys.w > keys.s) {
-            dy = -v;
-        } else {
-            dy = v;
+    if (isMobile) {
+        let v = speed * (1 + buttons[2].hover);
+    } else {
+        let v = speed * (1 + keys.shift);
+        if ((keys.w || keys.s) && (keys.a || keys.d)) {
+            v /= Math.sqrt(2);
         }
-    }
-    if (keys.a || keys.d) {
-        if (keys.a > keys.d) {
-            dx = - v;
-        } else {
-            dx = v;
+        if (keys.w || keys.s) {
+            if (keys.w > keys.s) {
+                dy = -v;
+            } else {
+                dy = v;
+            }
+        }
+        if (keys.a || keys.d) {
+            if (keys.a > keys.d) {
+                dx = - v;
+            } else {
+                dx = v;
+            }
         }
     }
     snakes[0].dx = dx;
@@ -463,7 +712,7 @@ function updateFps() {
 }
 function update() {
     updateFps();
-    if (is_active && fps > 10) {
+    if (paused == 0 && fps > 10) {
         player_move();
         move();
     }
@@ -472,24 +721,34 @@ function update() {
     draw();
     requestAnimationFrame(update);
 }
-function start(w=3000, h=3000) {
+function start(w = 3000, h = 3000) {
+    setcvswh();
     map.width = w;
     map.height = h;
     lastTime = Date.now();
     fps = 60;
     frameCount = 0;
     cnt = 0;
-    showFps = 1;
-    is_active = 1;
+    showFps = 0;
+    paused = 0;
     rr = 30;
     default_clr = "#ff0000";
-    chclr.value = default_clr;
-    foods = [];
+
     snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr, 0)];
-    for (let i = 0; i < 10; i++) {
-        snakes.push(new Snake(random(0, map.width), random(0, map.height), random(-200, 200), random(-200, 200), getRandomColor(), random(1, 9)));
+    for (let i = 0; i < 1; i++) {
+        const k = 1.1;
+        let t = Math.ceil(Math.log(1 + Math.random() * (k ** 8 - 1)) / Math.log(k) + 1);
+        snakes.push(new Snake(
+            random(0, map.width), random(0, map.height),
+            random(-200, 200), random(-200, 200),
+            getRandomColor(), 1));
     }
-    for (let i = 0; i < w*h/1000000*3; i++) {
+    for (let i = 0; i < snakes.length; i++) {
+        snakes[i].name = i;
+    }
+    foods = [];
+    //w * h / 1000000 * 3
+    for (let i = 0; i < w * h / 1000000 * 3; i++) {
         foods.push(new Food(random(rr, map.width - rr), random(rr, map.height - rr), 0,
             {
                 clr: '#555555', r: rr * 1.3, text: ['🍎', 'X'],
@@ -499,7 +758,8 @@ function start(w=3000, h=3000) {
                 }
             }));
     }
-    for (let i = 0; i < w*h/1000000/1.5; i++) {
+    //w * h / 1000000 / 1.5
+    for (let i = 0; i < w * h / 1000000 / 1.5; i++) {
         foods.push(new Food(random(rr, map.width - rr), random(rr, map.height - rr), 1,
             {
                 clr: '#555555', r: rr * 1.3, text: ['🍄', 'X'],
@@ -508,17 +768,90 @@ function start(w=3000, h=3000) {
                 }
             }));
     }
-    for (let i = 0; i < w*h/1000000; i++) {
+    //w * h / 1000000
+    for (let i = 0; i < w * h / 1000000; i++) {
         foods.push(new Food(random(rr, map.width - rr), random(rr, map.height - rr), 2,
             {
                 clr: '#555555', r: rr * 1.3, text: ['🍇', 'X'],
                 v: {
                     dx: 0, dy: 0
                 },
-                is_shoot: 0
+                last_snake: -1
             }));
     }
+    buttons = [];
+    //pause button
+    let button0 = new Button(0, () => {
+        paused = 1;
+    });
+    let a = 5, b = 5, c = 10;
+    button0.addShape(
+        new Path2D(`${svgarc(50, 50, 40)}`),
+        '#0005', -1, 'fill');
+    button0.addShape(
+        new Path2D(`${svgarc(50, 50, 30)}`),
+        '#00ff00', 0, 'stroke');
+    button0.addShape(
+        new Path2D(`${svgrec(50 - a - b, 50 - c, b, 2 * c)}${svgrec(50 + a, 50 - c, b, 2 * c)}`),
+        '#00ff00', 0, 'fill');
+    button0.addShape(
+        new Path2D(`${svgarc(50, 50, 30)}`),
+        '#008800', 1, 'stroke');
+    button0.addShape(
+        new Path2D(`${svgrec(50 - a - b, 50 - c, b, 2 * c)}${svgrec(50 + a, 50 - c, b, 2 * c)}`),
+        '#008800', 1, 'fill');
+    buttons.push(button0);
+    //play button
+    let button1 = new Button(1, () => {
+        paused = 0;
+    });
+    button1.addShape(
+        new Path2D(`${svgarc(50, 50, 40)}`),
+        '#ffffff20', 0, 'fill');
+    button1.addShape(
+        new Path2D(`${svgarc(50, 50, 30)}`),
+        '#0000cc', 0, 'stroke');
+    button1.addShape(
+        new Path2D(`M 50,50 m -10,-20 l 30,20 l -30,20 Z`),
+        '#0000cc', 0, 'fill');
+    button1.addShape(
+        new Path2D(`${svgarc(50, 50, 40)}`),
+        '#ffffff50', 1, 'fill');
+    button1.addShape(
+        new Path2D(`${svgarc(50, 50, 30)}`),
+        '#0000ff', 1, 'stroke');
+    button1.addShape(
+        new Path2D(`M 50,50 m -10,-20 l 30,20 l -30,20 Z`),
+        '#0000ff', 1, 'fill');
+    buttons.push(button1);
+    //fullscreen
+    let button2 = new Button(1, () => {
+        if (isFullScreen()) {
+            exitFullScreen();
+        } else {
+            enterFullScreen();
+        }
+    });
+    button2.addShape(
+        new Path2D(`${svgarc(130, 50, 30)}`),
+        '#fff8', 0, 'fill');
+    button2.addShape(
+        new Path2D(`${svgarc(130, 50, 30)}`),
+        '#fff5', 1, 'fill');
+    buttons.push(button2);
+    //show fps
+    let button3 = new Button(1, () => {
+        showFps ^= 1;
+    });
+    button3.addShape(
+        new Path2D(`${svgarc(210, 50, 30)}`),
+        '#fff8', 0, 'fill');
+    button3.addShape(
+        new Path2D(`${svgarc(210, 50, 30)}`),
+        '#fff5', 1, 'fill');
+    buttons.push(button3);
+    //playing
     update();
 }
 bindCamera(ctx, camera);
-start(1000,1000);
+start(1000, 1000);
