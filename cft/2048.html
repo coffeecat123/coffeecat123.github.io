@@ -3,6 +3,10 @@
     <head>
         <title>2048</title>
         <style>
+html,
+body {
+    overscroll-behavior-y: contain;
+}
 body{
     background: #000;
 }
@@ -11,7 +15,6 @@ body{
 }
 #cvs{
     height: 500px;
-    touch-action: none;
 }
 #wl{
     display: flex;

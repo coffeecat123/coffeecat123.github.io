@@ -577,8 +577,8 @@ function draw() {
     }
     //rank
     if (paused) {
-        let lx = 400;
-        let ly = 80;
+        let lx = cvs.width/3;
+        let ly = 130;
         let r=200;
         ctx.font = '40px Arial';
         ctx.fillStyle = '#f00';
@@ -592,6 +592,12 @@ function draw() {
         for (let i = 0; i < s.length; i++) {
             if (s[i].score != s[i - 1]?.score) {
                 a++;
+            }
+            if(s[i].name=='0'){
+                ctx.save();
+                ctx.fillStyle="#3aa8";
+                ctx._fillRect(lx-r+100+5,i * 40+5 +ly, r*3-100, 40);
+                ctx.restore();
             }
             t=`${a}`;
             ctx.fillText(t, lx, (i + 1) * 40 +ly,r-20);
@@ -826,11 +832,13 @@ function start(w = 3000, h = 3000) {
     buttons.push(button1);
     //fullscreen
     let button2 = new Button(1, () => {
+        setTimeout(() => {
         if (isFullScreen()) {
             exitFullScreen();
         } else {
             enterFullScreen();
         }
+        }, 100);
     });
     button2.addShape(
         new Path2D(`${svgarc(130, 50, 30)}`),
