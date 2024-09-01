@@ -34,7 +34,7 @@ var joystick = {
     id: -1,
     sx: 0,
     sy: 0,
-    r: 90
+    r: 85
 };
 var add_speed = {
     x: 0,
@@ -42,7 +42,7 @@ var add_speed = {
     default_x: 0,
     default_y: 0,
     id: -1,
-    r: 90 - 5,
+    r: 85 - 5,
     active: 0
 };
 
@@ -186,21 +186,17 @@ cvs.addEventListener('pointerdown', (e) => {
         }
     } else if (paused == 0) {
         if (x < cvs.width / 2) {
-            if (joystick.id == -1) {
-                joystick.id = e.pointerId;
-                joystick.active = 1;
-                joystick.x = x;
-                joystick.y = y;
-                joystick.sx = 0;
-                joystick.sy = 0;
-            }
+            joystick.id = e.pointerId;
+            joystick.active = 1;
+            joystick.x = x;
+            joystick.y = y;
+            joystick.sx = 0;
+            joystick.sy = 0;
         } else {
-            if (add_speed.id == -1) {
-                add_speed.id = e.pointerId;
-                add_speed.active = 1;
-                add_speed.x = x;
-                add_speed.y = y;
-            }
+            add_speed.id = e.pointerId;
+            add_speed.active = 1;
+            add_speed.x = x;
+            add_speed.y = y;
         }
     }
 });
@@ -282,7 +278,11 @@ class Snake {
         this.r = rr;
         this.clr = clr;
         this.type = type;
-        this.name = name;
+        if (type == 1) {
+            this.name = '👑';
+        } else {
+            this.name = name;
+        }
         this.score = 0;
         this.setTime();
         this.chscs = [];
@@ -301,7 +301,7 @@ class Snake {
     move() {
         let [x, y] = [this.body[0].x, this.body[0].y];
         let b = this.body;
-        if (this.type > 0 && (Date.now() - this.lastTime > this.waitTime)) {
+        if (this.type == 1 || (this.type > 0 && (Date.now() - this.lastTime > this.waitTime))) {
             this.set_v(x, y);
         }
         let dx = this.dx / fps, dy = this.dy / fps;
@@ -319,24 +319,27 @@ class Snake {
 
         for (let i = 0; i < snakes.length; i++) {
             let s = snakes[i];
-            let k = 1, t = 500;
+            let k = 0.1, t = 1000 / 10;
             if (s == this) continue;
-            if (Math.hypot(x - s.body[0].x, y - s.body[0].y) < Math.abs(this.r - s.r)
+            if (s.score == this.score) continue;
+            let s1 = s.score;
+            let s2 = this.score;
+            if (Math.hypot(x - s.body[0].x, y - s.body[0].y) < this.r + s.r
                 && Date.now() - this.err[0].lastTime > this.err[0].waitTime
                 && Date.now() - s.err[0].lastTime > s.err[0].waitTime) {
                 if (this.r < s.r) {
-                    this.chscore(-Math.min(k, this.score), '-');
+                    this.chscore(-Math.min(k, s2), '-');
                     this.err[0].lastTime = Date.now();
                     this.err[0].waitTime = t;
-                    s.chscore(+Math.min(k, this.score));
+                    s.chscore(+Math.min(k, s2));
                     s.err[0].lastTime = Date.now();
                     s.err[0].waitTime = t;
                 }
                 if (s.r < this.r) {
-                    this.chscore(+Math.min(k, s.score));
+                    this.chscore(+Math.min(k, s1));
                     this.err[0].lastTime = Date.now();
                     this.err[0].waitTime = t;
-                    s.chscore(-Math.min(k, s.score));
+                    s.chscore(-Math.min(k, s1), '-');
                     s.err[0].lastTime = Date.now();
                     s.err[0].waitTime = t;
                 }
@@ -345,7 +348,9 @@ class Snake {
         for (let i = 0; i < foods.length; i++) {
             let f = foods[i];
             if (f.type == 0) {
-                if (Math.hypot(x - f.x, y - f.y) < this.r / 1.8) {
+                if (Math.hypot(x - f.x, y - f.y) < this.r
+                    && (x - f.x) * (dx) + (y - f.y) * (dy) > 0) {
+
                     f.dt.to.x = random(this.r, map.width - this.r);
                     f.dt.to.y = random(this.r, map.height - this.r);
                     [x, y] = [f.dt.to.x, f.dt.to.y];
@@ -405,19 +410,25 @@ class Snake {
     }
     set_v(x, y) {
         this.setTime();
-        let closestFood = null;
-        let minDistance = Infinity;
-        for (let i = 0; i < foods.length; i++) {
-            let f = foods[i];
-            if (f.type != 0) continue;
-            let dx = f.x - x;
-            let dy = f.y - y;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestFood = f;
-            }
-        }
+
+        let cc = [...foods].filter((f) => {
+            return f.type == 0;
+        }).sort((a, b) => {
+            let d1 = Math.hypot(x - a.x, y - a.y);
+            let d2 = Math.hypot(x - b.x, y - b.y);
+            return d1 - d2;
+        });
+        let closestFood = cc[0], cf = 0;
+
+        let c2 = [...foods].filter((f) => {
+            return f.type != 0;
+        }).sort((a, b) => {
+            let d1 = Math.hypot(x - a.x, y - a.y);
+            let d2 = Math.hypot(x - b.x, y - b.y);
+            return d1 - d2;
+        });
+        let closeM = c2[0], cm = 0;
+
         const p = Math.random();
         if (Date.now() - this.err[1].lastTime > this.err[1].waitTime
             && closestFood
@@ -437,6 +448,68 @@ class Snake {
             this.dx = random(-200, 200);
             this.dy = random(-200, 200);
         }
+        if (this.type == 1) {
+            while (Math.hypot(cc[cf].x - closeM.x, cc[cf].y - closeM.y) < this.r + (closeM.dt?.r | 0)) {
+                cf++;
+                if (cf >= cc.length) return;
+            }
+            closestFood = cc[cf];
+            let dx = closestFood.x - x;
+            let dy = closestFood.y - y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > 0) {
+                dx /= distance;
+                dy /= distance;
+            }
+            const speed = random(200, 500);
+            this.dx = dx * speed;
+            this.dy = dy * speed;
+            if (closeM) {
+                let c = { ...closeM };
+                let b = { ...this.body[0] };
+
+                let t = 0;
+                let ddx = c.dt.v?.dx | 0;
+                let ddy = c.dt.v?.dy | 0;
+                for (let i = 0; i < fps / 20; i++) {
+                    c.x += ddx / fps;
+                    c.y += ddy / fps;
+                    b.x += this.dx / fps;
+                    b.y += this.dy / fps;
+                    distance = Math.hypot(b.x - c.x, b.y - c.y);
+                    if (distance < this.r + (c.dt?.r | 0)) {
+                        const speed = 500;
+                        dx = closeM.x - this.body[0].x;
+                        dy = closeM.y - this.body[0].y;
+                        distance = Math.hypot(dx, dy);
+                        dx /= distance;
+                        dy /= distance;
+                        let lx = -dy, ly = dx;
+                        let rx = dy, ry = -dx;
+                        let l = lx * dx + ly * dy;
+                        let r = rx * dx + ry * dy;
+                        if (ddx == 0 && ddy == 0) {
+                            let dx = c.x - this.body[0].x;
+                            let dy = c.y - this.body[0].y;
+                            l = lx * dx + ly * dy;
+                            r = rx * dx + ry * dy;
+                        }
+                        if (l > r) {
+                            this.dx = rx * speed;
+                            this.dy = ry * speed;
+                        } else {
+                            this.dx = lx * speed;
+                            this.dy = ly * speed;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (Date.now() - this.err[1].lastTime < this.err[1].waitTime) {
+                this.dx *= -1;
+                this.dy *= -1;
+            }
+        }
     }
     chscore(n, m = '+') {
         let s = this.score, n2;
@@ -444,7 +517,10 @@ class Snake {
         if (this.score < 0) {
             this.score = 0;
         }
+        this.score = Number(this.score.toFixed(2));
+        s = Number(s.toFixed(2));
         n = this.score - s;
+        n = Number(n.toFixed(2));
         let c = {};
         c.lastTime = Date.now();
         c.waitTime = 1000;
@@ -638,13 +714,14 @@ class Button {
 function setcvswh() {
     let w = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
     let h = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+    let v = 600;
     if (w > h) {
-        cvs.width = w / h * 600;
-        cvs.height = 600;
+        cvs.width = w / h * v;
+        cvs.height = v;
     }
     else {
-        cvs.width = 600;
-        cvs.height = h / w * 600;
+        cvs.width = v;
+        cvs.height = h / w * v;
     }
     ti = cvs.width / cvs.offsetWidth;
     camera.width = cvs.width;
@@ -982,6 +1059,7 @@ function start(w = 3000, h = 3000) {
     for (let i = 0; i < 10; i++) {
         const k = 1.1;
         let t = Math.ceil(Math.log(1 + Math.random() * (k ** 8 - 1)) / Math.log(k) + 1);
+        if(Math.random()*100<5)t=1;
         snakes.push(new Snake(
             random(0, map.width), random(0, map.height),
             random(-200, 200), random(-200, 200),
