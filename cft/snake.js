@@ -186,17 +186,21 @@ cvs.addEventListener('pointerdown', (e) => {
         }
     } else if (paused == 0) {
         if (x < cvs.width / 2) {
-            joystick.id = e.pointerId;
-            joystick.active = 1;
-            joystick.x = x;
-            joystick.y = y;
-            joystick.sx = 0;
-            joystick.sy = 0;
+            if (joystick.id == -1) {
+                joystick.id = e.pointerId;
+                joystick.active = 1;
+                joystick.x = x;
+                joystick.y = y;
+                joystick.sx = 0;
+                joystick.sy = 0;
+            }
         } else {
-            add_speed.id = e.pointerId;
-            add_speed.active = 1;
-            add_speed.x = x;
-            add_speed.y = y;
+            if (add_speed.id == -1) {
+                add_speed.id = e.pointerId;
+                add_speed.active = 1;
+                add_speed.x = x;
+                add_speed.y = y;
+            }
         }
     }
 });
@@ -216,8 +220,8 @@ cvs.addEventListener('pointermove', (e) => {
         j.sx = getSmallerAbsoluteValue(j.r * dx / dd, dx);
         j.sy = getSmallerAbsoluteValue(j.r * dy / dd, dy);
         if (dd > j.r) {
-            j.x=x-j.sx;
-            j.y=y-j.sy;
+            j.x = x - j.sx;
+            j.y = y - j.sy;
         }
     }
 });
@@ -275,7 +279,7 @@ class Snake {
         this.body = [{ x, y }];
         this.dx = dx;
         this.dy = dy;
-        this.r=rr;
+        this.r = rr;
         this.clr = clr;
         this.type = type;
         this.name = name;
@@ -395,11 +399,12 @@ class Snake {
         }
     }
     chscore(n) {
+        let s=this.score;
         this.score += n;
         if (this.score < 0) {
             this.score = 0;
-            return;
         }
+        n=this.score-s;
         let c = {};
         c.lastTime = Date.now();
         c.waitTime = 1000;
@@ -413,10 +418,10 @@ class Snake {
     }
     draw() {
         let g = (x) => {
-            if(x>=100)return Math.log10(x);
-            return x/100+1;
+            if (x >= 100) return Math.log10(x);
+            return x / 100 + 1;
         };
-        this.r=rr*g(this.score);
+        this.r = rr * g(this.score);
         let s = this;
         for (let i = s.body.length - 1; i >= 0; i--) {
             let b = s.body[i];
@@ -434,11 +439,11 @@ class Snake {
         else {
             fillText(s.score, s.body[0].x, s.body[0].y, "#fff", 1, `${this.r / 1.5}px Arial`);
         }
-        fillText(s.name, s.body[0].x, s.body[0].y - this.r*1.5, "#fff", 1, `${this.r / 1.5}px Arial`);
+        fillText(s.name, s.body[0].x, s.body[0].y - this.r * 1.5, "#fff", 1, `${this.r / 1.5}px Arial`);
         for (let i = 0; i < s.chscs.length; i++) {
             let c = s.chscs[i];
             if (Date.now() - c.lastTime < c.waitTime) {
-                fillText(c.txt, s.body[0].x, s.body[0].y - this.r*1.5 - this.r * 2 * (Date.now() - c.lastTime) / c.waitTime, addOpacity(hslToHex((540 - i * 34) % 360, 100, 50), 1 - (Date.now() - c.lastTime) / c.waitTime), 1, `${this.r / 1.5}px Arial`);
+                fillText(c.txt, s.body[0].x, s.body[0].y - this.r * 1.5 - this.r * 2 * (Date.now() - c.lastTime) / c.waitTime, addOpacity(hslToHex((540 - i * 34) % 360, 100, 50), 1 - (Date.now() - c.lastTime) / c.waitTime), 1, `${this.r / 1.5}px Arial`);
             } else {
                 s.chscs.splice(i, 1);
             }
