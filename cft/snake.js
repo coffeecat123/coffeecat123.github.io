@@ -252,8 +252,8 @@ document.onkeydown = (e) => {
         keys.shift = 1;
         snakes[0].type=0;
     }
-    if (e.key == 'p') {
-        if(snakes[0]?.type){
+    if (e.key == 'p'||e.key=='P') {
+        if(snakes[0]?.type!=undefined){
             snakes[0].type=1;
         }
     }
