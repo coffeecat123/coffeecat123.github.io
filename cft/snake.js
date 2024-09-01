@@ -286,7 +286,11 @@ class Snake {
         this.score = 0;
         this.setTime();
         this.chscs = [];
-        this.err = [];//food error status
+        this.err = [];//error status
+        this.err[0] = {
+            lastTime: 0,
+            waitTime: 0
+        }
         this.err[1] = {
             lastTime: 0,
             waitTime: 0
@@ -313,10 +317,37 @@ class Snake {
         x = Math.max(this.r, Math.min(x, map.width - this.r));
         y = Math.max(this.r, Math.min(y, map.height - this.r));
 
+        for (let i = 0; i < snakes.length; i++) {
+            let s = snakes[i];
+            let k = 1, t = 500;
+            if (s == this) continue;
+            if (Math.hypot(x - s.body[0].x, y - s.body[0].y) < Math.abs(this.r - s.r)
+                && Date.now() - this.err[0].lastTime > this.err[0].waitTime
+                && Date.now() - s.err[0].lastTime > s.err[0].waitTime) {
+                if (this.r < s.r) {
+                    this.chscore(-Math.min(k, this.score), '-');
+                    this.err[0].lastTime = Date.now();
+                    this.err[0].waitTime = t;
+                    s.chscore(+Math.min(k, this.score));
+                    s.err[0].lastTime = Date.now();
+                    s.err[0].waitTime = t;
+                }
+                if (s.r < this.r) {
+                    this.chscore(+Math.min(k, s.score));
+                    this.err[0].lastTime = Date.now();
+                    this.err[0].waitTime = t;
+                    s.chscore(-Math.min(k, s.score));
+                    s.err[0].lastTime = Date.now();
+                    s.err[0].waitTime = t;
+                }
+            }
+        }
         for (let i = 0; i < foods.length; i++) {
             let f = foods[i];
             if (f.type == 0) {
                 if (Math.hypot(x - f.x, y - f.y) < this.r / 1.8) {
+                    f.dt.to.x = random(this.r, map.width - this.r);
+                    f.dt.to.y = random(this.r, map.height - this.r);
                     [x, y] = [f.dt.to.x, f.dt.to.y];
                     f.x = random(this.r, map.width - this.r);
                     f.y = random(this.r, map.height - this.r);
@@ -327,7 +358,7 @@ class Snake {
             if (f.type == 1) {
                 if (Math.hypot(x - f.x, y - f.y) < this.r + f.dt.r) {
                     if (Date.now() - this.err[1].lastTime > 1000 / 10) {
-                        this.chscore(-0.5);
+                        this.chscore(-0.5, '-');
                         this.err[1].lastTime = Date.now();
                         this.err[1].waitTime = 3000;
                     }
@@ -337,7 +368,7 @@ class Snake {
             if (f.type == 2) {
                 if (Math.hypot(x - f.x, y - f.y) < (this.r + f.dt.r) * 0.9) {
                     if (f.last_snake != this) {
-                        this.chscore(-3);
+                        this.chscore(-3, '-');
                     }
                     f.last_snake = this;
                     let v = Math.hypot(this.dx, this.dy) * (1 + Math.random());
@@ -388,7 +419,9 @@ class Snake {
             }
         }
         const p = Math.random();
-        if (closestFood && p < (this.type - 9) ** 2 / 128 + 0.5) {
+        if (Date.now() - this.err[1].lastTime > this.err[1].waitTime
+            && closestFood
+            && p < (this.type - 9) ** 2 / 128 + 0.5) {
             let dx = closestFood.x - x;
             let dy = closestFood.y - y;
             let distance = Math.sqrt(dx * dx + dy * dy);
@@ -405,8 +438,8 @@ class Snake {
             this.dy = random(-200, 200);
         }
     }
-    chscore(n) {
-        let s = this.score;
+    chscore(n, m = '+') {
+        let s = this.score, n2;
         this.score += n;
         if (this.score < 0) {
             this.score = 0;
@@ -418,26 +451,25 @@ class Snake {
         if (n > 0) {
             c.txt = `+${n}`;
         }
-        else if(n<0){
+        else if (n < 0) {
             c.txt = `${n}`;
         }
-        else{
-            c.txt = `-${n}`;
+        else {
+            c.txt = `${m}0`;
         }
         this.chscs.push(c);
     }
-    draw() {
+    draw_head() {
         let s = this;
-        for (let i = s.body.length - 1; i >= 0; i--) {
-            let b = s.body[i];
-            let alpha = Math.floor((1 - i / s.body.length) * 255);
-            let r = this.r * (1 - i / s.body.length);
-            alpha = alpha.toString(16).padStart(2, '0').toLowerCase();
-            ctx.fillStyle = `${s.clr}${alpha}`;
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, r, 0, 2 * Math.PI);
-            ctx.fill();
-        }
+        let b = s.body[0];
+        let alpha = Math.floor((1 - 0 / s.body.length) * 255);
+        let r = this.r * (1 - 0 / s.body.length);
+        alpha = alpha.toString(16).padStart(2, '0').toLowerCase();
+        ctx.fillStyle = `${s.clr}${alpha}`;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, r, 0, 2 * Math.PI);
+        ctx.fill();
+
         if (Date.now() - s.err[1].lastTime < s.err[1].waitTime) {
             fillText('?', s.body[0].x, s.body[0].y, "#fff", 1, `${this.r}px Arial`);
         }
@@ -452,6 +484,19 @@ class Snake {
             } else {
                 s.chscs.splice(i--, 1);
             }
+        }
+    }
+    draw_body() {
+        let s = this;
+        for (let i = s.body.length - 1; i > 0; i--) {
+            let b = s.body[i];
+            let alpha = Math.floor((1 - i / s.body.length) * 255);
+            let r = this.r * (1 - i / s.body.length);
+            alpha = alpha.toString(16).padStart(2, '0').toLowerCase();
+            ctx.fillStyle = `${s.clr}${alpha}`;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, r, 0, 2 * Math.PI);
+            ctx.fill();
         }
     }
 }
@@ -664,9 +709,14 @@ function draw() {
         foods[i].draw();
     }
 
+
+    const s = [...snakes].sort((a, b) => b.r - a.r);
     //draw snakes
-    for (let i = snakes.length - 1; i >= 0; i--) {
-        snakes[i].draw();
+    for (let i = 0; i < s.length; i++) {
+        s[i].draw_body();
+    }
+    for (let i = s.length - 1; i >= 0; i--) {
+        s[i].draw_head();
     }
     //joystick
     if (isMobile && !paused) {
@@ -817,7 +867,7 @@ function move() {
     };
     for (let i = 0; i < snakes.length; i++) {
         let s = snakes[i];
-        s.r = rr * g(s.score);
+        s.r = rr * g(s.score) ** 0.5;
         s.move();
     }
     if (foods.map((f) => {
