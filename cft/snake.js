@@ -347,6 +347,13 @@ class Snake {
                     break;
                 }
             }
+            if (f.type == 3) {
+                if (Math.hypot(x - f.x, y - f.y) < (this.r + f.dt.r) * 0.9) {
+                    this.chscore(f.dt.score);
+                    foods.splice(i, 1);
+                    break;
+                }
+            }
         }
         if (x != b[0].x || y != b[0].y) {
             b.unshift({ x, y });
@@ -399,12 +406,12 @@ class Snake {
         }
     }
     chscore(n) {
-        let s=this.score;
+        let s = this.score;
         this.score += n;
         if (this.score < 0) {
             this.score = 0;
         }
-        n=this.score-s;
+        n = this.score - s;
         let c = {};
         c.lastTime = Date.now();
         c.waitTime = 1000;
@@ -417,11 +424,6 @@ class Snake {
         this.chscs.push(c);
     }
     draw() {
-        let g = (x) => {
-            if (x >= 100) return Math.log10(x);
-            return x / 100 + 1;
-        };
-        this.r = rr * g(this.score);
         let s = this;
         for (let i = s.body.length - 1; i >= 0; i--) {
             let b = s.body[i];
@@ -457,8 +459,10 @@ class Food {
         this.type = type;
         this.dt = dt;//detail
         /*type:
-        0:tp
-        1:reverse
+        0:tp +1
+        1:reverse -0.5
+        2:shoot -3
+        3:gift -10~+10
         */
     }
     do() {
@@ -501,6 +505,13 @@ class Food {
             fillText(f.dt.text[0], f.x, f.y, "#ff0000", 1);
         }
         if (f.type == 2) {
+            ctx.fillStyle = f.dt.clr;
+            ctx.beginPath();
+            ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
+            ctx.fill();
+            fillText(f.dt.text[0], f.x, f.y, "#ff0000", 1);
+        }
+        if (f.type == 3) {
             ctx.fillStyle = f.dt.clr;
             ctx.beginPath();
             ctx.arc(f.x, f.y, f.dt.r, 0, 2 * Math.PI);
@@ -797,15 +808,35 @@ function bindCamera(ctx, camera) {
     };
 }
 function move() {
+    let g = (x) => {
+        if (x >= 100) return Math.log10(x);
+        return x / 100 + 1;
+    };
     for (let i = 0; i < snakes.length; i++) {
-        snakes[i].move();
+        let s = snakes[i];
+        s.r = rr * g(s.score);
+        s.move();
+    }
+    if (foods.map((f) => {
+        return f.type;
+    }).reduce((s, m) => {
+        return s + (m == 3);
+    }, 0) < 3) {
+        if (random(0, 800 * 60 / fps) < 2) {
+            foods.push(new Food(random(rr, map.width - rr), random(rr, map.height - rr), 3,
+                {
+                    clr: '#555555', r: rr * 1.3, text: ['🎁'],
+                    score: random(-10, 10)
+                }));
+        }
     }
     for (let i = 0; i < foods.length; i++) {
-        foods[i].do();
+        let f = foods[i];
+        f.do();
     }
 }
 function player_move() {
-    const speed = 250;;
+    const speed = 250;
     let dx = 0, dy = 0;
     if (isMobile) {
         let j = joystick;
