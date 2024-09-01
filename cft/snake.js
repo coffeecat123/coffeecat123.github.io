@@ -234,18 +234,28 @@ cvs.addEventListener('pointerup', (e) => {
 document.onkeydown = (e) => {
     if (e.key == 'ArrowUp' || e.key == 'w' || e.key == 'W') {
         keys.w = Date.now();
+        snakes[0].type=0;
     }
     if (e.key == 'ArrowLeft' || e.key == 'a' || e.key == 'A') {
         keys.a = Date.now();
+        snakes[0].type=0;
     }
     if (e.key == 'ArrowDown' || e.key == 's' || e.key == 'S') {
         keys.s = Date.now();
+        snakes[0].type=0;
     }
     if (e.key == 'ArrowRight' || e.key == 'd' || e.key == 'D') {
         keys.d = Date.now();
+        snakes[0].type=0;
     }
     if (e.key == 'Shift') {
         keys.shift = 1;
+        snakes[0].type=0;
+    }
+    if (e.key == 'p') {
+        if(snakes[0]?.type){
+            snakes[0].type=1;
+        }
     }
 }
 document.onkeyup = (e) => {
