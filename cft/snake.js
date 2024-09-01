@@ -116,7 +116,17 @@ function DegToRad(a) {
 function random(a, b) {
     return Math.floor(Math.random() * (b - a + 1)) + a;
 }
-function HSLToRGB(h, s, l) {
+function hslToHex(h, s, l) {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100;
+    const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0'); // Convert to Hex and pad with zeros
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+}
+function hslToRgb(h, s, l) {
     s /= 100;
     l /= 100;
     let c = (1 - Math.abs(2 * l - 1)) * s,
@@ -174,7 +184,7 @@ cvs.addEventListener('pointerdown', (e) => {
             let b = d[i];
             b.do();
         }
-    } else if(paused==0) {
+    } else if (paused == 0) {
         if (x < cvs.width / 2) {
             joystick.id = e.pointerId;
             joystick.active = 1;
@@ -261,11 +271,12 @@ document.onkeyup = (e) => {
 }
 //classes
 class Snake {
-    constructor(x, y, dx, dy, clr, type,name) {
+    constructor(x, y, dx, dy, clr, type, name) {
         //body[0] is head
         this.body = [{ x, y }];
         this.dx = dx;
         this.dy = dy;
+        this.r=rr;
         this.clr = clr;
         this.type = type;
         this.name = name;
@@ -293,37 +304,37 @@ class Snake {
         }
         x += dx;
         y += dy;
-        if ((cmp(1, this.type, 5)) && (x > map.width - rr || x < rr || y > map.height - rr || y < rr)) {
+        if ((cmp(1, this.type, 5)) && (x > map.width - this.r || x < this.r || y > map.height - this.r || y < this.r)) {
             this.set_v(x, y);
         }
-        x = Math.max(rr, Math.min(x, map.width - rr));
-        y = Math.max(rr, Math.min(y, map.height - rr));
+        x = Math.max(this.r, Math.min(x, map.width - this.r));
+        y = Math.max(this.r, Math.min(y, map.height - this.r));
 
         for (let i = 0; i < foods.length; i++) {
             let f = foods[i];
             if (f.type == 0) {
-                if (Math.hypot(x - f.x, y - f.y) < rr / 1.8) {
+                if (Math.hypot(x - f.x, y - f.y) < this.r / 1.8) {
                     [x, y] = [f.dt.to.x, f.dt.to.y];
-                    f.x = random(rr, map.width - rr);
-                    f.y = random(rr, map.height - rr);
+                    f.x = random(this.r, map.width - this.r);
+                    f.y = random(this.r, map.height - this.r);
                     this.chscore(1);
                     break;
                 }
             }
             if (f.type == 1) {
-                if (Math.hypot(x - f.x, y - f.y) < rr + f.dt.r) {
+                if (Math.hypot(x - f.x, y - f.y) < this.r + f.dt.r) {
                     if (Date.now() - this.err[1].lastTime > 1000 / 10) {
                         this.chscore(-0.5);
                         this.err[1].lastTime = Date.now();
-                        this.err[1].waitTime = random(1000, 3000);
+                        this.err[1].waitTime = 3000;
                     }
                     break;
                 }
             }
             if (f.type == 2) {
-                if (Math.hypot(x - f.x, y - f.y) < (rr + f.dt.r) * 0.9) {
+                if (Math.hypot(x - f.x, y - f.y) < (this.r + f.dt.r) * 0.9) {
                     if (f.last_snake != this) {
-                        this.chscore(-5);
+                        this.chscore(-3);
                     }
                     f.last_snake = this;
                     let v = Math.hypot(this.dx, this.dy) * (1 + Math.random());
@@ -402,11 +413,16 @@ class Snake {
         this.chscs.push(c);
     }
     draw() {
+        let g = (x) => {
+            if(x>=100)return Math.log10(x);
+            return x/100+1;
+        };
+        this.r=rr*g(this.score);
         let s = this;
         for (let i = s.body.length - 1; i >= 0; i--) {
             let b = s.body[i];
             let alpha = Math.floor((1 - i / s.body.length) * 255);
-            let r = rr * (1 - i / s.body.length);
+            let r = this.r * (1 - i / s.body.length);
             alpha = alpha.toString(16).padStart(2, '0').toLowerCase();
             ctx.fillStyle = `${s.clr}${alpha}`;
             ctx.beginPath();
@@ -414,15 +430,16 @@ class Snake {
             ctx.fill();
         }
         if (Date.now() - s.err[1].lastTime < s.err[1].waitTime) {
-            fillText('?', s.body[0].x, s.body[0].y, "#fff", 1, `${rr}px Arial`);
+            fillText('?', s.body[0].x, s.body[0].y, "#fff", 1, `${this.r}px Arial`);
         }
         else {
-            fillText(s.score, s.body[0].x, s.body[0].y, "#fff", 1, `${rr / 1.5}px Arial`);
+            fillText(s.score, s.body[0].x, s.body[0].y, "#fff", 1, `${this.r / 1.5}px Arial`);
         }
+        fillText(s.name, s.body[0].x, s.body[0].y - this.r*1.5, "#fff", 1, `${this.r / 1.5}px Arial`);
         for (let i = 0; i < s.chscs.length; i++) {
             let c = s.chscs[i];
             if (Date.now() - c.lastTime < c.waitTime) {
-                fillText(c.txt, s.body[0].x, s.body[0].y - rr - rr * 2 * (Date.now() - c.lastTime) / c.waitTime, addOpacity("#fff", 1 - (Date.now() - c.lastTime) / c.waitTime), 1, `${rr / 1.5}px Arial`);
+                fillText(c.txt, s.body[0].x, s.body[0].y - this.r*1.5 - this.r * 2 * (Date.now() - c.lastTime) / c.waitTime, addOpacity(hslToHex((540 - i * 34) % 360, 100, 50), 1 - (Date.now() - c.lastTime) / c.waitTime), 1, `${this.r / 1.5}px Arial`);
             } else {
                 s.chscs.splice(i, 1);
             }
@@ -852,7 +869,7 @@ function update() {
         cvs.style.touchAction = 'none';
         player_move();
         move();
-    }else{
+    } else {
         cvs.style.touchAction = 'auto';
     }
     updateCamera();
@@ -873,14 +890,14 @@ function start(w = 3000, h = 3000) {
     rr = 30;
     default_clr = "#ff0000";
 
-    snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr, 0,'🐍')];
+    snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr, 0, '🐍')];
     for (let i = 0; i < 10; i++) {
         const k = 1.1;
         let t = Math.ceil(Math.log(1 + Math.random() * (k ** 8 - 1)) / Math.log(k) + 1);
         snakes.push(new Snake(
             random(0, map.width), random(0, map.height),
             random(-200, 200), random(-200, 200),
-            getRandomColor(), t,generateRandomUsername(random(4,8))));
+            getRandomColor(), t, generateRandomUsername(random(4, 8))));
     }
     foods = [];
     //w * h / 1000000 * 3
