@@ -420,6 +420,7 @@ class Snake {
     }
     set_v(x, y) {
         this.setTime();
+        let last_dx = this.dx, last_dy = this.dy;
 
         let cc = [...foods].filter((f) => {
             return f.type == 0;
@@ -459,9 +460,26 @@ class Snake {
             this.dy = random(-200, 200);
         }
         if (this.type == 1) {
-            while (Math.hypot(cc[cf].x - closeM.x, cc[cf].y - closeM.y) < this.r + (closeM.dt?.r | 0)) {
-                cf++;
-                if (cf >= cc.length) return;
+            this.dx = last_dx;
+            this.dy = last_dy;
+            while (1) {
+                let a = 0;
+                for (let i = 0; i < c2.length; i++) {
+                    let p1 = cc[cf];
+                    let p2 = c2[i];
+                    if (Math.hypot(p1.x - p2.x, p1.y - p2.y) < p1.dt?.r + p2.dt?.r) {
+                        a = 1;
+                        break;
+                    }
+                }
+                if (a) {
+                    cf++;
+                    if (cf >= cc.length) {
+                        return;
+                    }
+                } else {
+                    break;
+                }
             }
             closestFood = cc[cf];
             let dx = closestFood.x - x;
@@ -471,14 +489,12 @@ class Snake {
                 dx /= distance;
                 dy /= distance;
             }
-            const speed = random(200, 500);
+            let speed =400;
             this.dx = dx * speed;
             this.dy = dy * speed;
             if (closeM) {
                 let c = { ...closeM };
                 let b = { ...this.body[0] };
-
-                let t = 0;
                 let ddx = c.dt.v?.dx | 0;
                 let ddy = c.dt.v?.dy | 0;
                 for (let i = 0; i < fps / 20; i++) {
@@ -486,9 +502,12 @@ class Snake {
                     c.y += ddy / fps;
                     b.x += this.dx / fps;
                     b.y += this.dy / fps;
+                    c.x = Math.min(Math.max(c.x, c.dt.r), map.width - c.dt.r);
+                    c.y = Math.min(Math.max(c.y, c.dt.r), map.height - c.dt.r);
+                    b.x = Math.min(Math.max(b.x, this.r), map.width - this.r);
+                    b.y = Math.min(Math.max(b.y, this.r), map.height - this.r);
                     distance = Math.hypot(b.x - c.x, b.y - c.y);
-                    if (distance < this.r + (c.dt?.r | 0)) {
-                        const speed = 500;
+                    if (distance < this.r + (c.dt?.r | 0) + Math.hypot(ddx, ddy) / fps * 2) {
                         dx = closeM.x - this.body[0].x;
                         dy = closeM.y - this.body[0].y;
                         distance = Math.hypot(dx, dy);
@@ -496,11 +515,11 @@ class Snake {
                         dy /= distance;
                         let lx = -dy, ly = dx;
                         let rx = dy, ry = -dx;
-                        let l = lx * dx + ly * dy;
-                        let r = rx * dx + ry * dy;
+                        let l = lx * ddx + ly * ddy;
+                        let r = rx * ddx + ry * ddy;
                         if (ddx == 0 && ddy == 0) {
-                            let dx = c.x - this.body[0].x;
-                            let dy = c.y - this.body[0].y;
+                            let dx = this.body[0].x - closestFood.x;
+                            let dy = this.body[0].y - closestFood.y;
                             l = lx * dx + ly * dy;
                             r = rx * dx + ry * dy;
                         }
@@ -510,6 +529,34 @@ class Snake {
                         } else {
                             this.dx = lx * speed;
                             this.dy = ly * speed;
+                        }
+                        let u = { ...this.body[0] };
+                        let d1 = Math.hypot((u.x + this.dx) - closestFood.x, (u.y + this.dy) - closestFood.y);
+                        let d2 = Math.hypot((u.x) - closestFood.x, (u.y) - closestFood.y);
+                        if (d1 > d2&&(ddx!=0||ddy!=0)) {
+                            this.dx = 0;
+                            this.dy = 0;
+                            let c = { ...closeM };
+                            let b = { ...this.body[0] };
+                            let ddx = c.dt.v?.dx | 0;
+                            let ddy = c.dt.v?.dy | 0;
+                            for (let i = 0; i < fps / 20; i++) {
+                                c.x += ddx / fps;
+                                c.y += ddy / fps;
+                                c.x = Math.min(Math.max(c.x, c.dt.r), map.width - c.dt.r);
+                                c.y = Math.min(Math.max(c.y, c.dt.r), map.height - c.dt.r);
+                                distance = Math.hypot(b.x - c.x, b.y - c.y);
+                                if (distance < this.r + (c.dt?.r | 0) + Math.hypot(ddx, ddy) / fps * 2) {
+                                    dx = closeM.x - this.body[0].x;
+                                    dy = closeM.y - this.body[0].y;
+                                    distance = Math.hypot(dx, dy);
+                                    dx /= distance;
+                                    dy /= distance;
+                                    this.dx = -dx * speed;
+                                    this.dy = -dy * speed;
+                                    break;
+                                }
+                            }
                         }
                         break;
                     }
