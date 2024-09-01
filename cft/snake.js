@@ -418,8 +418,11 @@ class Snake {
         if (n > 0) {
             c.txt = `+${n}`;
         }
-        else {
+        else if(n<0){
             c.txt = `${n}`;
+        }
+        else{
+            c.txt = `-${n}`;
         }
         this.chscs.push(c);
     }
