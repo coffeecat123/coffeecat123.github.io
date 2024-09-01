@@ -234,27 +234,27 @@ cvs.addEventListener('pointerup', (e) => {
 document.onkeydown = (e) => {
     if (e.key == 'ArrowUp' || e.key == 'w' || e.key == 'W') {
         keys.w = Date.now();
-        snakes[0].type=0;
+        snakes[0].type = 0;
     }
     if (e.key == 'ArrowLeft' || e.key == 'a' || e.key == 'A') {
         keys.a = Date.now();
-        snakes[0].type=0;
+        snakes[0].type = 0;
     }
     if (e.key == 'ArrowDown' || e.key == 's' || e.key == 'S') {
         keys.s = Date.now();
-        snakes[0].type=0;
+        snakes[0].type = 0;
     }
     if (e.key == 'ArrowRight' || e.key == 'd' || e.key == 'D') {
         keys.d = Date.now();
-        snakes[0].type=0;
+        snakes[0].type = 0;
     }
     if (e.key == 'Shift') {
         keys.shift = 1;
-        snakes[0].type=0;
+        snakes[0].type = 0;
     }
-    if (e.key == 'p'||e.key=='P') {
-        if(snakes[0]?.type!=undefined){
-            snakes[0].type=1;
+    if (e.key == 'p' || e.key == 'P') {
+        if (snakes[0]?.type != undefined) {
+            snakes[0].type = 1;
         }
     }
 }
@@ -1069,7 +1069,7 @@ function start(w = 3000, h = 3000) {
     for (let i = 0; i < 10; i++) {
         const k = 1.1;
         let t = Math.ceil(Math.log(1 + Math.random() * (k ** 8 - 1)) / Math.log(k) + 1);
-        if(Math.random()*100<5)t=1;
+        if (Math.random() * 100 < 5) t = 1;
         snakes.push(new Snake(
             random(0, map.width), random(0, map.height),
             random(-200, 200), random(-200, 200),
