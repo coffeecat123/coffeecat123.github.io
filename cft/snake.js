@@ -350,7 +350,7 @@ class Snake {
             if (f.type == 3) {
                 if (Math.hypot(x - f.x, y - f.y) < (this.r + f.dt.r) * 0.9) {
                     this.chscore(f.dt.score);
-                    foods.splice(i, 1);
+                    foods.splice(i--, 1);
                     break;
                 }
             }
@@ -447,7 +447,7 @@ class Snake {
             if (Date.now() - c.lastTime < c.waitTime) {
                 fillText(c.txt, s.body[0].x, s.body[0].y - this.r * 1.5 - this.r * 2 * (Date.now() - c.lastTime) / c.waitTime, addOpacity(hslToHex((540 - i * 34) % 360, 100, 50), 1 - (Date.now() - c.lastTime) / c.waitTime), 1, `${this.r / 1.5}px Arial`);
             } else {
-                s.chscs.splice(i, 1);
+                s.chscs.splice(i--, 1);
             }
         }
     }
