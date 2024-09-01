@@ -215,10 +215,9 @@ cvs.addEventListener('pointermove', (e) => {
         let dd = Math.hypot(dx, dy);
         j.sx = getSmallerAbsoluteValue(j.r * dx / dd, dx);
         j.sy = getSmallerAbsoluteValue(j.r * dy / dd, dy);
-        let d2 = Math.hypot(j.sx, j.sy);
         if (dd > j.r) {
-            j.x += j.sx / d2;
-            j.y += j.sy / d2;
+            j.x=x-j.sx;
+            j.y=y-j.sy;
         }
     }
 });
