@@ -623,7 +623,7 @@ class Snake {
         let s = this;
         for (let i = s.body.length - 1; i > 0; i--) {
             let b = s.body[i];
-            let alpha = Math.floor((1 - i / s.body.length) * 255);
+            let alpha = Math.floor((1 - i / s.body.length) * 255/1.5/Math.log10(this.score+1));
             let r = this.r * (1 - i / s.body.length);
             alpha = alpha.toString(16).padStart(2, '0').toLowerCase();
             ctx.fillStyle = `${s.clr}${alpha}`;
@@ -1110,7 +1110,7 @@ function start(w = 3000, h = 3000) {
     showFps = 0;
     paused = 0;
     rr = 30;
-    default_clr = "#ff0000";
+    default_clr = getRandomColor();
 
     snakes = [new Snake(random(0, map.width), random(0, map.height), 0, 0, default_clr, 0, '🐍')];
     for (let i = 0; i < 10; i++) {
