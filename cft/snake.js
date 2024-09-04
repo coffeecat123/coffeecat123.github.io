@@ -6,6 +6,7 @@ var ti;
 var default_clr = "#ff0000", buttons, snakes, foods;
 var rr, paused, cnt, pointers = new Map();
 var lastTime, frameCount, fps, showFps;
+var currentSequence = "",timeout;
 const margin = 50;
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 var map = {
@@ -252,11 +253,20 @@ document.onkeydown = (e) => {
         keys.shift = 1;
         snakes[0].type = 0;
     }
-    if (e.key == 'p' || e.key == 'P') {
+
+    clearTimeout(timeout);
+    currentSequence += e.key.toLowerCase();
+    
+    if (currentSequence.includes('cft')) {
         if (snakes[0]?.type != undefined) {
             snakes[0].type = 1;
         }
+        currentSequence = "";
     }
+    
+    timeout = setTimeout(() => {
+        currentSequence = "";
+    }, 1000);
 }
 document.onkeyup = (e) => {
     if (e.key == 'ArrowUp' || e.key == 'w' || e.key == 'W') {
