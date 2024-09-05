@@ -803,8 +803,7 @@ function fillText(text, x, y, clr, a, font = `${rr * 1.3}px Arial`) {
     ctx.font = font;
     ctx.fillStyle = clr;
     ctx.textAlign = 'center';
-    let textMetrics = ctx.measureText(text);
-    y += textMetrics.actualBoundingBoxAscent / 2 - textMetrics.actualBoundingBoxDescent / 2;
+    ctx.textBaseline = 'middle';
     if (a) {
         x -= camera.x;
         y -= camera.y;
