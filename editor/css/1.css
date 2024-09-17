@@ -43,6 +43,7 @@ body {
 }
 
 #txt {
+    tab-size: 4;
     width: -webkit-fill-available;
     background-color: transparent;
     border: 0.5px solid rgb(255, 255, 255);
