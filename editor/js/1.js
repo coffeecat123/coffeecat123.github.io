@@ -57,7 +57,7 @@ window.onload = function () {
         txt.value = e.data;
     });
     */
-    const dbName = 'cftDB';
+    const dbName = location.href;
     const storeName = 'txt';
     let db;
 

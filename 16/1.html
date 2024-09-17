@@ -130,15 +130,54 @@ y:取消復原
             var weq=0;
             a3.value=255;
             a4.value="#ffffff";
-            function getCookie(name) {
-                var value = `; ${document.cookie}`;
-                var parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop().split(';').shift();
-                return 0;
-            }
-            if(getCookie('img')!="0"){
+            
+    const dbName = location.href;
+    const storeName = 'img';
+    let db;
+
+    // 打开或创建数据库
+    const openRequest = indexedDB.open(dbName, 1);
+
+    openRequest.onupgradeneeded = (event) => {
+        db = event.target.result;
+        // 创建对象存储（Object Store），主键为 'id'
+        if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, { keyPath: 'id' });
+        }
+    };
+
+    openRequest.onsuccess = (event) => {
+        db = event.target.result;
+        console.log('Database opened successfully');
+        // 尝试从数据库中加载内容
+        loadTextareaContent();
+    };
+
+    openRequest.onerror = (event) => {
+        console.error('Error opening database:', event.target.error);
+    };
+
+    // 保存数据到 IndexedDB
+    function saveimg() {
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+
+        store.put({ id: 1, img: a1.toDataURL(),bgclr:a4.value});
+    }
+
+    // 从 IndexedDB 加载数据到 textarea
+    function loadTextareaContent() {
+        const transaction = db.transaction([storeName], 'readonly');
+        const store = transaction.objectStore(storeName);
+        const request = store.get(1);
+
+        request.onsuccess = (event) => {
+            if (event.target.result) {
+                const data = event.target.result;
+                a4.value=data.bgclr;
+                a1.style["background-color"]=data.bgclr;
                 let lastDraw = new Image;
-                lastDraw.src="data:image/png;"+getCookie('img');
+                lastDraw.src=data.img;
                 lastDraw.onload=()=>{
                     sx=lastDraw.width/q;
                     sy=lastDraw.height/q;
@@ -156,6 +195,12 @@ y:取消復原
                 a1.height = sy*q;
                 psh();
             }
+        };
+
+        request.onerror = (event) => {
+            console.error('Error loading content:', event.target.error);
+        };
+    }
             function onmd(){
                 isMouseDown = true;
                 ti=1;
@@ -179,6 +224,7 @@ y:取消復原
             },1);
             a4.oninput=()=>{
                 a1.style["background-color"]=a4.value;
+                saveimg();
             }
             function onmv(e){
                 var x,y;
@@ -645,7 +691,7 @@ y:取消復原
                 if(step<hist.length-1)hist[step]=a1.toDataURL();
                 else hist.push(a1.toDataURL());
                 if(qqe==1)hist.length=step+1;
-                document.cookie='img='+a1.toDataURL().split(";")[1]+';';
+                saveimg();
             }
             function undo(qq){
                 if(qq==-1&&step==0)return;
@@ -661,7 +707,7 @@ y:取消復原
                     a1.height = lastDraw.height;
                     ctx.clearRect(0, 0, a1.width, a1.height);
                     ctx.drawImage(lastDraw, 0, 0);
-                    document.cookie='img='+a1.toDataURL().split(";")[1]+';';
+                    saveimg();
                 };
             };
             function wea(){
