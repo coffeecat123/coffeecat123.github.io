@@ -10,7 +10,8 @@ window.onload = function () {
     var sml = $("#sml");
 
     txt.style.fontSize = font_size + "px";
-
+    txt.focus();
+    
     ok.onclick = () => {
         if (window.self !== window.top) {
             window.parent.postMessage('REMOVE_IFRAME', '*');
@@ -34,6 +35,9 @@ window.onload = function () {
     sml.onclick = () => {
         font_size -= 2;
         txt.style.fontSize = font_size + "px";
+        saveTextareaContent();
+    }
+    txt.oninput = () => {
         saveTextareaContent();
     }
     txt.addEventListener('keydown', function (e) {
