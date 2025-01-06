@@ -18,6 +18,7 @@
         <input type="file" name="flb"  id="edb" accept="image/*" onchange="lfb(event)">
         <button onclick="qa()">Merge!</button>
         <button onclick="qb()">Change!</button>
+        <button onclick="dl()">Download!</button>
         <br>
         <canvas id="a1" class="qw"></canvas>
         <canvas id="b1" class="qw"></canvas>
@@ -81,6 +82,12 @@
                     }
                 }
                 qe^=1;
+            }
+            function dl(){
+                var link = document.createElement('a');
+                link.download = 'image.png';
+                link.href = c1.toDataURL();
+                link.click();
             }
             var lfa = function(e) {
                 let file = e.target.files[0];
