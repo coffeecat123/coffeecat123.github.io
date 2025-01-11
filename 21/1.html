@@ -47,6 +47,7 @@
             var ax,ay,bx,by,qq,ba,lq,ll,aa,lv,cc,wx,wy;
             var tch=[];
             var ta="You Pass\nclick to next";
+            const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
             cv.width=sx;
             cv.height=sy;
             ctx.lineWidth=4*kp;
@@ -89,18 +90,48 @@
                     }
                 },100);
             }
+            cv.addEventListener(mt_switch("mousedown"),(e)=>{
+                if(isMobile){
+                    let sm=0;
+                    for(let i=0;i<tch.length;i++){
+                        sm+=tch[i];
+                    }
+                    if(sm==0){
+                        tch=[];
+                    }
+                    tch.push(1);
+                }
+            });
+            cv.addEventListener(mt_switch("mousemove"),(e)=>{
+                if(isMobile){
+                    if(tch.length==1){
+                        e.preventDefault();
+                    }
+                }
+            });
+            cv.addEventListener(mt_switch("click"),(e)=>{
+                if(isMobile){
+                    for(let i=0;i<tch.length;i++){
+                        if(tch[i]==1){
+                            tch[i]=0;
+                            break;
+                        }
+                    }
+                }
+            });
+            function mt_switch(a){
+                if(isMobile){
+                    if(a=="mousemove")return "touchmove";
+                    if(a=="mousedown")return "touchstart";
+                    if(a=="mouseup")return "touchend";
+                    if(a=="click")return "touchend";
+                }
+                return a;
+            }
             function qwe(e){
+                if(tch.length>1)return;
                 cv.ontouchend=cv.onmouseup=qsa;
                 var x,y;
-                let sm=0;
-                for(let i=0;i<tch.length;i++){
-                    sm+=tch[i];
-                }
-                if(sm==0){
-                    tch=[];
-                }
-                tch.push(1);
-                if(tch.length>1)return;
                 if(e.type=="touchstart"){
                     x=e.changedTouches[0].pageX-cv.offsetLeft;
                     y=e.changedTouches[0].pageY-cv.offsetTop;
@@ -112,10 +143,24 @@
                 x*=kp;
                 y*=kp;
                 var a=-1;
-                for(let i=0;i<qq;i++){
-                    if((x-ax[i])*(x-ax[i])+(y-ay[i])*(y-ay[i])<(rr+ctx.lineWidth*0.5)*(rr+ctx.lineWidth*0.5)){
-                        a=i;
-                        break;
+                if(isMobile){
+                    let minr=Infinity;
+                    for(let i=0;i<qq;i++){
+                        if((x-ax[i])**2+(y-ay[i])**2<((rr+ctx.lineWidth*0.5)*2.5)**2){
+                            if((x-ax[i])**2+(y-ay[i])**2<minr){
+                                minr=(x-ax[i])**2+(y-ay[i])**2;
+                                a=i;
+                            }
+                            break;
+                        }
+                    }
+                }
+                else{
+                    for(let i=0;i<qq;i++){
+                        if((x-ax[i])**2+(y-ay[i])**2<(rr+ctx.lineWidth*0.5)**2){
+                            a=i;
+                            break;
+                        }
                     }
                 }
                 if(a==-1)return;
@@ -124,10 +169,14 @@
                 by=ay[ba]-y;
                 qaz();
                 cv.ontouchmove=cv.onmousemove=(ev)=>{
-                    if(tch.length>1)return;
                     var ex,ey;
-                    if(ev.type=="touchmove"){
+                    if(tch.length==1){
                         ev.preventDefault();
+                    }
+                    else{
+                        return;
+                    }
+                    if(ev.type=="touchmove"){
                         ex=ev.changedTouches[0].pageX-cv.offsetLeft;
                         ey=ev.changedTouches[0].pageY-cv.offsetTop;
                     }
@@ -343,12 +392,6 @@
                 return 1;
             }
             function qsa(){
-                for(let i=0;i<tch.length;i++){
-                    if(tch[i]==1){
-                        tch[i]=0;
-                        break;
-                    }
-                }
                 cv.onmousedown=cv.ontouchstart='';
                 cv.ontouchmove=cv.onmousemove='';
                 ba=-1;
