@@ -68,7 +68,7 @@ var ipt1=$("#ipt1");
 var sp1=$("#sp1");
 var ctx=cvs.getContext("2d");
 var ti=cvs.width/cvs.offsetWidth,
-    gμk=0.2,cr=30,balls=[],
+    gμk=0.2,cr=30,balls=[],tch=[],
     maxf=100,minf=50,playing=0,ff,
     wa=100,mm=2.5,vv=5,tt=5,tch=0,
     ch=cvs.height,cw=cvs.width;
@@ -222,7 +222,8 @@ class ball{
     }
 }
 cvs.addEventListener(mt_switch("mousedown"),(e)=>{
-    tch++;
+    console.log(e);
+    tch.push(1);
 });
 cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     if(playing)return;
@@ -231,7 +232,7 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        if(tch==1){
+        if(tch.lenght==1){
             e.preventDefault();
         }
         else{
@@ -281,7 +282,19 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     drline(a.x,a.y,a.x+a.vx*vv,a.y+a.vy*vv);
 });
 cvs.addEventListener(mt_switch("click"),(e)=>{
-    tch--;
+    for(let i=0;i<tch.length;i++){
+        if(tch[i]==1){
+            thc[i]=0;
+            break;
+        }
+    }
+    let sm=0;
+    for(let i=0;i<tch.length;i++){
+        sm+=tch[i];
+    }
+    if(sm==0){
+        tch=[];
+    }
     if(playing)return;
     let x,y;
     x=balls[0].x;
