@@ -13,7 +13,6 @@
                 font-family: Segoe Script,fantasy;
             }
             .cv{
-                touch-action: none;
                 background: black;
                 border: 1px white solid;
             }
@@ -46,6 +45,7 @@
             var ctx = cv.getContext('2d');
             var sx=1000,sy=1000,kp=2,rr=6*kp;
             var ax,ay,bx,by,qq,ba,lq,ll,aa,lv,cc,wx,wy;
+            var tch=[];
             var ta="You Pass\nclick to next";
             cv.width=sx;
             cv.height=sy;
@@ -92,6 +92,14 @@
             function qwe(e){
                 cv.ontouchend=cv.onmouseup=qsa;
                 var x,y;
+                let sm=0;
+                for(let i=0;i<tch.length;i++){
+                    sm+=tch[i];
+                }
+                if(sm==0){
+                    tch=[];
+                }
+                tch.push(1);
                 if(e.type=="touchstart"){
                     x=e.changedTouches[0].pageX-cv.offsetLeft;
                     y=e.changedTouches[0].pageY-cv.offsetTop;
@@ -116,7 +124,9 @@
                 qaz();
                 cv.ontouchmove=cv.onmousemove=(ev)=>{
                     var ex,ey;
+                    if(tch.length>1)return;
                     if(ev.type=="touchmove"){
+                        ev.preventDefault();
                         ex=ev.changedTouches[0].pageX-cv.offsetLeft;
                         ey=ev.changedTouches[0].pageY-cv.offsetTop;
                     }
@@ -334,6 +344,12 @@
             function qsa(){
                 cv.onmousedown=cv.ontouchstart='';
                 cv.ontouchmove=cv.onmousemove='';
+                for(let i=0;i<tch.length;i++){
+                    if(tch[i]==1){
+                        tch[i]=0;
+                        break;
+                    }
+                }
                 ba=-1;
                 qaz();
                 if(!ch1()){
