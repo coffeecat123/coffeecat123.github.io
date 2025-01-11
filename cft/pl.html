@@ -223,6 +223,13 @@ class ball{
 }
 cvs.addEventListener(mt_switch("mousedown"),(e)=>{
     if(isMobile){
+        let sm=0;
+        for(let i=0;i<tch.length;i++){
+            sm+=tch[i];
+        }
+        if(sm==0){
+            tch=[];
+        }
         tch.push(1);
     }
 });
@@ -283,20 +290,12 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     drline(a.x,a.y,a.x+a.vx*vv,a.y+a.vy*vv);
 });
 cvs.addEventListener(mt_switch("click"),(e)=>{
-    let tl=tch.length;
     if(isMobile){
         for(let i=0;i<tch.length;i++){
             if(tch[i]==1){
                 tch[i]=0;
                 break;
             }
-        }
-        let sm=0;
-        for(let i=0;i<tch.length;i++){
-            sm+=tch[i];
-        }
-        if(sm==0){
-            tch=[];
         }
     }
     if(playing)return;
@@ -305,7 +304,7 @@ cvs.addEventListener(mt_switch("click"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        if(tl>1)return;
+        if(tch.length>1)return;
         x1=e.changedTouches[0].pageX-cvs.offsetLeft;
         y1=e.changedTouches[0].pageY-cvs.offsetTop;
     }
