@@ -283,6 +283,7 @@ cvs.addEventListener(mt_switch("mousemove"),(e)=>{
     drline(a.x,a.y,a.x+a.vx*vv,a.y+a.vy*vv);
 });
 cvs.addEventListener(mt_switch("click"),(e)=>{
+    let tl=tch.length;
     if(isMobile){
         for(let i=0;i<tch.length;i++){
             if(tch[i]==1){
@@ -304,7 +305,7 @@ cvs.addEventListener(mt_switch("click"),(e)=>{
     y=balls[0].y;
     let x1,y1;
     if(isMobile){
-        if(tch.length>0)return;
+        if(tl>1)return;
         x1=e.changedTouches[0].pageX-cvs.offsetLeft;
         y1=e.changedTouches[0].pageY-cvs.offsetTop;
     }
