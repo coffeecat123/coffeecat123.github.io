@@ -211,7 +211,7 @@
     let states = [false, false, false, false];
     let attemptCount = 0;
     let total_time = 60;
-    let step = 0;
+    let turning = 0;
     let timeLeft;
     let timerInterval = null;
     let level = 1;
@@ -275,7 +275,7 @@
     buttons.forEach((btn, index) => {
       btn.addEventListener('click', () => {
         if (isPassed) return;
-        if(step>0)return;
+        if(turning)return;
         states[index] = !states[index];
         btn.classList.add('clicked');
         setTimeout(() => btn.classList.remove('clicked'), 200);
@@ -294,7 +294,7 @@
       }
     };
     xBtn.addEventListener('click', () => {
-      if(step>0)return;
+      if(turning)return;
       if (level === 2 && timeLeft <= 0) return;
       if (isPassed) return;
       xBtn.classList.add('clicked');
@@ -310,7 +310,7 @@
       if (states.every(s => s)) {
         if (level === 1) {
           isPassed = true;
-          statusDiv.textContent = '即將進入下一關，將啟動' + total_time + '秒計時...';
+          statusDiv.textContent = '過關，即將進入下一關，將啟動' + total_time + '秒計時...';
           setTimeout(() => {
             initializeGame(2);
           }, 3000);
@@ -331,13 +331,13 @@
         });
         xBtn.textContent = "";
         grid.classList.add(Math.random() > 0.5? 'rotate' : 'rotate-back');
-        step++;
+        turning=1;
         setTimeout(() => {
-          step--;
           grid.classList.remove('rotate');
           grid.classList.remove('rotate-back');
           updateButtonStyles();
           xBtn.textContent = level==1?'X':'';
+          turning=0;
         }, 500);
         return;
       }
