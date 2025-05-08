@@ -137,6 +137,7 @@
       border: none;
       background: #00fff8;
       cursor: pointer;
+      margin-left: 10px;
     }
 
     #gameArea {
@@ -316,7 +317,7 @@
           }, 2500);
         } else {
           clearInterval(timerInterval);
-          statusDiv.textContent = '恭喜過關！得分：'+'分';
+          statusDiv.textContent = '恭喜過關！得分：'+parseFloat(Math.max((38-attemptCount/2+timeLeft*0.2)/5,0).toFixed(2))+'/10分';
           isPassed = true;
           restartBtn.style.display = 'inline-block';
         }
