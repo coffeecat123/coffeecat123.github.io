@@ -242,8 +242,8 @@
       let topNumber = '', bottomNumber = '';
       for (let i = 0; i < 4; i++) topNumber += cells[i].textContent;
       for (let i = 4; i < 8; i++) bottomNumber += cells[i].textContent;
-      const result = Math.abs(parseInt(topNumber) - parseInt(bottomNumber));
-      resultArea.textContent = `|${topNumber} - ${bottomNumber}| = ${result}`;
+      const result = parseInt(topNumber) - parseInt(bottomNumber);
+      resultArea.textContent = `${topNumber} - ${bottomNumber} = ${result}`;
     }
 
     function clearActive() {
