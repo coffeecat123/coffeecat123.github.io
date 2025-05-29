@@ -84,6 +84,7 @@
     .result {
       font-size: 24px;
       padding-top: 10px;
+      height: 45px;
     }
 
     button {
@@ -105,7 +106,6 @@
       }
     }
 
-    /* 拖曳影像樣式 */
     #dragImage {
       position: fixed;
       z-index: 1000;
@@ -132,15 +132,10 @@
     <div class="result" id="resultArea">結果：______</div>
   </div>
 
-  <audio id="fillSound"
-    src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_43e04a7b9b.mp3?filename=pop-94319.mp3"
-    preload="auto"></audio>
-
   <script>
     const grid = document.getElementById('grid');
     const numberPad = document.getElementById('numberPad');
     const resultArea = document.getElementById('resultArea');
-    const fillSound = document.getElementById('fillSound');
 
     let filledCount = 0;
     let touchedNumber = null;
@@ -182,16 +177,20 @@
         activeButton = btn;
       });
 
-      btn.addEventListener('click', () => {
+      btn.addEventListener('mousedown', (e) => {
         touchedNumber = btn.textContent;
         clearActive();
         btn.classList.add('active');
         activeButton = btn;
       });
-
       btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
         draggingBtn = btn;
         draggingNumber = btn.textContent;
+        touchedNumber = btn.textContent;
+        clearActive();
+        btn.classList.add('active');
+        activeButton = btn;
         createDragImage(btn.textContent, e.touches[0].clientX, e.touches[0].clientY);
       });
 
@@ -221,14 +220,10 @@
       setTimeout(() => cell.classList.remove('flash'), 300);
       filledCount++;
 
-      if (fillSound) {
-        fillSound.currentTime = 0;
-        fillSound.play();
-      }
-
       if (activeButton) {
         activeButton.classList.remove('active');
         activeButton = null;
+        touchedNumber = null;
       }
 
       if (filledCount === 8) {
@@ -243,7 +238,7 @@
       for (let i = 0; i < 4; i++) topNumber += cells[i].textContent;
       for (let i = 4; i < 8; i++) bottomNumber += cells[i].textContent;
       const result = parseInt(topNumber) - parseInt(bottomNumber);
-      resultArea.textContent = `${topNumber} - ${bottomNumber} = ${result}`;
+      resultArea.textContent = `結果： ${topNumber} - ${bottomNumber} = ${result}`;
     }
 
     function clearActive() {
