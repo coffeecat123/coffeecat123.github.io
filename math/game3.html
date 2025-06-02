@@ -2,179 +2,288 @@
 <html lang="zh">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>鍵盤選色+滑鼠下棋</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            background-color: #f0f0f0;
-            justify-content: center;
-            text-align: center;
-            min-height: calc(var(--vh, 1vh) * 100);
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>鍵盤選色+滑鼠下棋+擴充功能</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      background-color: #ffffff;
+      justify-content: center;
+      text-align: center;
+      min-height: calc(var(--vh, 1vh) * 100);
+      font-family: "Segoe UI", "Noto Sans TC", sans-serif;
+    }
 
-        #instructions {
-            margin-bottom: 10px;
-            height: 50px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-        }
+    .row {
+      height: 40px;
+      margin: 6px 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      align-items: center;
+    }
 
-        #changecolor {
-            color: #0036ff;
-            margin-left: 20px;
-            padding: 6px;
-            background: #71ebff;
-            border: none;
-            border-radius: 15px;
-        }
+    button {
+      padding: 8px 16px;
+      font-size: 15px;
+      border: none;
+      border-radius: 12px;
+      background-color: #00bcd4;
+      color: #ffffff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
 
-        #myCanvas {
-            width: 90vmin;
-            height: 90vmin;
-            touch-action: manipulation;
-        }
+    button:disabled {
+      background-color: #cccccc;
+      color: #666666;
+      cursor: not-allowed;
+      filter: grayscale(100%);
+    }
 
-        #coords {
-            min-height: 25px;
-        }
-    </style>
+    button.active-mode {
+      background-color: #ffd54f;
+      color: #333;
+      font-weight: bold;
+    }
+
+    #myCanvas {
+      width: 90vmin;
+      height: 90vmin;
+      touch-action: manipulation;
+      border: 1px solid #000;
+      background-color: #fdfdfd;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    #coords {
+      margin-top: 8px;
+      min-height: 25px;
+      font-size: 14px;
+      color: #333;
+    }
+  </style>
 </head>
 
 <body>
-    <div id="instructions">
-        <p>目前選擇顏色：<span id="currentColorText" style="font-weight:bold;">藍色</span></p>
-        <button id="changecolor">換色</button>
-    </div>
-    <canvas id="myCanvas" width="1000" height="1000"></canvas>
-    <p id="coords"></p>
+  <div class="row">
+    <p>目前選擇顏色：<span id="currentColorText" style="font-weight:bold;">藍色</span></p>
+    <button id="toggleFreeEraseBtn">自由清除模式</button>
+    <button id="toggleFormalModeBtn">正式模式</button>
+  </div>
 
-    <script>
-        const canvas = document.getElementById("myCanvas");
-        const ctx = canvas.getContext("2d");
-        const chcl = document.getElementById("changecolor");
+  <div class="row">
+    <button id="changecolor">換色</button>
+    <button id="undoBtn">回上一步</button>
+    <button id="clearAllBtn">全清除</button>
+  </div>
 
-        const rows = 7;
-        const cols = 7;
+  <canvas id="myCanvas" width="1000" height="1000"></canvas>
+  <p id="coords"></p>
 
-        let ti=1;
+  <script>
+    const canvas = document.getElementById("myCanvas");
+    const ctx = canvas.getContext("2d");
+    const chcl = document.getElementById("changecolor");
 
-        let coordsArray = new Array(rows).fill(null).map(() => new Array(cols).fill(0));
-        let currentColor = 1;
+    const rows = 7;
+    const cols = 7;
 
-        const colorMap = {
-            1: { name: "藍色", fill: "blue" },
-            2: { name: "紅色", fill: "red" },
-            3: { name: "紫色", fill: "purple" },
-        };
+    let ti = 1;
 
-        function updateCurrentColorText() {
-            const span = document.getElementById("currentColorText");
-            span.textContent = colorMap[currentColor].name;
-            span.style.color = colorMap[currentColor].fill;
+    let coordsArray = Array.from({ length: rows }, () => Array(cols).fill(0));
+    let historyStack = [];
+    let currentColor = 1;
+    let freeEraseMode = false;
+    let formalMode = false;
+    let formalTurn = 1;
+
+    const colorMap = {
+      1: { name: "藍色", fill: "blue" },
+      2: { name: "紅色", fill: "red" },
+      3: { name: "紫色", fill: "purple" },
+    };
+
+    function updateCurrentColorText() {
+      const span = document.getElementById("currentColorText");
+      span.textContent = colorMap[currentColor].name;
+      span.style.color = colorMap[currentColor].fill;
+
+      chcl.disabled = formalMode; // 禁用換色按鈕
+    }
+
+    function resizeCanvas() {
+      let minSide = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+      if (window.innerHeight < window.innerWidth) {
+        minSide -= 104;
+      }
+      ti = 1000 / minSide;
+      canvas.style.width = `${minSide}px`;
+      canvas.style.height = `${minSide}px`;
+      drawGrid();
+    }
+
+    function drawGrid() {
+      const size = canvas.width / cols;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#aaa";
+      ctx.lineWidth = 3;
+
+      for (let r = 0; r <= rows; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * size);
+        ctx.lineTo(canvas.width, r * size);
+        ctx.stroke();
+      }
+
+      for (let c = 0; c <= cols; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * size, 0);
+        ctx.lineTo(c * size, canvas.height);
+        ctx.stroke();
+      }
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (coordsArray[r][c] !== 0) {
+            ctx.beginPath();
+            const centerX = c * size + size / 2;
+            const centerY = r * size + size / 2;
+            const radius = size / 3;
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fillStyle = colorMap[coordsArray[r][c]].fill;
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
+      }
+    }
+
+    canvas.addEventListener("mousedown", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) * ti;
+      const y = (event.clientY - rect.top) * ti;
+
+      const size = canvas.width / cols;
+      const col = Math.floor(x / size);
+      const row = Math.floor(y / size);
+
+      if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+
+      if (freeEraseMode) {
+        if (coordsArray[row][col] !== 0) {
+          coordsArray[row][col] = 0;
+          drawGrid();
+          document.getElementById("coords").innerText = `清除了第 ${row} 行, 第 ${col} 列 的棋子`;
+        }
+      } else if (coordsArray[row][col] === 0) {
+        let placeColor = currentColor;
+
+        if (formalMode) {
+          placeColor = formalTurn;
+          formalTurn = formalTurn === 1 ? 2 : 1;
+          currentColor = placeColor;
         }
 
-        function resizeCanvas() {
-            let minSide = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-            if (window.innerHeight < window.innerWidth) {
-                minSide -= 75;
-            }
-            ti=1000/minSide;
-            canvas.style.width = `${minSide}px`;
-            canvas.style.height = `${minSide}px`;
-            drawGrid();
-        }
-
-        function drawGrid() {
-            const size = canvas.width / cols;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#aaa";
-            ctx.lineWidth = 3;
-
-            for (let r = 0; r <= rows; r++) {
-                ctx.beginPath();
-                ctx.moveTo(0, r * size);
-                ctx.lineTo(canvas.width, r * size);
-                ctx.stroke();
-            }
-
-            for (let c = 0; c <= cols; c++) {
-                ctx.beginPath();
-                ctx.moveTo(c * size, 0);
-                ctx.lineTo(c * size, canvas.height);
-                ctx.stroke();
-            }
-
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    if (coordsArray[r][c] !== 0) {
-                        ctx.beginPath();
-                        const centerX = c * size + size / 2;
-                        const centerY = r * size + size / 2;
-                        const radius = size / 3;
-                        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-                        ctx.fillStyle = colorMap[coordsArray[r][c]].fill;
-                        ctx.fill();
-                        ctx.closePath();
-                    }
-                }
-            }
-        }
-
-        canvas.addEventListener("mousedown", (event) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = (event.clientX - rect.left)*ti;
-            const y = (event.clientY - rect.top)*ti;
-
-            const size = canvas.width / cols;
-            const col = Math.floor(x / size);
-            const row = Math.floor(y / size);
-
-            if (row < 0 || row >= rows || col < 0 || col >= cols) return;
-
-            if (coordsArray[row][col] === 0) {
-                coordsArray[row][col] = currentColor;
-                drawGrid();
-                document.getElementById("coords").innerText = `你在第 ${row} 行, ${col} 列 放置了 ${colorMap[currentColor].name} 棋子`;
-            }
-        });
-
-        chcl.addEventListener("click", () => {
-            currentColor = (currentColor) % 3 + 1;
-            updateCurrentColorText();
-        });
-
-        document.addEventListener("keydown", (event) => {
-            const key = event.key.toLowerCase();
-            if (key === "q") {
-                currentColor = 1;
-            } else if (key === "w") {
-                currentColor = 2;
-            } else if (key === "e") {
-                currentColor = 3;
-            }
-            updateCurrentColorText();
-        });
-
+        coordsArray[row][col] = placeColor;
+        historyStack.push({ row, col });
+        drawGrid();
         updateCurrentColorText();
+        document.getElementById("coords").innerText = `你在第 ${row} 行, ${col} 列 放置了 ${colorMap[placeColor].name} 棋子`;
+      }
+    });
 
-        function setViewportHeight() {
-            const vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
+    chcl.addEventListener("click", () => {
+      if (!formalMode) {
+        currentColor = (currentColor) % 3 + 1;
+        updateCurrentColorText();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key;
+      if (!formalMode && ["1", "2", "3"].includes(key)) {
+        currentColor = parseInt(key);
+        updateCurrentColorText();
+      }
+    });
+
+    document.getElementById("undoBtn").addEventListener("click", () => {
+      if (historyStack.length > 0) {
+        const lastMove = historyStack.pop();
+        coordsArray[lastMove.row][lastMove.col] = 0;
+
+        if (formalMode) {
+          formalTurn = formalTurn === 1 ? 2 : 1;
+          currentColor = formalTurn;
         }
-        setViewportHeight();
-        window.addEventListener('resize', setViewportHeight);
 
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        drawGrid();
+        updateCurrentColorText();
+        document.getElementById("coords").innerText =
+          `撤銷了第 ${lastMove.row} 行, 第 ${lastMove.col} 列 的棋子`;
+      }
+    });
 
-    </script>
+    document.getElementById("clearAllBtn").addEventListener("click", () => {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (coordsArray[r][c] === 1 || coordsArray[r][c] === 2) {
+            coordsArray[r][c] = 0;
+          }
+        }
+      }
+
+      historyStack = historyStack.filter(({ row, col }) => coordsArray[row][col] !== 0);
+
+      if (formalMode) {
+        formalTurn = 1;
+        currentColor = 1;
+        updateCurrentColorText();
+      }
+
+      drawGrid();
+      document.getElementById("coords").innerText = "已清除紅色與藍色棋子（紫色保留）";
+    });
+
+    document.getElementById("toggleFreeEraseBtn").addEventListener("click", () => {
+      freeEraseMode = !freeEraseMode;
+      const btn = document.getElementById("toggleFreeEraseBtn");
+      btn.classList.toggle("active-mode", freeEraseMode);
+      const modeText = freeEraseMode ? "啟用" : "停用";
+      document.getElementById("coords").innerText = `自由清除模式已${modeText}`;
+    });
+
+    document.getElementById("toggleFormalModeBtn").addEventListener("click", () => {
+      formalMode = !formalMode;
+      formalTurn = 1;
+      currentColor = 1;
+      const btn = document.getElementById("toggleFormalModeBtn");
+      btn.classList.toggle("active-mode", formalMode);
+      updateCurrentColorText();
+      const modeText = formalMode ? "啟用" : "停用";
+      document.getElementById("coords").innerText = `正式模式已${modeText}`;
+    });
+
+    function setViewportHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    updateCurrentColorText();
+  </script>
 </body>
 
 </html>
