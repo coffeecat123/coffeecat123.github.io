@@ -242,14 +242,9 @@
     }
     function initializeGame(lvl = 1) {
       level = lvl;
-      if (level == 1) {
-        do {
-          states = Array(4).fill(false).map(() => Math.random() > 0.5);
-        } while (states.every(s => s));
-      }
-      if (level == 2) {
-        states = [false, true, false, true];
-      }
+      do {
+        states = Array(4).fill(false).map(() => Math.random() > 0.5);
+      } while (states.every(s => s));
       attemptCount = 0;
       timerStarted = false;
       timerSpan.textContent = total_time;
