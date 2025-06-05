@@ -311,6 +311,7 @@
     };
     xBtn.addEventListener('click', () => {
       if (turning) return;
+      if (isPassed) return;
       if (level == 0) {
         attemptCount++;
         attemptsSpan.textContent = attemptCount;
@@ -328,7 +329,6 @@
         return;
       }
       if (level === 2 && timeLeft <= 0) return;
-      if (isPassed) return;
       xBtn.classList.add('clicked');
       setTimeout(() => xBtn.classList.remove('clicked'), 200);
       if (level === 2) {
