@@ -15,7 +15,8 @@
       justify-content: center;
       align-items: center;
       flex-direction: column;
-      min-height: calc(var(--vh, 1vh) * 100); /* 改這行 */
+      min-height: calc(var(--vh, 1vh) * 100);
+      /* 改這行 */
     }
 
     .question {
@@ -164,6 +165,7 @@
     有一個正方形的門，四個角落各有一個按鈕，從外表無法辨識開或關。
     中間也有一個按鈕。若角落的四個按鈕都開啟，再按中間的按鈕則門開啟，
     否則門會任意旋轉（轉後無法分辨是原本的哪個開關）。試問要如何打開這個門？
+    <button id="chk">check</button>
   </div>
   <div id="tip1" class="tip"></div>
   <div id="tip2" class="tip"></div>
@@ -192,6 +194,7 @@
     </div>
   </div>
   <script>
+    const grid = document.querySelector('.grid');
     const startBtn = document.getElementById('startBtn');
     const startContainer = document.getElementById('startContainer');
     const gameArea = document.getElementById('gameArea');
@@ -202,6 +205,7 @@
     const timerBox = document.getElementById('timerBox');
     const tip1 = document.getElementById('tip1');
     const tip2 = document.getElementById('tip2');
+    const chk = document.getElementById('chk');
     const restartBtn = document.getElementById('restartBtn');
     const buttons = [
       document.getElementById('btn0'),
@@ -214,8 +218,9 @@
     let total_time = 60;
     let turning = 0;
     let timeLeft;
+    let steps = [];
     let timerInterval = null;
-    let level = 1;
+    let level = -1;
     let timerStarted = false;
     let isPassed = false;
     function updateButtonStyles() {
@@ -228,11 +233,15 @@
       });
     }
     function startTimer() {
+      if (level == 0) return;
       if (timerStarted || level !== 2) return;
       timerStarted = true;
       timerInterval = setInterval(() => {
         timeLeft--;
         timerSpan.textContent = timeLeft;
+        if (level == 0) {
+          clearInterval(timerInterval);
+        }
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
           statusDiv.textContent = '時間到，挑戰失敗！';
@@ -242,32 +251,38 @@
     }
     function initializeGame(lvl = 1) {
       level = lvl;
-      if (level == 1) {
+      if (level == 0) states = [false, false, false, false];
+      else {
         do {
           states = Array(4).fill(false).map(() => Math.random() > 0.5);
         } while (states.every(s => s));
       }
-      if (level == 2) {
-        states = [false, true, false, true];
-      }
       attemptCount = 0;
       timerStarted = false;
+      steps = [];
       timerSpan.textContent = total_time;
       timeLeft = total_time;
       isPassed = false;
       attemptsSpan.textContent = '0';
       statusDiv.textContent = '請嘗試按中間的 X 鍵';
       restartBtn.style.display = 'none';
+      if (level == 0) {
+        timerSpan.textContent = "∞";
+        tip1.innerText = "旋轉動畫只是示意，不代表真實方向！";
+        tip2.innerText = "請輸入所有步驟，然後按下ok!";
+        tip2.style.color = "#ff009b";
+        xBtn.textContent = '';
+      }
       if (level == 1) {
         timerSpan.textContent = "∞";
         tip1.innerText = "旋轉動畫只是示意，不代表真實方向！";
         tip2.innerText = "此關為教學關，不限時間，嘗試打開這個門";
-        tip2.style.color="#e800ff";
+        tip2.style.color = "#e800ff";
       }
       if (level == 2) {
         tip1.innerText = "旋轉動畫只是示意，不代表真實方向！";
         tip2.innerText = "按任一鍵後開始計時，嘗試次數越少分數越高呦！";
-        tip2.style.color="#ff009b";
+        tip2.style.color = "#ff009b";
         xBtn.textContent = '';
       }
       clearInterval(timerInterval);
@@ -276,7 +291,7 @@
     buttons.forEach((btn, index) => {
       btn.addEventListener('click', () => {
         if (isPassed) return;
-        if(turning)return;
+        if (turning) return;
         states[index] = !states[index];
         btn.classList.add('clicked');
         setTimeout(() => btn.classList.remove('clicked'), 200);
@@ -295,7 +310,23 @@
       }
     };
     xBtn.addEventListener('click', () => {
-      if(turning)return;
+      if (turning) return;
+      if (level == 0) {
+        attemptCount++;
+        attemptsSpan.textContent = attemptCount;
+        steps.push(states.slice());
+        states = [false, false, false, false];
+        grid.classList.add(Math.random() > 0.5 ? 'rotate' : 'rotate-back');
+        turning = 1;
+        setTimeout(() => {
+          grid.classList.remove('rotate');
+          grid.classList.remove('rotate-back');
+          updateButtonStyles();
+          xBtn.textContent = level == 1 ? 'X' : '';
+          turning = 0;
+        }, 500);
+        return;
+      }
       if (level === 2 && timeLeft <= 0) return;
       if (isPassed) return;
       xBtn.classList.add('clicked');
@@ -317,12 +348,11 @@
           }, 2500);
         } else {
           clearInterval(timerInterval);
-          statusDiv.textContent = '恭喜過關！得分：'+parseFloat(Math.max((38-attemptCount/2+timeLeft*0.2)/5,0).toFixed(2))+'/10分';
+          statusDiv.textContent = '恭喜過關！得分：' + parseFloat(Math.max((38 - attemptCount / 2 + timeLeft * 0.2) / 5, 0).toFixed(2)) + '/10分';
           isPassed = true;
           restartBtn.style.display = 'inline-block';
         }
       } else {
-        const grid = document.querySelector('.grid');
         const clockwise = Math.random() > 0.5;
         const times = Math.random() > 0.5 ? 1 : 2;
         rotateStates(clockwise ? 'clockwise' : 'counterclockwise', times);
@@ -331,14 +361,14 @@
           btn.textContent = "";
         });
         xBtn.textContent = "";
-        grid.classList.add(Math.random() > 0.5? 'rotate' : 'rotate-back');
-        turning=1;
+        grid.classList.add(Math.random() > 0.5 ? 'rotate' : 'rotate-back');
+        turning = 1;
         setTimeout(() => {
           grid.classList.remove('rotate');
           grid.classList.remove('rotate-back');
           updateButtonStyles();
-          xBtn.textContent = level==1?'X':'';
-          turning=0;
+          xBtn.textContent = level == 1 ? 'X' : '';
+          turning = 0;
         }, 500);
         return;
       }
@@ -349,15 +379,55 @@
       gameArea.style.display = 'flex';
       initializeGame(1);
     });
+    chk.addEventListener('click', () => {
+      if (level != 0) {
+        startContainer.style.display = 'none';
+        gameArea.style.display = 'flex';
+        chk.textContent = "ok!";
+        initializeGame(0);
+      } else {
+        chk.style.visibility = 'hidden';
+
+        let nt = performance.now();
+        let can = 0, c = [];
+        for (let i = 0; i < 16; i++) {
+          let can1 = 1;
+          for (let j = 0; j < 100; j++) {
+            states = i.toString(2).padStart(4, '0').split('').map(Number);
+            for (let l = 0; l < steps.length; l++) {
+              for (let k = 0; k < 4; k++) {
+                states[k] ^= steps[l][k];
+              }
+
+              const clockwise = Math.random() > 0.5;
+              const times = Math.random() > 0.5 ? 1 : 2;
+              rotateStates(clockwise ? 'clockwise' : 'counterclockwise', times);
+              
+              if (states.every(s => s)) break;
+            }
+            if (!states.every(s => s)) {
+              can1 = 0;
+              break;
+            }
+          }
+          can += can1;
+          c.push([can1, i.toString(2).padStart(4, '0').split('').map(Number)]);
+        }
+        let nt1 = performance.now();
+        console.log(`${(nt1 - nt).toFixed(2)} ms`);
+        console.log(c);
+        statusDiv.textContent = 'Accuracy:' + can / 16 * 100 + '%';
+      }
+    });
     restartBtn.addEventListener('click', () => {
       location.reload();
     });
     function setViewportHeight() {
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
-}
-setViewportHeight();
-window.addEventListener('resize', setViewportHeight);
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
   </script>
 </body>
 
