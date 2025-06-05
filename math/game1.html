@@ -417,6 +417,7 @@
         console.log(`${(nt1 - nt).toFixed(2)} ms`);
         console.log(c);
         statusDiv.textContent = 'Accuracy:' + can / 16 * 100 + '%';
+        restartBtn.style.display = 'inline-block';
       }
     });
     restartBtn.addEventListener('click', () => {
