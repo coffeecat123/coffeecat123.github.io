@@ -37,6 +37,7 @@
       grid-template-columns: repeat(4, 60px);
       grid-template-rows: repeat(2, 60px);
       gap: 10px;
+      justify-items: center;
     }
 
     .cell {
@@ -117,6 +118,23 @@
       border-radius: 5px;
       opacity: 0.9;
     }
+
+    .sel {
+      background-color: #ffa;
+    }
+
+    #rst {
+      transition: ease-in-out 1s;
+    }
+
+    #rst:active {
+      background-color: #ffa;
+      transition: none;
+    }
+
+    button {
+      border: 1px solid #aaa;
+    }
   </style>
 </head>
 
@@ -126,42 +144,226 @@
   </div>
 
   <div class="container">
-    <button onclick="resetGame()">重新開始</button>
+    <div style="display: flex;gap: 10px;">
+      <button id="rst">重新開始</button>
+      <button id="ai1" style="display: inline-block;">ai1</button>
+      <button id="ai2">ai2</button>
+    </div>
     <div class="grid" id="grid"></div>
     <div class="number-pad" id="numberPad"></div>
     <div class="result" id="resultArea">結果：______</div>
   </div>
 
   <script>
+    const rst = document.getElementById('rst');
+    const ai1 = document.getElementById('ai1');
+    const ai2 = document.getElementById('ai2');
     const grid = document.getElementById('grid');
     const numberPad = document.getElementById('numberPad');
     const resultArea = document.getElementById('resultArea');
 
+    let nu = 4;
+    let ai1_n = 4;
     let filledCount = 0;
     let touchedNumber = null;
     let activeButton = null;
     let draggingBtn = null;
     let draggingNumber = null;
     let dragImage = null;
+    let ai = [0, 0];
+    grid.style.gridTemplateColumns = `repeat(${nu}, ${Math.min(380 / nu - 10, 60)}px)`;
 
-    for (let i = 0; i < 8; i++) {
+    ai1.addEventListener('click', () => {
+      ai[0] ^= 1;
+      if (ai[0]) ai1.classList.add('sel');
+      else ai1.classList.remove('sel');
+      reset();
+    });
+    ai2.addEventListener('click', () => {
+      ai[1] ^= 1;
+      if (ai[1]) ai2.classList.add('sel');
+      else ai2.classList.remove('sel');
+      reset();
+    });
+    function pn(n) {
+      const btn = document.querySelectorAll('.num-btn')[n];
+      touchedNumber = btn.textContent;
+      clearActive();
+      btn.classList.add('active');
+      activeButton = btn;
+      if (ai[1]) {
+        doai2();
+      }
+    }
+    function doai1() {
+      const cells = document.querySelectorAll('.cell');
+      let d = [];
+      for (let i = 0; i < nu; i++) {
+        if (cells[i].textContent == '') continue;
+        d[i * 2] = parseInt(cells[i].textContent);
+      }
+      for (let i = nu; i < nu * 2; i++) {
+        if (cells[i].textContent == '') continue;
+        d[(i - nu) * 2 + 1] = parseInt(cells[i].textContent);
+      }
+      let n = nu * 2;
+      for (let i = 0; i < n; i += 2) {
+        if (d[i] == undefined && d[i + 1] == undefined) continue;
+        if (d[i] == undefined) {
+          if (d[i + 1] < 4.5) ai1_n = 5;
+          break;
+        }
+        if (d[i + 1] == undefined) {
+          if (d[i] > 4.5) ai1_n = 4;
+          break;
+        }
+      }
+      for (let i = 0; i < n; i += 2) {
+        if (d[i] == undefined && d[i + 1] == undefined) {
+          pn(ai1_n);
+          return;
+        }
+        if (d[i] == undefined) {
+          pn(9);
+          return;
+        }
+        if (d[i + 1] == undefined) {
+          pn(0);
+          return;
+        }
+      }
+    }
+    function doai2() {
+      const cells = document.querySelectorAll('.cell');
+      let d = [];
+      for (let i = 0; i < nu; i++) {
+        if (cells[i].textContent == '') continue;
+        d[i * 2] = parseInt(cells[i].textContent);
+      }
+      for (let i = nu; i < nu * 2; i++) {
+        if (cells[i].textContent == '') continue;
+        d[(i - nu) * 2 + 1] = parseInt(cells[i].textContent);
+      }
+      let s = touchedNumber;
+      let n = nu * 2;
+      if (d[0] == undefined && d[1] == undefined) {
+        if (s > 4.5) fillCell(cells[nu], s);
+        else fillCell(cells[0], s);
+        return;
+      }
+      if (d[0] == undefined) {
+        if (s < 9) {
+          fillCell(cells[0], s);
+          return;
+        } else {
+          let a = 0;
+          for (let k = 1; k < n; k += 2) {
+            if (d[k] == undefined) {
+              fillCell(cells[nu + (k - 1) / 2], s);
+              return;
+            }
+          }
+          for (let k = n - 2; k >= 0; k -= 2) {
+            if (d[k] == undefined) {
+              fillCell(cells[k / 2], s);
+              return;
+            }
+          }
+        }
+      }
+      else if (d[1] == undefined) {
+        if (s > 0) {
+          fillCell(cells[nu], s);
+          return;
+        } else {
+          for (let k = 0; k < n; k += 2) {
+            if (d[k] == undefined) {
+              fillCell(cells[k / 2], s);
+              return;
+            }
+          }
+          for (let k = n - 1; k >= 1; k -= 2) {
+            if (d[k] == undefined) {
+              fillCell(cells[nu + (k - 1) / 2], s);
+              return;
+            }
+          }
+        }
+      }
+      else {
+        if (s > 4.5) {
+          for (let k = 3; k < n; k += 2) {
+            if (d[k] != undefined) continue;
+            if (d[k - 1] != undefined) {
+              fillCell(cells[nu + (k - 1) / 2], s);
+              return;
+            }
+          }
+          for (let k = 3; k < n; k += 2) {
+            if (d[k] != undefined) continue;
+            fillCell(cells[nu + (k - 1) / 2], s);
+            return;
+          }
+          for (let k = n - 2; k >= 2; k -= 2) {
+            if (d[k] == undefined) {
+              fillCell(cells[k / 2], s);
+              return;
+            }
+          }
+        }
+        else {
+          for (let k = 2; k < n; k += 2) {
+            if (d[k] != undefined) continue;
+            if (d[k + 1] != undefined) {
+              fillCell(cells[k / 2], s);
+              return;
+            }
+          }
+          for (let k = 2; k < n; k += 2) {
+            if (d[k] != undefined) continue;
+            fillCell(cells[k / 2], s);
+            return;
+          }
+          for (let k = n - 1; k >= 3; k -= 2) {
+            if (d[k] == undefined) {
+              fillCell(cells[nu + (k - 1) / 2], s);
+              return;
+            }
+          }
+        }
+      }
+    }
+    for (let i = 0; i < nu * 2; i++) {
       const cell = document.createElement('div');
       cell.classList.add('cell');
+      cell.style.width = `${Math.min(380 / nu - 10, 60)}px`;
+      cell.style.height = `${Math.min(380 / nu - 10, 60)}px`;
       cell.dataset.index = i;
       grid.appendChild(cell);
 
       cell.addEventListener('dragover', (e) => e.preventDefault());
       cell.addEventListener('drop', (e) => {
+        if (ai[1]) return;
+        if (ai[0]) {
+          if (touchedNumber == null) return;
+        }
         e.preventDefault();
         if (cell.classList.contains('filled')) return;
         const number = e.dataTransfer.getData('text/plain');
+        if (ai[0]) {
+          if (number != touchedNumber) return;
+        }
         fillCell(cell, number);
+        touchedNumber = null;
+        if (ai[0]) doai1();
       });
 
       cell.addEventListener('click', () => {
+        if (ai[1]) return;
         if (touchedNumber === null || cell.classList.contains('filled')) return;
         fillCell(cell, touchedNumber);
         touchedNumber = null;
+        if (ai[0]) doai1();
       });
     }
 
@@ -171,6 +373,10 @@
       btn.textContent = i;
       btn.draggable = true;
       btn.addEventListener('dragstart', (e) => {
+        if (ai[1]) return;
+        if (ai[0]) {
+          if (activeButton != btn) return;
+        }
         e.dataTransfer.setData('text/plain', i);
         clearActive();
         btn.classList.add('active');
@@ -178,12 +384,17 @@
       });
 
       btn.addEventListener('mousedown', (e) => {
+        if (ai[0]) return;
         touchedNumber = btn.textContent;
         clearActive();
         btn.classList.add('active');
         activeButton = btn;
+        if (ai[1]) {
+          doai2();
+        }
       });
       btn.addEventListener('touchstart', (e) => {
+        if (ai[0]) return;
         e.preventDefault();
         draggingBtn = btn;
         draggingNumber = btn.textContent;
@@ -191,6 +402,10 @@
         clearActive();
         btn.classList.add('active');
         activeButton = btn;
+        if (ai[1]) {
+          doai2();
+          return;
+        }
         createDragImage(btn.textContent, e.touches[0].clientX, e.touches[0].clientY);
       });
 
@@ -198,11 +413,13 @@
     }
 
     document.addEventListener('touchmove', (e) => {
+      if (ai[1]) return;
       if (!draggingBtn) return;
       moveDragImage(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: false });
 
     document.addEventListener('touchend', (e) => {
+      if (ai[1]) return;
       if (!draggingBtn) return;
       const touch = e.changedTouches[0];
       const target = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -226,17 +443,18 @@
         touchedNumber = null;
       }
 
-      if (filledCount === 8) {
+      if (filledCount === nu * 2) {
         computeAndShowResult();
         disableButtons();
       }
+      if (ai[0]) doai1();
     }
 
     function computeAndShowResult() {
       const cells = document.querySelectorAll('.cell');
       let topNumber = '', bottomNumber = '';
-      for (let i = 0; i < 4; i++) topNumber += cells[i].textContent;
-      for (let i = 4; i < 8; i++) bottomNumber += cells[i].textContent;
+      for (let i = 0; i < nu; i++) topNumber += cells[i].textContent;
+      for (let i = nu; i < nu * 2; i++) bottomNumber += cells[i].textContent;
       const result = parseInt(topNumber) - parseInt(bottomNumber);
       resultArea.textContent = `結果： ${topNumber} - ${bottomNumber} = ${result}`;
     }
@@ -248,8 +466,7 @@
     function disableButtons() {
       document.querySelectorAll('.num-btn').forEach(btn => btn.disabled = true);
     }
-
-    function resetGame() {
+    function reset() {
       document.querySelectorAll('.cell').forEach(cell => {
         cell.textContent = '';
         cell.classList.remove('filled');
@@ -263,7 +480,13 @@
       draggingNumber = null;
       removeDragImage();
       resultArea.textContent = '結果：______';
+      if (Math.random() > 0.5) ai1_n = 4;
+      else ai1_n = 5;
+      if (ai[0]) doai1();
     }
+    rst.addEventListener('click', () => {
+      reset();
+    });
 
     function setViewportHeight() {
       const vh = window.innerHeight * 0.01;
@@ -294,6 +517,7 @@
         dragImage = null;
       }
     }
+
   </script>
 </body>
 
