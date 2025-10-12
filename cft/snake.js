@@ -417,6 +417,9 @@ class Snake {
         else if (b.length > 1) {
             b.pop();
         }
+        if(this.score<=0&&b.length > 1){
+            b.splice(1);
+        }
         let g = (x) => {
             return (x + 1) / 20 + Math.log10(x + 1) / Math.log10(100);
         };
