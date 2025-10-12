@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas 小球物理模擬</title>
+    <style>
+        body {
+            background: #000;
+        }
+        * {
+            font-family: "Comic Sans MS", 標楷體;
+            color: white; /* 讓文字在黑底上可見 */
+        }
+        #cvs {
+            /* 建議加上 width: 500px; 讓畫布比例正確 */
+            height: 500px; 
+            width: 500px; 
+        }
+        #wl {
+            display: flex;
+            align-items: flex-start;
+            margin: 20px;
+        }
+        /* 滾動條樣式 (保持不變) */
+        ::-webkit-scrollbar-corner {
+            background: #181818;
+        }
+        ::-webkit-scrollbar-track {
+            -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            background-color: #303030;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6c6c6c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #a1a1a1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-resizer {
+            background: #828282;
+            outline: 2px solid #b6b6b6;
+        }
+    </style>
+</head>
+<body>
+    <div id="wl">
+        <canvas id="cvs" width="1000" height="1000"></canvas>
+        <div style="padding-left: 20px;">
+            <p>小球數量：<span id="ballCountDisplay">1</span></p>
+            <input type="range" id="ipt">
+            
+            <p>引力強度：<span id="strengthDisplay">0.005</span></p>
+            <input type="range" id="strengthIpt">
+            <p><strong>💡 按下滑鼠左鍵才有引力！</strong></p>
+        </div>
+    </div>
+    <script>
+// ====== 輔助函數 (保持不變) ======
+function $(el) {
+    return document.querySelector(el);
+}
+
+function random(a, b) {
+    return Math.floor(Math.random() * (b - a + 1)) + a;
+}
+
+function DegToRad(a) {
+    return a * Math.PI / 180;
+}
+
+function HSLToRGB(h, s, l) {
+    s /= 100;
+    l /= 100;
+    let c = (1 - Math.abs(2 * l - 1)) * s,
+        x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+        m = l - c / 2,
+        r = 0,
+        g = 0,
+        b = 0;
+    if (0 <= h && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+        r = c; g = 0; b = x;
+    }
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    return "rgb(" + r + "," + g + "," + b + ")";
+}
+
+// ====== 變數初始化 ======
+var ipt = $("#ipt");
+var cvs = $("#cvs");
+var ctx = cvs.getContext("2d");
+var ballCountDisplay = $("#ballCountDisplay");
+
+// 🌟 新增引力滑桿 DOM 元素
+var strengthIpt = $("#strengthIpt");
+var strengthDisplay = $("#strengthDisplay");
+
+
+// 遊戲狀態與物理參數
+let balls = [];
+let mouse = { x: 0, y: 0 };
+let isMouseLeftDown = false; 
+
+// 🌟 MOUSE_STRENGTH 改為 let，以便可以被滑桿修改
+let MOUSE_STRENGTH = 0.005; 
+const FRICTION = 0.999;
+const MIN_SPEED = 0.1;       
+const WALL_DAMPING = 0.95; 
+
+// 滑桿設定 (小球數量)
+ipt.min = 1;
+ipt.max = 30;
+ipt.step = 1;
+ipt.value = 1;
+
+// 🌟 滑桿設定 (引力強度)
+// 由於 MOUSE_STRENGTH 數值很小，我們需要一個轉換機制
+const STRENGTH_FACTOR = 0.0001; // 基礎倍數
+strengthIpt.min = 1; // 最小 0.0001 * 1 = 0.0001 (接近零引力)
+strengthIpt.max = 500; // 最大 0.0001 * 500 = 0.05 (較強引力)
+strengthIpt.step = 1;
+// 根據當前的 MOUSE_STRENGTH = 0.005，計算滑桿初始值
+strengthIpt.value = MOUSE_STRENGTH / STRENGTH_FACTOR;
+
+
+// ====== Ball 類別 (保持不變) ======
+
+class Ball {
+    constructor(x, y, radius, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.vx = (Math.random() - 0.5) * 15;
+        this.vy = (Math.random() - 0.5) * 15;
+        this.ax = 0;
+        this.ay = 0;
+        this.mass = radius / 10;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    // 處理與邊界 (牆壁) 的反彈 (保持不變)
+    handleWallCollision() {
+        // 左右牆壁
+        if (this.x + this.radius > cvs.width || this.x - this.radius < 0) {
+            this.vx = -this.vx * WALL_DAMPING; 
+            
+            if (this.x - this.radius < 0) this.x = this.radius;
+            if (this.x + this.radius > cvs.width) this.x = cvs.width - this.radius;
+
+            if (this.x === this.radius && this.ax < 0) this.ax = 0;
+            if (this.x === cvs.width - this.radius && this.ax > 0) this.ax = 0;
+        }
+
+        // 上下牆壁
+        if (this.y + this.radius > cvs.height || this.y - this.radius < 0) {
+            this.vy = -this.vy * WALL_DAMPING;
+
+            if (this.y - this.radius < 0) this.y = this.radius;
+            if (this.y + this.radius > cvs.height) this.y = cvs.height - this.radius;
+
+            if (this.y === this.radius && this.ay < 0) this.ay = 0;
+            if (this.y === cvs.height - this.radius && this.ay > 0) this.ay = 0;
+        }
+    }
+
+    // 更新位置、速度和加速度 (核心物理計算)
+    update() {
+        let current_ax = 0;
+        let current_ay = 0;
+
+        if (isMouseLeftDown) { 
+            const dx = mouse.x - this.x;
+            const dy = mouse.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy); 
+            
+            // 🌟 使用 let MOUSE_STRENGTH
+            const force = distance * MOUSE_STRENGTH; 
+
+            current_ax = (dx / distance) * force / this.mass;
+            current_ay = (dy / distance) * force / this.mass;
+        } 
+        
+        this.ax = current_ax;
+        this.ay = current_ay;
+
+        this.handleWallCollision(); 
+
+        this.vx += this.ax;
+        this.vy += this.ay;
+        
+        this.vx *= FRICTION;
+        this.vy *= FRICTION;
+
+        if (Math.abs(this.vx) < MIN_SPEED) this.vx = 0;
+        if (Math.abs(this.vy) < MIN_SPEED) this.vy = 0;
+
+        this.x += this.vx;
+        this.y += this.vy;
+    }
+}
+
+
+// ====== 遊戲繪圖與循環函數 (保持不變) ======
+
+function bk() {
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    ctx.save();
+    ctx.fillStyle = "#181818";
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.restore();
+}
+
+function draw() {
+    let gdt = ctx.createLinearGradient(0, 0, cvs.width, cvs.height);
+    gdt.addColorStop(1, "#f00");
+    gdt.addColorStop(0, "#f0f");
+    ctx.strokeStyle = gdt;
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, cvs.height);
+    ctx.lineTo(cvs.width, cvs.height);
+    ctx.lineTo(cvs.width, 0);
+    ctx.lineTo(0, 0);
+    ctx.stroke();
+}
+
+function dr() {
+    bk();
+    draw();
+
+    for (let ball of balls) {
+        ball.update();
+        ball.draw();
+    }
+    requestAnimationFrame(dr);
+}
+
+// ====== 事件處理與控制 ======
+
+// 🌟 新增：引力滑桿事件處理
+strengthIpt.oninput = () => {
+    // 將滑桿值轉換回實際的 MOUSE_STRENGTH 值
+    MOUSE_STRENGTH = parseFloat(strengthIpt.value) * STRENGTH_FACTOR;
+    // 顯示轉換後的數值，保留小數點後 5 位
+    strengthDisplay.textContent = MOUSE_STRENGTH.toFixed(5);
+};
+
+
+// 鼠標移動時，更新鼠標座標 (保持不變)
+cvs.addEventListener('mousemove', (e) => {
+    const rect = cvs.getBoundingClientRect();
+    const scaleX = cvs.width / rect.width;
+    const scaleY = cvs.height / rect.height;
+
+    mouse.x = (e.clientX - rect.left) * scaleX;
+    mouse.y = (e.clientY - rect.top) * scaleY;
+});
+
+// 鼠標左鍵按下/釋放 (保持不變)
+cvs.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+        isMouseLeftDown = true;
+    }
+});
+
+cvs.addEventListener('mouseup', (e) => {
+    if (e.button === 0) {
+        isMouseLeftDown = false;
+    }
+});
+
+// 滑桿輸入時：新增或刪除小球 (保持不變)
+ipt.oninput = () => {
+    ballCountDisplay.textContent = ipt.value;
+    createBalls(parseInt(ipt.value));
+};
+
+function createBalls(targetCount) {
+    if (balls.length < targetCount) {
+        const diff = targetCount - balls.length;
+        for (let i = 0; i < diff; i++) {
+            const radius = random(5, 20);
+            const color = HSLToRGB(random(0, 360), 80, 50);
+            const initialX = random(radius, cvs.width - radius);
+            const initialY = random(radius, cvs.height - radius);
+            balls.push(new Ball(initialX, initialY, radius, color));
+        }
+    } else if (balls.length > targetCount) {
+        balls.splice(targetCount);
+    }
+}
+
+
+// ====== 啟動程式 ======
+
+// 首次加載，根據滑桿值創建小球
+createBalls(parseInt(ipt.value));
+ballCountDisplay.textContent = ipt.value;
+// 🌟 首次加載，更新引力顯示值
+strengthDisplay.textContent = MOUSE_STRENGTH.toFixed(5);
+
+
+// 啟動遊戲循環
+requestAnimationFrame(dr);
+    </script>
+</body>
+</html>
