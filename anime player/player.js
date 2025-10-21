@@ -365,16 +365,19 @@ danmuSpeed.addEventListener('input', ()=>{
   const speed = parseFloat(danmuSpeed.value).toFixed(1);
   speedValue.textContent = `${speed}x`;
   updateDanmuAnimationSpeed();
+  handleMouseMovement();
   save_status();
 });
 
 danmuSize.addEventListener('input', ()=>{
   sizeValue.textContent = `${danmuSize.value}px`;
+  handleMouseMovement();
   save_status();
 });
 
 danmuOpacity.addEventListener('input',()=>{
   updateOpacityDisplay();
+  handleMouseMovement();
   save_status();
 });
 
@@ -389,12 +392,14 @@ function updateOpacityDisplay() {
 
 danmuRange.addEventListener('input', ()=>{
   rangeValue.textContent = `${danmuRange.value}%`;
+  handleMouseMovement();
   save_status();
 });
 
 danmuLimit.addEventListener('input', ()=>{
   limitValue.textContent = `${danmuLimit.value}條`;
   updateDanmuAnimationSpeed();
+  handleMouseMovement();
   save_status();
 });
 
