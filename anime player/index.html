@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>anime player</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="container">
+  <!-- 影片區 -->
+  <div id="video-panel">
+    <!-- 新增：視頻上方區域 (height:20%) -->
+    <div id="videoTopArea" class="video-control-area top-area">
+      <!-- 3. 將標題和側邊欄按鈕移至上方區域 -->
+      <div id="videoTitle" class="video-title">請選擇影片</div>
+      <button id="toggleSidebar" class="toggle-sidebar-btn">側邊欄</button>
+    </div>
+    
+    <video id="myVideo" controlsList="nodownload noremoteplayback" disablePictureInPicture></video>
+    
+    <!-- 新增：視頻下方區域 (height:30%) -->
+    <div id="videoBottomArea" class="video-control-area bottom-area">
+      <!-- 3. 將控制區和全屏屏幕按鈕移至下方區域 -->
+      <div class="custom-controls">
+        <!-- 進度條 -->
+        <div class="progress-container">
+          <div id="progressBar" class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+            <!-- 1. 進度條位置圓點 -->
+            <div id="progressHandle" class="progress-handle"></div>
+          </div>
+          <span id="timeDisplay" class="time-display">00:00 / 00:00</span>
+        </div>
+        
+        <!-- 按鈕區域 -->
+        <div class="controls-buttons">
+          <button id="playPauseBtn" class="control-btn">▶</button>
+          <div class="speed-control">
+            <select id="playbackSpeed" class="control-select">
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1.0x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2.0x</option>
+            </select>
+          </div>
+          <div class="volume-control">
+            <label for="volume">音量</label>
+            <input type="range" id="volume" min="0" max="1" step="0.05" value="1">
+          </div>
+          <button id="toggleDanmu" class="control-btn">彈幕: 開</button>
+          <button id="toggleDanmuSettings" class="control-btn">彈幕設置</button>
+          <button id="fullscreenBtn" class="control-btn">全螢幕</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 彈幕控制面板 -->
+    <div id="danmuSettings" class="settings-panel">
+      <h4>彈幕設置</h4>
+      <div class="setting-item">
+        <label>速度: </label>
+        <input type="range" id="danmuSpeed" min="0.5" max="3" step="0.1" value="1">
+        <span id="speedValue">1.0x</span>
+      </div>
+      <div class="setting-item">
+        <label>大小: </label>
+        <input type="range" id="danmuSize" min="12" max="36" step="2" value="24">
+        <span id="sizeValue">24px</span>
+      </div>
+      <div class="setting-item">
+        <label>透明度: </label>
+        <input type="range" id="danmuOpacity" min="0.1" max="1" step="0.01" value="1">
+        <span id="opacityValue">100%</span>
+      </div>
+      <div class="setting-item">
+        <label>顯示範圍: </label>
+        <input type="range" id="danmuRange" min="25" max="100" step="25" value="100">
+        <span id="rangeValue">100%</span>
+      </div>
+      <div class="setting-item">
+        <label>數量限制: </label>
+        <input type="range" id="danmuLimit" min="5" max="200" step="5" value="50">
+        <span id="limitValue">50條</span>
+      </div>
+    </div>
+    
+    <div id="danmu-container"></div>
+  </div>
+
+  <!-- 右側邊欄 -->
+  <div id="sidebar">
+    <input type="file" id="folderInput" webkitdirectory directory multiple>
+    <h3>影片列表</h3>
+    <ul id="videoList"></ul>
+  </div>
+</div>
+
+<script src="player.js"></script>
+<script src="danmu.js"></script>
+</body>
+</html>
