@@ -378,6 +378,8 @@ body {
     list-style: none;
     padding: 0;
     margin: 15px 0;
+    white-space: nowrap;
+    width: fit-content;
 }
 
 #videoList li {
@@ -386,6 +388,7 @@ body {
     border-bottom: 1px solid #555;
     transition: background 0.2s;
     color: #eee;
+    margin-right: 15px;
 }
 
 #videoList li:hover {

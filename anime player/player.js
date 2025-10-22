@@ -44,6 +44,7 @@ let canDraggingVideo=false,
     isDraggingVideo = false,
     DraggingVideoX=null,
     skippingTime=0;
+let hasWatchedVideos={};
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 
 const saved_isDanmuEnabled = localStorage.getItem("isDanmuEnabled") === null 
@@ -55,6 +56,7 @@ const saved_danmuSize     = parseFloat(localStorage.getItem("danmuSize")) || 24;
 const saved_danmuOpacity  = parseFloat(localStorage.getItem("danmuOpacity")) || 1.0; // 預設不透明
 const saved_danmuRange    = parseFloat(localStorage.getItem("danmuRange")) || 75;   // 預設3/4螢幕範圍
 const saved_danmuLimit    = parseInt(localStorage.getItem("danmuLimit")) || 100;    //預設50
+const save_hasWatchedVideos = JSON.parse(localStorage.getItem("hasWatchedVideos")) || {};    //預設{}
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
@@ -64,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   danmuOpacity.value=saved_danmuOpacity;
   danmuRange.value=saved_danmuRange;
   danmuLimit.value=saved_danmuLimit;
+  hasWatchedVideos=save_hasWatchedVideos;
   isDanmuEnabled=saved_isDanmuEnabled;
   volumeControl.style.background = `linear-gradient(to right, #888 ${volumeControl.value*100}%, #333 ${volumeControl.value*100}%)`;
   toggleDanmu.textContent = `彈幕: ${isDanmuEnabled ? '開' : '關'}`;
@@ -333,7 +336,11 @@ video.addEventListener('pause', ()=>{
 });
 
 // 1. 進度條更新（包含圓點位置）
-video.addEventListener('timeupdate', updateProgress);
+video.addEventListener('timeupdate',()=>{
+  updateProgress();
+  hasWatchedVideos[video.name].time=video.currentTime;
+  localStorage.setItem("hasWatchedVideos", JSON.stringify(hasWatchedVideos));
+});
 
 function updateProgress() {
   if (!progressFill || isDraggingBar) return; // 拖動時跳過自動更新
@@ -479,6 +486,14 @@ folderInput.addEventListener('change', (e)=>{
     videos.push({mp4, xml});
     const li = document.createElement('li');
     li.innerText = mp4.name;
+    if(hasWatchedVideos.hasOwnProperty(mp4.name)){
+      let d=hasWatchedVideos[mp4.name].duration;
+      let t=hasWatchedVideos[mp4.name].time;
+      if(t/d>0.9){
+        li.style.opacity=0.5;
+      }
+      li.innerText = `${mp4.name}\n${formatTime(t)}/${formatTime(d)}`;
+    }
     li.addEventListener('click', ()=>{
       playVideo({mp4, xml});
     });
@@ -490,6 +505,7 @@ folderInput.addEventListener('change', (e)=>{
 function playVideo({mp4, xml}){
   const url = URL.createObjectURL(mp4);
   video.src = url;
+  video.name=mp4.name;
   window.isDanmuEnabled = isDanmuEnabled;
   window.danmuContainer = danmuContainer;
   video.play().then(()=>{
@@ -499,6 +515,15 @@ function playVideo({mp4, xml}){
     sidebar.classList.toggle('expanded');
     updateVideoPanelWidth();
     showControlAreas();
+    if(hasWatchedVideos.hasOwnProperty(mp4.name)){
+      video.currentTime=hasWatchedVideos[mp4.name].time;
+    }else{
+      hasWatchedVideos[mp4.name]={
+        time:0,
+        duration:video.duration
+      };
+    }
+    save_status();
   }).catch(err => console.log('播放失敗:', err));
   if(xml){
     // 确保loadDanmuXML函数可用
@@ -570,4 +595,5 @@ function save_status(){
   localStorage.setItem("danmuOpacity", danmuOpacity.value);
   localStorage.setItem("danmuRange", danmuRange.value);
   localStorage.setItem("danmuLimit", danmuLimit.value);
+  localStorage.setItem("hasWatchedVideos", JSON.stringify(hasWatchedVideos));
 }
