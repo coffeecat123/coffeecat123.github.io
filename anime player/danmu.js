@@ -461,17 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.resumeDanmus();
     });
     
-    // 进度条拖动处理
-    let seekTimer = null;
-    video.addEventListener('seeking', () => {
-      clearTimeout(seekTimer);
-      seekTimer = setTimeout(() => {
-        resetDanmusByTime(video.currentTime);
-      }, 100);
-    });
-    
     video.addEventListener('seeked', () => {
-      clearTimeout(seekTimer);
       resetDanmusByTime(video.currentTime);
     });
   }

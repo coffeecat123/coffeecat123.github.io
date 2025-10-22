@@ -9,9 +9,11 @@ const danmuSettings = document.getElementById('danmuSettings');
 const videoPanel = document.getElementById('video-panel');
 const volumeControl = document.getElementById('volume');
 const playPauseBtn = document.getElementById('playPauseBtn');
+const progressContainer = document.getElementById('progressContainer');
 const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
-const progressHandle = document.getElementById('progressHandle'); // 1. 进度条圆点
+const progressHandle = document.getElementById('progressHandle');
+const skipTimeShow = document.getElementById('skipTimeShow');
 const timeDisplay = document.getElementById('timeDisplay');
 const toggleDanmu = document.getElementById('toggleDanmu');
 const videoTitle = document.getElementById('videoTitle');
@@ -37,7 +39,11 @@ let isDanmuPaused = false;
 let isDanmuEnabled = true;
 let danmuContainer;
 let hideControlsTimer;
-let isDragging = false; // 2. 拖動狀態標記
+let isDraggingBar = false;
+let canDraggingVideo=false,
+    isDraggingVideo = false,
+    DraggingVideoX=null,
+    skippingTime=0;
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 
 const saved_isDanmuEnabled = localStorage.getItem("isDanmuEnabled") === null 
@@ -71,11 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
   limitValue.textContent = `${danmuLimit.value}條`;
   updateOpacityDisplay();
   initKeyboardShortcuts();
-  playPauseBtn.addEventListener('click', togglePlayPause);
   initVideoControlAreas();
-  
-  // 2. 初始化进度条拖動功能
   initProgressBarDrag();
+  initVideoPause();
 });
 
 // 初始化时确保鼠标移动事件正确绑定
@@ -105,34 +109,62 @@ function initVideoControlAreas() {
 
 // 2. 初始化进度条拖動功能
 function initProgressBarDrag() {
-  // 鼠标按下
-  progressBar.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    progressBar.classList.add('dragging');
+  //in container
+  progressContainer.addEventListener('pointerdown', (e) => {
+    isDraggingBar = true;
     updateProgressFromMouse(e);
-    showControlAreas(); // 拖動時顯示控制區
+    handleMouseMovement();
     e.preventDefault(); // 阻止默认行为
     e.stopPropagation(); // 阻止事件冒泡
   });
-  
-  // 鼠标移动（全局监听，确保拖出进度条也能响应）
-  document.addEventListener('mousemove', (e) => {
-    if (isDragging) {
+  video.addEventListener('pointerdown', (e) => {
+    if(isDraggingBar||!isMobile)return;
+    const rect = video.getBoundingClientRect();
+    DraggingVideoX=e.clientX - rect.left;
+    const yPercent = (e.clientY - rect.top) / rect.height;
+    console.log(yPercent);
+    if (yPercent < 0.2 || yPercent > 0.8) {
+      return;
+    }
+    canDraggingVideo=true;
+  });
+  video.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); // 阻止右键菜单（桌面端）和长按菜单（移动端）
+    e.stopPropagation();
+  });
+  video.addEventListener('pointermove', (e) => {
+    if(!canDraggingVideo)return;
+    const rect = video.getBoundingClientRect();
+    let newx=e.clientX - rect.left;
+    if(isDraggingVideo==false&&Math.abs(newx-DraggingVideoX)<20)return;
+    isDraggingVideo=true;
+    skipTimeShow.style.opacity=1;
+    if(!video.paused)togglePlayPause();
+    e.preventDefault();
+    e.stopPropagation();
+    updateProgressFromTouch(e);
+    handleMouseMovement();
+  });
+  video.addEventListener('pointerup', (e) => {
+    if(isDraggingVideo){
+      isDraggingVideo=false;
+      video.currentTime=video.currentTime+skippingTime;
+      skipTimeShow.style.opacity=0;
+      togglePlayPause();
+    }
+    canDraggingVideo=false;
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (isDraggingBar) {
+      e.preventDefault();
       updateProgressFromMouse(e);
-      e.preventDefault(); // 防止選中文字等默認行為
+      handleMouseMovement();
     }
   });
-  
-  // 鼠标释放
-  document.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      progressBar.classList.remove('dragging');
-    }
+  document.addEventListener('pointerup', () => {
+    isDraggingBar = false;
+    isDraggingVideo = false;
   });
-  
-  // 点击进度条跳转（保持点击功能）
-  progressBar.addEventListener('click', updateProgressFromMouse);
 }
 
 // 2. 根据鼠标位置更新进度
@@ -153,11 +185,39 @@ function updateProgressFromMouse(e) {
   const duration = video.duration ? formatTime(video.duration) : '00:00';
   timeDisplay.textContent = `${currentTime} / ${duration}`;
   
-  if (window.resetDanmusByTime) {
-    window.resetDanmusByTime(newTime);
-  }
 }
+function updateProgressFromTouch(e) {
+  const rect = video.getBoundingClientRect();
+  let newx=e.clientX - rect.left;
+  const xpos = Math.max(0, Math.min(1, (Math.abs(newx-DraggingVideoX)) / rect.width)); // 限制在0-1之间
+  const t = xpos * 120;
+  if(newx-DraggingVideoX>0){
+    if(video.currentTime+t>video.duration){
+      skippingTime=video.duration-video.currentTime;
+    }else{
+      skippingTime=t;
+    }
+  }else{
+    if(video.currentTime-t<0){
+      skippingTime=-video.currentTime;
+    }else{
+      skippingTime=-t;
+    }
+  }
+  const newTime=video.currentTime+skippingTime
+  const pos = Math.max(0, Math.min(1, newTime/ (video.duration || 1))); // 限制在0-1之间
 
+  // 手动更新进度条更新时间显示显示（避免视频timeupdate延迟）
+  progressFill.style.width = `${pos * 100}%`;
+  progressHandle.style.left = `${pos * 100}%`;
+  
+  // 更新时间显示
+  const currentTime = formatTime(newTime);
+  const duration = video.duration ? formatTime(video.duration) : '00:00';
+  timeDisplay.textContent = `${currentTime} / ${duration}`;
+  skipTimeShow.textContent = `${currentTime} / ${duration}\n${(skippingTime>=0)?'+':'-'}${formatTime(Math.abs(skippingTime))}`;
+  
+}
 // 处理鼠标移动显示控制区域和鼠标
 function handleMouseMovement(e) {
   clearTimeout(hideControlsTimer);
@@ -196,45 +256,46 @@ function togglePlayPause() {
     playPauseBtn.textContent = '▶';
   }
 }
-let lastClick = 0;
-const doubleClickDelay = 300; // 双击时间阈值(ms)
-let clickTimer = null;
-// 點擊影片播放/暫停
-video.addEventListener('pointerdown',(e)=>{
-  const now = Date.now();
+function initVideoPause(){
+  playPauseBtn.addEventListener('click', togglePlayPause);
+  let lastClick = 0;
+  const doubleClickDelay = 300; // 双击时间阈值(ms)
+  let clickTimer = null;
+  // 點擊影片播放/暫停
+  video.addEventListener('pointerdown',(e)=>{
+    const now = Date.now();
 
-  // 判断是否在阈值内连续点击
-  if (now - lastClick < doubleClickDelay) {
-    if(isMobile){
-      e.preventDefault();
-      e.stopPropagation();
-      clearTimeout(clickTimer);
-      togglePlayPause();
-      handleMouseMovement();
-    }
-    lastClick = 0; // 重置避免多击
-  } else {
-    lastClick = now;
-  }
-  if(!isMobile){
-    togglePlayPause();
-    handleMouseMovement();
-  }else if(lastClick>0){
-    e.preventDefault();
-    e.stopPropagation();
-    clickTimer = setTimeout(()=>{
-      if(videoBottomArea.classList.contains('hidden')){
-        showControlAreas();
-        console.log(2);
+    // 判断是否在阈值内连续点击
+    if (now - lastClick < doubleClickDelay) {
+      if(isMobile){
+        e.preventDefault();
+        e.stopPropagation();
+        clearTimeout(clickTimer);
+        togglePlayPause();
         handleMouseMovement();
       }
-      else{
-        console.log(1);
-        hideControlAreas();
-      }
-    },doubleClickDelay);
-  }
-});
+      lastClick = 0; // 重置避免多击
+    } else {
+      lastClick = now;
+    }
+    if(!isMobile){
+      togglePlayPause();
+      handleMouseMovement();
+    }else if(lastClick>0){
+      e.preventDefault();
+      e.stopPropagation();
+      clickTimer = setTimeout(()=>{
+        if(videoBottomArea.classList.contains('hidden')){
+          showControlAreas();
+          handleMouseMovement();
+        }
+        else{
+          hideControlAreas();
+        }
+      },doubleClickDelay);
+    }
+  });
+}
 
 // 側邊欄切換
 toggleSidebarBtn.addEventListener('click', ()=>{
@@ -275,7 +336,7 @@ video.addEventListener('pause', ()=>{
 video.addEventListener('timeupdate', updateProgress);
 
 function updateProgress() {
-  if (!progressFill || isDragging) return; // 拖動時跳過自動更新
+  if (!progressFill || isDraggingBar) return; // 拖動時跳過自動更新
   
   const percent = (video.currentTime / (video.duration || 1)) * 100;
   progressFill.style.width = `${percent}%`;
@@ -435,6 +496,8 @@ function playVideo({mp4, xml}){
     playPauseBtn.textContent = '❚❚';
     const title = mp4.name.replace('.mp4', '');
     videoTitle.textContent = title;
+    sidebar.classList.toggle('expanded');
+    updateVideoPanelWidth();
     showControlAreas();
   }).catch(err => console.log('播放失敗:', err));
   if(xml){
