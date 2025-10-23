@@ -500,7 +500,7 @@ folderInput.addEventListener('change', (e)=>{
     return;
   }
   const files = Array.from(e.target.files);
-  console.log(files);
+  
   const vidFiles = files.filter(f => f.type.startsWith('video/'));
   vidFiles.forEach(vid=>{
     if (!checkVideoSupport(vid))return;
