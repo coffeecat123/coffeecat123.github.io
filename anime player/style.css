@@ -403,10 +403,36 @@ body {
 #videoList li.finished {
     opacity: 0.5;
 }
-
+#sidebar_input{
+    
+display: flex;
+    
+align-items: baseline;
+}
+#customFileBtn {
+  padding: 5px 10px;
+  background: #888;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+}
+#customFileBtn:hover {
+  background: #555;
+}
+#fileNumber{
+    
+margin-left: 10px;
+    
+color: #eee;
+    
+font-size: 18px;
+}
 #folderInput {
     color: #eee;
     margin-bottom: 15px;
+    display: none;
 }
 
 #sidebar h3 {

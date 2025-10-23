@@ -92,7 +92,11 @@
 
   <!-- 右側邊欄 -->
   <div id="sidebar">
-    <input type="file" id="folderInput" webkitdirectory directory multiple>
+    <div id="sidebar_input">
+      <button id="customFileBtn">folder</button>
+      <span id="fileNumber"></span>
+      <input type="file" id="folderInput" webkitdirectory directory multiple>
+    </div>
     <h3>影片列表</h3>
     <ul id="videoList"></ul>
   </div>

@@ -1,5 +1,7 @@
 const video = document.getElementById('myVideo');
 const videoList = document.getElementById('videoList');
+const customFileBtn = document.getElementById('customFileBtn');
+const fileNumber = document.getElementById('fileNumber');
 const folderInput = document.getElementById('folderInput');
 const toggleSidebarBtn = document.getElementById('toggleSidebar');
 const sidebar = document.getElementById('sidebar');
@@ -488,6 +490,9 @@ function checkVideoSupport(videoFile) {
   // "probably" 表示高度支持，"maybe" 表示可能支持，"" 表示不支持
   return support !== "";
 }
+customFileBtn.addEventListener('click', () => {
+  folderInput.click();
+});
 folderInput.addEventListener('change', (e)=>{
   if (!e.target.files || e.target.files.length === 0) {
     // 用户取消选择或未选择任何文件，不执行任何操作
@@ -524,6 +529,7 @@ folderInput.addEventListener('change', (e)=>{
       playVideo({vid, xml});
     });
     videoList.appendChild(li);
+    fileNumber.innerText=`${videoList.querySelectorAll("li").length} videos`;
   });
 });
 
