@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
   opacityValue.textContent = `${percent}%`;
   rangeValue.textContent = `${danmuRange.value}%`;
   limitValue.textContent = `${danmuLimit.value}條`;
+  videos = [];
+  videoList.innerHTML='';
   updateOpacityDisplay();
   initKeyboardShortcuts();
   initVideoControlAreas();
@@ -125,7 +127,6 @@ function initProgressBarDrag() {
     const rect = video.getBoundingClientRect();
     DraggingVideoX=e.clientX - rect.left;
     const yPercent = (e.clientY - rect.top) / rect.height;
-    console.log(yPercent);
     if (yPercent < 0.2 || yPercent > 0.8) {
       return;
     }
@@ -338,6 +339,16 @@ video.addEventListener('pause', ()=>{
 // 1. 進度條更新（包含圓點位置）
 video.addEventListener('timeupdate',()=>{
   updateProgress();
+  const li=videoList.querySelector('.playing');
+  let d=video.duration;
+  let t=video.currentTime;
+  if(isNaN(d))return;
+  if(t/d>0.9){
+    li.classList.add('finished');
+  }else{
+    li.classList.remove('finished');
+  }
+  li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
   hasWatchedVideos[video.name].time=video.currentTime;
   localStorage.setItem("hasWatchedVideos", JSON.stringify(hasWatchedVideos));
 });
@@ -470,55 +481,70 @@ danmuLimit.addEventListener('input', ()=>{
   handleMouseMovement();
   save_status();
 });
-
+function checkVideoSupport(videoFile) {
+  const tempVideo = document.createElement('video');
+  // 检测 MIME 类型支持度（返回 ""、"maybe"、"probably"）
+  const support = tempVideo.canPlayType(videoFile.type);
+  // "probably" 表示高度支持，"maybe" 表示可能支持，"" 表示不支持
+  return support !== "";
+}
 folderInput.addEventListener('change', (e)=>{
   if (!e.target.files || e.target.files.length === 0) {
     // 用户取消选择或未选择任何文件，不执行任何操作
     return;
   }
-  videos = [];
-  videoList.innerHTML='';
   const files = Array.from(e.target.files);
-  
-  const mp4Files = files.filter(f => f.name.endsWith('.mp4'));
-  mp4Files.forEach(mp4=>{
-    const xml = files.find(f=>f.name.replace('.xml','')===mp4.name.replace('.mp4','') && f.name.endsWith('.xml'));
-    videos.push({mp4, xml});
+  console.log(files);
+  const vidFiles = files.filter(f => f.type.startsWith('video/'));
+  vidFiles.forEach(vid=>{
+    if (!checkVideoSupport(vid))return;
+    const isDuplicate = videos.some(item => {
+      return item.vid.name === vid.name;
+    });
+    if(isDuplicate)return;
+    const xml = files.find(f=>f.name.replace('.xml','')===vid.name.replace('.mp4','') && f.name.endsWith('.xml'));
+    videos.push({vid, xml});
     const li = document.createElement('li');
-    li.innerText = mp4.name;
-    if(hasWatchedVideos.hasOwnProperty(mp4.name)){
-      let d=hasWatchedVideos[mp4.name].duration;
-      let t=hasWatchedVideos[mp4.name].time;
+    li.name=vid.name;
+    li.innerText = vid.name;
+    if(hasWatchedVideos.hasOwnProperty(vid.name)){
+      let d=hasWatchedVideos[vid.name].duration;
+      let t=hasWatchedVideos[vid.name].time;
       if(t/d>0.9){
-        li.style.opacity=0.5;
+        li.classList.add('finished');
       }
-      li.innerText = `${mp4.name}\n${formatTime(t)}/${formatTime(d)}`;
+      li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
     }
     li.addEventListener('click', ()=>{
-      playVideo({mp4, xml});
+      if(li.classList.contains('playing'))return;
+      videoList.querySelectorAll('li').forEach(item => {
+        item.classList.remove('playing');
+      });
+      li.classList.add("playing");
+      playVideo({vid, xml});
     });
     videoList.appendChild(li);
   });
 });
 
 // 视频加载时确保弹幕容器可见
-function playVideo({mp4, xml}){
-  const url = URL.createObjectURL(mp4);
+function playVideo({vid, xml}){
+  const url = URL.createObjectURL(vid);
   video.src = url;
-  video.name=mp4.name;
+  video.name=vid.name;
   window.isDanmuEnabled = isDanmuEnabled;
   window.danmuContainer = danmuContainer;
   video.play().then(()=>{
     playPauseBtn.textContent = '❚❚';
-    const title = mp4.name.replace('.mp4', '');
+    const title = vid.name.replace(/\.[^.]*$/, '');
     videoTitle.textContent = title;
     sidebar.classList.toggle('expanded');
     updateVideoPanelWidth();
     showControlAreas();
-    if(hasWatchedVideos.hasOwnProperty(mp4.name)){
-      video.currentTime=hasWatchedVideos[mp4.name].time;
+    if(hasWatchedVideos.hasOwnProperty(vid.name)){
+      video.currentTime=hasWatchedVideos[vid.name].time;
     }else{
-      hasWatchedVideos[mp4.name]={
+      hasWatchedVideos[vid.name]={
         time:0,
         duration:video.duration
       };

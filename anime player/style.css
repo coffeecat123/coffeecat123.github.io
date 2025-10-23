@@ -390,9 +390,18 @@ body {
     color: #eee;
     margin-right: 15px;
 }
+@media (hover: hover) and (pointer: fine) {
+    #videoList li:hover {
+        background: #444;
+    }
+}
 
-#videoList li:hover {
-    background: #444;
+#videoList li.playing {
+    background: #555;
+}
+
+#videoList li.finished {
+    opacity: 0.5;
 }
 
 #folderInput {
