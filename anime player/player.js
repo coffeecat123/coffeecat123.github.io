@@ -254,6 +254,7 @@ function hideControlAreas() {
 
 // 播放/暫停切換
 function togglePlayPause() {
+  if(isNaN(video.duration))return;
   if (video.paused) {
     video.play();
     playPauseBtn.textContent = '❚❚';
