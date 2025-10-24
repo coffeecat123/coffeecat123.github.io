@@ -338,11 +338,7 @@ function processBuffer() {
 
 function resetDanmusByTime(currentTime) {
   // 清理旧弹幕
-  activeDanmus.forEach(danmu => {
-    if (window.danmuContainer && danmu.parentNode) {
-      window.danmuContainer.removeChild(danmu);
-    }
-  });
+  danmuContainer.innerHTML='';
   activeDanmus = [];
   
   // 关键：清空并重置缓冲区
