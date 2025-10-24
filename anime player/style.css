@@ -5,6 +5,12 @@ body {
     overflow: hidden;
 }
 
+svg{
+    fill:#fff;
+}
+#flsc_btn2{
+    display: none;
+}
 #container {
     position: fixed;
     width: 100%;
@@ -205,6 +211,10 @@ body {
 #fullscreenBtn {
     position: absolute;
     right: 20px;
+    height: 40px;
+    width: 40px;
+    padding: 0;
+    border-radius: 50%;
 }
 
 #playPauseBtn {
@@ -214,16 +224,16 @@ body {
 
 .controls-buttons {
     display: flex;
-    align-items: center;
     gap: 15px;
     flex-wrap: wrap;
     z-index: 11;
+    align-items: center;
 }
 
 .control-btn,
 .control-select {
     outline: 0;
-    padding: 6px 12px;
+    padding: 6px;
     background: rgba(50, 50, 50, 0.8);
     color: white;
     border: none;
@@ -235,35 +245,63 @@ body {
     font-size: 14px;
     height: 32px;
     transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
 }
-
-.control-btn:hover {
+#volume_bar {
+    display: flex;
+    align-items: center;
+    height: -webkit-fill-available;
+    background: rgba(50, 50, 50, 0.8);
+    border-top-right-radius: 25px;
+    border-bottom-right-radius: 25px;
+    transform: translateX(-20px);
+    padding: 0;
+}
+#volume-control svg{
+    fill:none;
+    stroke: #fff;
+}
+#volume_mid,#volume_min{
+    display: none;
+}
+#volume_btn{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.control-btn:hover ,.toggle-sidebar-btn:hover{
     background: rgba(70, 70, 70, 0.9);
 }
 
 .control-select {
-    padding: 5px 10px;
+    -webkit-appearance: none; /* Safari/Chrome */
+    -moz-appearance: none; /* Firefox */
+    appearance: none; /* 标准属性 */
+    padding: 5px 5px;
+    text-align: center;
 }
 
-.volume-control {
+#volume-control {
     display: flex;
     align-items: center;
-    gap: 8px;
     color: #eee;
-    white-space: nowrap;
 }
 
-.volume-control input {
+#volume_input{
+    bottom: calc(50% + 16px);
     -webkit-appearance: none;
-    width: 100px;
+    width: 0;
     height: 6px;
     outline: none;
     border-radius: 3px;
     background: linear-gradient(to right, #888 50%, #555 50%);
-    transition: background 0.3s;
+    transition: background 0.3s,width 0.5s;
 }
 
-.volume-control input::-webkit-slider-thumb {
+#volume_input::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 16px;
     height: 16px;
@@ -274,7 +312,7 @@ body {
     transition: background 0.2s, border 0.2s;
 }
 
-.volume-control input::-webkit-slider-thumb:hover {
+#volume_input::-webkit-slider-thumb:hover {
     background: #888;
 }
 
@@ -294,15 +332,20 @@ body {
 
 .toggle-sidebar-btn {
     outline: 0;
-    padding: 6px 12px;
     background: rgba(50, 50, 50, 0.8);
     color: white;
     border: none;
-    border-radius: 4px;
     cursor: pointer;
     backdrop-filter: blur(4px);
     z-index: 1010;
     transition: right 0.3s ease;
+    height: 40px;
+    width: 40px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #sidebar.expanded~#video-panel .toggle-sidebar-btn {
@@ -408,15 +451,21 @@ body {
 display: flex;
     
 align-items: baseline;
+    
+margin-bottom: 5px;
 }
 #customFileBtn {
-  padding: 5px 10px;
   background: #888;
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #customFileBtn:hover {
   background: #555;

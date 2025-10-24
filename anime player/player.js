@@ -9,7 +9,7 @@ const fullscreenBtn = document.getElementById('fullscreenBtn');
 const toggleDanmuSettings = document.getElementById('toggleDanmuSettings');
 const danmuSettings = document.getElementById('danmuSettings');
 const videoPanel = document.getElementById('video-panel');
-const volumeControl = document.getElementById('volume');
+const volumeInput = document.getElementById('volume_input');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressBar = document.getElementById('progressBar');
@@ -23,6 +23,14 @@ const playbackSpeed = document.getElementById('playbackSpeed');
 const container = document.getElementById('container');
 const videoTopArea = document.getElementById('videoTopArea');
 const videoBottomArea = document.getElementById('videoBottomArea');
+const flsc_btn1 = document.getElementById('flsc_btn1');
+const flsc_btn2 = document.getElementById('flsc_btn2');
+const volume_max = document.getElementById('volume_max');
+const volume_mid = document.getElementById('volume_mid');
+const volume_min = document.getElementById('volume_min');
+const volume_btn = document.getElementById('volume_btn');
+const volume_bar = document.getElementById('volume_bar');
+const volumeControl = document.getElementById('volume-control');
 
 // 彈幕設置控件
 const danmuSpeed = document.getElementById('danmuSpeed');
@@ -62,7 +70,7 @@ const save_hasWatchedVideos = JSON.parse(localStorage.getItem("hasWatchedVideos"
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
-  volumeControl.value=saved_volume;
+  volumeInput.value=saved_volume;
   danmuSpeed.value=saved_danmuSpeed;
   danmuSize.value=saved_danmuSize;
   danmuOpacity.value=saved_danmuOpacity;
@@ -70,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
   danmuLimit.value=saved_danmuLimit;
   hasWatchedVideos=save_hasWatchedVideos;
   isDanmuEnabled=saved_isDanmuEnabled;
-  volumeControl.style.background = `linear-gradient(to right, #888 ${volumeControl.value*100}%, #333 ${volumeControl.value*100}%)`;
-  toggleDanmu.textContent = `彈幕: ${isDanmuEnabled ? '開' : '關'}`;
+  updateVolumeControl();
+  toggleDanmu_btn(isDanmuEnabled);
   const speed = parseFloat(danmuSpeed.value).toFixed(1);
   speedValue.textContent = `${speed}x`;
   sizeValue.textContent = `${danmuSize.value}px`;
@@ -79,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const percent = Math.round(opacity * 100);
   opacityValue.textContent = `${percent}%`;
   rangeValue.textContent = `${danmuRange.value}%`;
-  limitValue.textContent = `${danmuLimit.value}條`;
+  limitValue.textContent = `${danmuLimit.value}`;
   videos = [];
   videoList.innerHTML='';
   updateOpacityDisplay();
@@ -307,6 +315,12 @@ function initVideoPause(){
 // 側邊欄切換
 toggleSidebarBtn.addEventListener('click', ()=>{
   sidebar.classList.toggle('expanded');
+  
+  if (sidebar.classList.contains('expanded')) {
+    toggleSidebarBtn.style.transform= 'scaleX(-1)';
+  }else{
+    toggleSidebarBtn.style.transform= 'scaleX(1)';
+  }
   updateVideoPanelWidth();
   //updateDanmuContainerSize();
   showControlAreas();
@@ -374,25 +388,53 @@ function formatTime(seconds) {
   const secs = Math.floor(seconds % 60);
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
-
-volumeControl.addEventListener('keydown', (e)=>{
+volume_btn.addEventListener('click',show_volume_bar);
+volume_btn.addEventListener('pointerover',show_volume_bar);
+volumeControl.addEventListener('pointerleave',()=>{
+    volumeInput.style.width="0";
+    volume_bar.style.transform="translateX(-20px)";
+    volume_bar.style.padding="0";
+});
+function show_volume_bar(){
+  volumeInput.style.width="100px";
+  volume_bar.style.transform="translateX(-10px)";
+  volume_bar.style.padding="0 10px";
+}
+volumeInput.addEventListener('keydown', (e)=>{
   e.preventDefault();
 });
 // 音量控制
-volumeControl.addEventListener('input',updateVolume);
+volumeInput.addEventListener('input',updateVolume);
 function updateVolume(){
-  video.volume = volumeControl.value;
-  volumeControl.style.background = `linear-gradient(to right, #888 ${volumeControl.value*100}%, #333 ${volumeControl.value*100}%)`;
-  showControlAreas();
+  video.volume = volumeInput.value;
+  show_volume_bar();
+  updateVolumeControl();
+  handleMouseMovement();
   save_status();
 }
-
+function updateVolumeControl(){
+  const vl=volumeInput.value*100;
+  volumeInput.style.background = `linear-gradient(to right, #888 ${vl}%, #333 ${vl}%)`;
+  if(vl>80){
+    volume_max.style.display="block";
+    volume_mid.style.display="none";
+    volume_min.style.display="none";
+  }else if(vl==0){
+    volume_max.style.display="none";
+    volume_mid.style.display="none";
+    volume_min.style.display="block";
+  }else{
+    volume_max.style.display="none";
+    volume_mid.style.display="block";
+    volume_min.style.display="none";
+  }
+}
 // 彈幕開關
 toggleDanmu.addEventListener('click', toggleDanmuDisplay);
 
 function toggleDanmuDisplay() {
   isDanmuEnabled = !isDanmuEnabled;
-  toggleDanmu.textContent = `彈幕: ${isDanmuEnabled ? '開' : '關'}`;
+  toggleDanmu_btn(isDanmuEnabled);
   
   // 保存状态到全局，供danmu.js使用
   window.isDanmuEnabled = isDanmuEnabled;
@@ -403,6 +445,24 @@ function toggleDanmuDisplay() {
 // 全屏功能
 fullscreenBtn.addEventListener('click', toggleFullscreen);
 
+function toggleDanmu_btn(a){
+  if(a){
+    danmu_on.style.display='block';
+    danmu_off.style.display='none';
+  }else{
+    danmu_on.style.display='none';
+    danmu_off.style.display='block';
+  }
+}
+function toggleFlsc_btn(a){
+  if(a){
+    flsc_btn1.style.display='none';
+    flsc_btn2.style.display='block';
+  }else{
+    flsc_btn1.style.display='block';
+    flsc_btn2.style.display='none';
+  }
+}
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
     if (container.requestFullscreen) {
@@ -410,14 +470,14 @@ function toggleFullscreen() {
     } else if (container.webkitRequestFullscreen) {
       container.webkitRequestFullscreen();
     }
-    fullscreenBtn.textContent = '退出全屏';
+    toggleFlsc_btn(1);
   } else {
     if (document.exitFullscreen) {
       document.exitFullscreen();
     } else if (document.webkitExitFullscreen) {
       document.webkitExitFullscreen();
     }
-    fullscreenBtn.textContent = '全螢幕';
+    toggleFlsc_btn(0);
   }
   showControlAreas();
 }
@@ -428,9 +488,9 @@ document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
 
 function updateFullscreenUI() {
   if (document.fullscreenElement || document.webkitFullscreenElement) {
-    fullscreenBtn.textContent = '退出全屏';
+    toggleFlsc_btn(1);
   } else {
-    fullscreenBtn.textContent = '全螢幕';
+    toggleFlsc_btn(0);
   }
   updateVideoPanelWidth();
   //updateDanmuContainerSize();
@@ -477,7 +537,7 @@ danmuRange.addEventListener('input', ()=>{
 });
 
 danmuLimit.addEventListener('input', ()=>{
-  limitValue.textContent = `${danmuLimit.value}條`;
+  limitValue.textContent = `${danmuLimit.value}`;
   window.updateDanmuAnimationSpeed();
   handleMouseMovement();
   save_status();
@@ -543,7 +603,7 @@ function playVideo({vid, xml}){
     playPauseBtn.textContent = '❚❚';
     const title = vid.name.replace(/\.[^.]*$/, '');
     videoTitle.textContent = title;
-    sidebar.classList.toggle('expanded');
+    toggleSidebarBtn.click();
     updateVideoPanelWidth();
     showControlAreas();
     if(hasWatchedVideos.hasOwnProperty(vid.name)){
@@ -575,7 +635,7 @@ function updateDanmuContainerSize() {
 }
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    if ((e.target!=volumeControl)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
+    if ((e.target!=volumeInput)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
     }
 
@@ -594,12 +654,12 @@ function initKeyboardShortcuts() {
         break;
       case 'ArrowUp':
         e.preventDefault();
-        volumeControl.value = Math.min(1, Number(volumeControl.value) + 0.05);
+        volumeInput.value = Math.min(1, Number(volumeInput.value) + 0.05);
         updateVolume();
         break;
       case 'ArrowDown':
         e.preventDefault();
-        volumeControl.value = Math.max(0, Number(volumeControl.value) - 0.05);
+        volumeInput.value = Math.max(0, Number(volumeInput.value) - 0.05);
         updateVolume();
         break;
       case 'f':
@@ -620,7 +680,7 @@ function initKeyboardShortcuts() {
 }
 function save_status(){
   localStorage.setItem("isDanmuEnabled", isDanmuEnabled);
-  localStorage.setItem("volume", volumeControl.value);
+  localStorage.setItem("volume", volumeInput.value);
   localStorage.setItem("danmuSpeed", danmuSpeed.value);
   localStorage.setItem("danmuSize", danmuSize.value);
   localStorage.setItem("danmuOpacity", danmuOpacity.value);
