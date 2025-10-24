@@ -446,7 +446,7 @@ toggleDanmuSettings.addEventListener('click', ()=>{
 danmuSpeed.addEventListener('input', ()=>{
   const speed = parseFloat(danmuSpeed.value).toFixed(1);
   speedValue.textContent = `${speed}x`;
-  updateDanmuAnimationSpeed();
+  window.updateDanmuAnimationSpeed();
   handleMouseMovement();
   save_status();
 });
@@ -458,7 +458,7 @@ danmuSize.addEventListener('input', ()=>{
 });
 
 danmuOpacity.addEventListener('input',()=>{
-  updateOpacityDisplay();
+  window.updateOpacityDisplay();
   handleMouseMovement();
   save_status();
 });
@@ -467,9 +467,7 @@ function updateOpacityDisplay() {
   const opacity = parseFloat(danmuOpacity.value);
   const percent = Math.round(opacity * 100);
   opacityValue.textContent = `${percent}%`;
-  if (window.updateDanmuOpacity) {
-    updateDanmuOpacity();
-  }
+  window.updateDanmuOpacity();
 }
 
 danmuRange.addEventListener('input', ()=>{
@@ -480,7 +478,7 @@ danmuRange.addEventListener('input', ()=>{
 
 danmuLimit.addEventListener('input', ()=>{
   limitValue.textContent = `${danmuLimit.value}條`;
-  updateDanmuAnimationSpeed();
+  window.updateDanmuAnimationSpeed();
   handleMouseMovement();
   save_status();
 });
