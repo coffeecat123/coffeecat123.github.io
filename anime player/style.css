@@ -61,12 +61,19 @@ svg{
     position: absolute;
     left: 0;
     right: 0;
-    background: transparent;
     z-index: 6;
-    transition: opacity 0.3s ease;
     pointer-events: auto;
+    transition: opacity 0.3s ease;
+    opacity: 1;
 }
-
+.video-control-area.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+video,.video-control-area{
+  will-change: opacity, transform;
+  transform: translateZ(0); /* 或 translate3d(0,0,0) */
+}
 .top-area {
     top: 0;
     height: 20%;
@@ -89,18 +96,13 @@ svg{
     background: linear-gradient(0deg, black, transparent);
 }
 
-.video-control-area.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
 #myVideo {
     width: 100%;
     height: 100%;
     object-fit: contain;
     background: #000;
     z-index: 4;
-    position: relative;
+    position: absolute;
 }
 
 .video-title {

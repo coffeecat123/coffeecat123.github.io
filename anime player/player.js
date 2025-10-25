@@ -465,10 +465,10 @@ function toggleFlsc_btn(a){
 }
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
-    if (container.requestFullscreen) {
-      container.requestFullscreen();
-    } else if (container.webkitRequestFullscreen) {
-      container.webkitRequestFullscreen();
+    if (document.body.requestFullscreen) {
+      document.body.requestFullscreen();
+    } else if (document.body.webkitRequestFullscreen) {
+      document.body.webkitRequestFullscreen();
     }
     toggleFlsc_btn(1);
   } else {

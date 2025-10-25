@@ -8,11 +8,13 @@
 </head>
 <body>
 <div id="container">
-  <!-- 影片區 -->
+  <!-- video -->
   <div id="video-panel">
-    <!-- 新增：視頻上方區域 (height:20%) -->
+    
+    <video id="myVideo" controlsList="nodownload noremoteplayback" disablePictureInPicture></video>
+    
+    <!-- videoTopArea-->
     <div id="videoTopArea" class="video-control-area top-area">
-      <!-- 3. 將標題和側邊欄按鈕移至上方區域 -->
       <div id="videoTitle" class="video-title">select a video</div>
       <button id="toggleSidebar" class="toggle-sidebar-btn">
         <svg width="40px" viewBox="0 0 24 24">
@@ -20,24 +22,20 @@
         </svg>
       </button>
     </div>
-    
-    <video id="myVideo" controlsList="nodownload noremoteplayback" disablePictureInPicture></video>
-    
-    <!-- 新增：視頻下方區域 (height:30%) -->
+    <!-- videoBottomArea-->
     <div id="videoBottomArea" class="video-control-area bottom-area">
-      <!-- 3. 將控制區和全屏屏幕按鈕移至下方區域 -->
       <div class="custom-controls">
-        <!-- 進度條 -->
+        <!-- progressBar -->
         <div id="progressContainer" class="progress-container">
           <div id="progressBar" class="progress-bar">
             <div id="progressFill" class="progress-fill"></div>
-            <!-- 1. 進度條位置圓點 -->
+            <!-- progressHandle -->
             <div id="progressHandle" class="progress-handle"></div>
           </div>
           <span id="timeDisplay" class="time-display">00:00 / 00:00</span>
         </div>
         
-        <!-- 按鈕區域 -->
+        <!-- buttons -->
         <div class="controls-buttons">
           <button id="playPauseBtn" class="control-btn">▶</button>
           <div class="speed-control">
@@ -92,7 +90,7 @@
       </div>
     </div>
     
-    <!-- 彈幕控制面板 -->
+    <!-- danmuSettings -->
     <div id="danmuSettings" class="settings-panel">
       <b style="font-size: 20px;">setting</b>
       <div class="setting-item">
@@ -125,7 +123,7 @@
     <div id="skipTimeShow"></div>
   </div>
 
-  <!-- 右側邊欄 -->
+  <!-- sidebar -->
   <div id="sidebar">
     <div id="sidebar_input">
       <button id="customFileBtn">
