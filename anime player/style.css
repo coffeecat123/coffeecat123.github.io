@@ -1,3 +1,6 @@
+* {
+  -webkit-tap-highlight-color: transparent;
+}
 body {
     margin: 0;
     font-family: sans-serif;
@@ -292,7 +295,8 @@ video,.video-control-area{
     color: #eee;
 }
 
-#volume_input{
+#volume_input,
+#danmuSettings input{
     bottom: calc(50% + 16px);
     -webkit-appearance: none;
     width: 0;
@@ -303,7 +307,8 @@ video,.video-control-area{
     transition: background 0.3s,width 0.5s;
 }
 
-#volume_input::-webkit-slider-thumb {
+#volume_input::-webkit-slider-thumb,
+#danmuSettings input::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 16px;
     height: 16px;
@@ -314,8 +319,19 @@ video,.video-control-area{
     transition: background 0.2s, border 0.2s;
 }
 
-#volume_input::-webkit-slider-thumb:hover {
+#volume_input::-webkit-slider-thumb:hover,
+#danmuSettings input::-webkit-slider-thumb:hover {
     background: #888;
+}
+#danmuSettings input{
+    bottom: calc(50% + 16px);
+    -webkit-appearance: none;
+    width: 0;
+    height: 6px;
+    outline: none;
+    border-radius: 3px;
+    background: linear-gradient(to right, #888 50%, #555 50%);
+    transition: background 0.3s,width 0.5s;
 }
 
 .fullscreen-btn {

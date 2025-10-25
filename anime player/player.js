@@ -80,17 +80,22 @@ document.addEventListener('DOMContentLoaded', () => {
   isDanmuEnabled=saved_isDanmuEnabled;
   updateVolumeControl();
   toggleDanmu_btn(isDanmuEnabled);
-  const speed = parseFloat(danmuSpeed.value).toFixed(1);
-  speedValue.textContent = `${speed}x`;
-  sizeValue.textContent = `${danmuSize.value}px`;
+  const speed=parseFloat(danmuSpeed.value);
+  speedValue.textContent = `${speed.toFixed(1)}x`;
+  updateInputBG(danmuSpeed);
+  const size = parseFloat(danmuSize.value);
+  sizeValue.textContent = `${size}px`;
+  updateInputBG(danmuSize);
   const opacity = parseFloat(danmuOpacity.value);
-  const percent = Math.round(opacity * 100);
-  opacityValue.textContent = `${percent}%`;
+  opacityValue.textContent = `${Math.round(opacity * 100)}%`;
+  updateInputBG(danmuOpacity);
   rangeValue.textContent = `${danmuRange.value}%`;
+  updateInputBG(danmuRange);
   limitValue.textContent = `${danmuLimit.value}`;
+  updateInputBG(danmuLimit);
   videos = [];
   videoList.innerHTML='';
-  updateOpacityDisplay();
+  window.updateDanmuOpacity();
   initKeyboardShortcuts();
   initVideoControlAreas();
   initProgressBarDrag();
@@ -501,43 +506,50 @@ toggleDanmuSettings.addEventListener('click', ()=>{
   danmuSettings.style.display = danmuSettings.style.display === 'block' ? 'none' : 'block';
   showControlAreas();
 });
-
+function updateInputBG(input_element){
+  const min = parseFloat(input_element.min);
+  const max = parseFloat(input_element.max);
+  const value = parseFloat(input_element.value);
+  const percent = ((value - min) / (max - min)) * 100;
+  input_element.style.background =`linear-gradient(to right, #888 ${percent}%, #333 ${percent}%)`;
+}
 // 同步設置值顯示
 danmuSpeed.addEventListener('input', ()=>{
-  const speed = parseFloat(danmuSpeed.value).toFixed(1);
-  speedValue.textContent = `${speed}x`;
+  const speed=parseFloat(danmuSpeed.value);
+  speedValue.textContent = `${speed.toFixed(1)}x`;
+  updateInputBG(danmuSpeed);
   window.updateDanmuAnimationSpeed();
   handleMouseMovement();
   save_status();
 });
 
 danmuSize.addEventListener('input', ()=>{
-  sizeValue.textContent = `${danmuSize.value}px`;
+  const size = parseFloat(danmuSize.value);
+  sizeValue.textContent = `${size}px`;
+  updateInputBG(danmuSize);
   handleMouseMovement();
   save_status();
 });
 
 danmuOpacity.addEventListener('input',()=>{
-  window.updateOpacityDisplay();
+  const opacity = parseFloat(danmuOpacity.value);
+  opacityValue.textContent = `${Math.round(opacity * 100)}%`;
+  updateInputBG(danmuOpacity);
+  window.updateDanmuOpacity();
   handleMouseMovement();
   save_status();
 });
 
-function updateOpacityDisplay() {
-  const opacity = parseFloat(danmuOpacity.value);
-  const percent = Math.round(opacity * 100);
-  opacityValue.textContent = `${percent}%`;
-  window.updateDanmuOpacity();
-}
-
 danmuRange.addEventListener('input', ()=>{
   rangeValue.textContent = `${danmuRange.value}%`;
+  updateInputBG(danmuRange);
   handleMouseMovement();
   save_status();
 });
 
 danmuLimit.addEventListener('input', ()=>{
   limitValue.textContent = `${danmuLimit.value}`;
+  updateInputBG(danmuLimit);
   window.updateDanmuAnimationSpeed();
   handleMouseMovement();
   save_status();
