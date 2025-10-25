@@ -139,6 +139,7 @@ function initProgressBarDrag() {
   });
   video.addEventListener('pointerdown', (e) => {
     if(isDraggingBar||!isMobile)return;
+    if(isNaN(video.duration))return;
     const rect = video.getBoundingClientRect();
     DraggingVideoX=e.clientX - rect.left;
     const yPercent = (e.clientY - rect.top) / rect.height;
@@ -260,9 +261,10 @@ function showControlAreas() {
 
 // 隐藏上下区域并隐藏鼠标
 function hideControlAreas() {
+  danmuSettings.style.display="none";
+  if(isNaN(video.duration))return;
   videoTopArea.classList.add('hidden');
   videoBottomArea.classList.add('hidden');
-  danmuSettings.style.display="none";
   videoPanel.style.cursor = 'none'; // 隐藏鼠标
 }
 
@@ -335,9 +337,9 @@ toggleSidebarBtn.addEventListener('click', ()=>{
 // 手動更新video-panel寬度
 function updateVideoPanelWidth() {
   if (sidebar.classList.contains('expanded')) {
-    videoPanel.style.width = 'calc(100vw - 300px)';
+    videoPanel.classList.add('expanded');
   } else {
-    videoPanel.style.width = '100vw';
+    videoPanel.classList.remove('expanded');
   }
 }
 
@@ -449,7 +451,12 @@ function toggleDanmuDisplay() {
 }
 
 // 全屏功能
-fullscreenBtn.addEventListener('click', toggleFullscreen);
+fullscreenBtn.addEventListener('click',()=>{
+  toggleFullscreen();
+  if (!document.fullscreenElement) {
+    lockToLandscape();
+  }
+});
 
 function toggleDanmu_btn(a){
   if(a){
@@ -487,7 +494,13 @@ function toggleFullscreen() {
   }
   showControlAreas();
 }
-
+async function lockToLandscape() {
+  try {
+    await screen.orientation.lock('landscape');
+  } catch (err) {
+    console.warn("無法鎖定橫向：", err);
+  }
+}
 // 監聽全屏狀態變化
 document.addEventListener('fullscreenchange', updateFullscreenUI);
 document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
@@ -567,10 +580,11 @@ customFileBtn.addEventListener('click', () => {
 });
 folderInput.addEventListener('change', (e)=>{
   if (!e.target.files || e.target.files.length === 0) {
-    // 用户取消选择或未选择任何文件，不执行任何操作
     return;
   }
   const files = Array.from(e.target.files);
+  const maxDepth = Math.max(...Array.from(files).map(f => f.webkitRelativePath.split('/').length));
+  if(maxDepth>2)return;
   
   const vidFiles = files.filter(f => f.type.startsWith('video/'));
   vidFiles.forEach(vid=>{
@@ -612,13 +626,9 @@ function playVideo({vid, xml}){
   video.name=vid.name;
   window.isDanmuEnabled = isDanmuEnabled;
   window.danmuContainer = danmuContainer;
-  video.play().then(()=>{
-    playPauseBtn.textContent = '❚❚';
-    const title = vid.name.replace(/\.[^.]*$/, '');
-    videoTitle.textContent = title;
-    toggleSidebarBtn.click();
-    updateVideoPanelWidth();
-    showControlAreas();
+  video.onloadeddata= () => {
+    console.log(video.duration);
+    video.playbackRate = parseFloat(playbackSpeed.value);
     if(hasWatchedVideos.hasOwnProperty(vid.name)){
       video.currentTime=hasWatchedVideos[vid.name].time;
     }else{
@@ -627,18 +637,26 @@ function playVideo({vid, xml}){
         duration:video.duration
       };
     }
+    if(xml){
+      // 确保loadDanmuXML函数可用
+      if (window.loadDanmuXML) {
+        window.loadDanmuXML(xml);
+      } else {
+        console.error('loadDanmuXML函数未定义');
+      }
+    }else{
+      window.clearDanmus && window.clearDanmus();
+    }
+  };
+  video.play().then(()=>{
+    playPauseBtn.textContent = '❚❚';
+    const title = vid.name.replace(/\.[^.]*$/, '');
+    videoTitle.textContent = title;
+    toggleSidebarBtn.click();
+    updateVideoPanelWidth();
+    showControlAreas();
     save_status();
   }).catch(err => console.log('播放失敗:', err));
-  if(xml){
-    // 确保loadDanmuXML函数可用
-    if (window.loadDanmuXML) {
-      window.loadDanmuXML(xml);
-    } else {
-      console.error('loadDanmuXML函数未定义');
-    }
-  }else{
-    window.clearDanmus && window.clearDanmus();
-  }
 }
 function updateDanmuContainerSize() {
   if (danmuContainer) {
