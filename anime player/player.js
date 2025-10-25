@@ -156,6 +156,7 @@ function initProgressBarDrag() {
     const rect = video.getBoundingClientRect();
     let newx=e.clientX - rect.left;
     if(isDraggingVideo==false&&Math.abs(newx-DraggingVideoX)<20)return;
+    if(!isDraggingVideo)DraggingVideoX=newx*0.8+DraggingVideoX*0.2;
     isDraggingVideo=true;
     skipTimeShow.style.opacity=1;
     if(!video.paused)togglePlayPause();
