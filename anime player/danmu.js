@@ -11,6 +11,7 @@ let lastDanmuTime = 0;
 let densityInterval = 1000;
 let linePositions = [];
 const BASE_SPEED = 100; // 基础速度（像素/秒）
+const temp = document.createElement("textarea");
 
 
 function initDanmu() {
@@ -229,7 +230,8 @@ function createDanmu({ text, color, size, time: danmuTime }, currentVideoTime) {
   // 创建弹幕元素
   const danmu = document.createElement('div');
   danmu.className = 'danmu'; // 初始无暂停类
-  danmu.innerText = text;
+  temp.innerHTML = text;
+  danmu.innerText = temp.value;
   danmu.style.color = color;
   
   const danmuSize = document.getElementById('danmuSize');
