@@ -64,7 +64,7 @@ function updateLinePositions() {
   const lineSpacing = 8;
   const totalLineHeight = customSize + lineSpacing;
   
-  const maxLines = Math.max(1, Math.floor((availableHeight - customSize) / totalLineHeight));
+  const maxLines = Math.max(1, Math.floor((availableHeight) / totalLineHeight));
   linePositions = [];
   for (let i = 0; i < maxLines; i++) {
     linePositions.push(i * totalLineHeight + (lineSpacing / 2));
