@@ -16,7 +16,7 @@ const temp = document.createElement("textarea");
 
 function initDanmu() {
   updateLinePositions();
-  
+  window.danmusClear = danmusClear;
   // 监听 video-panel 尺寸变化（使用 ResizeObserver）
   const videoPanel = document.getElementById('video-panel');
   if (videoPanel) {
@@ -41,6 +41,9 @@ function initDanmu() {
   document.getElementById('danmuSpeed').addEventListener('input', updateDensity);
   document.getElementById('danmuSize').addEventListener('input', updateLinePositions);
   document.getElementById('danmuRange').addEventListener('input', updateLinePositions);
+}
+function danmusClear() {
+  danmus = [];
 }
 // 容器 resize 时的处理函数
 function handleVideoPanelResize() {

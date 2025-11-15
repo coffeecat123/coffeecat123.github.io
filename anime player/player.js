@@ -637,6 +637,9 @@ function playVideo({vid, xml}){
         duration:video.duration
       };
     }
+    if(window.danmusClear){
+      window.danmusClear();
+    }
     if(xml){
       // 确保loadDanmuXML函数可用
       if (window.loadDanmuXML) {
