@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>?</title>
+    <style>
+body {
+    background: #000;
+}
+
+* {
+    font-family: "Comic Sans MS", 標楷體;
+}
+
+#cvs {
+    height: 500px;
+}
+
+#banner {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+}
+
+#banner button {
+    margin-right: 10px;
+    padding: 5px 12px;
+    font-size: 16px;
+    background: #444;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#banner button:disabled {
+    color: #888;
+}
+#banner button:hover {
+    background: #666;
+}
+#banner button.active {
+    background: #1b72c2;
+    color: #000;
+}
+
+#wl {
+    display: flex;
+    align-items: flex-start;
+}
+
+::-webkit-scrollbar-corner {
+    background: #181818;
+}
+
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    background-color: #303030;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6c6c6c;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #a1a1a1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-resizer {
+    background: #828282;
+    outline: 2px solid #b6b6b6;
+}
+    </style>
+</head>
+
+<body>
+    <div id="banner">
+        <button id="btnMove">Move</button>
+        <button id="btnPoint">Point</button>
+        <button id="btnLine">Line</button>
+        <button id="btnCircle">Circle</button>
+        <button id="btnUndo">↶ </button>
+        <button id="btnRedo">↷</button>
+    </div>
+    <div id="wl">
+        <canvas id="cvs" width="1000" height="1000"></canvas>
+    </div>
+    <script>
+
+var btnMove = $("#btnMove");
+var btnPoint = $("#btnPoint");
+var btnLine = $("#btnLine");
+var btnCircle = $("#btnCircle");
+var btnUndo = $("#btnUndo");
+var btnRedo = $("#btnRedo");
+var cvs = $("#cvs");
+var ctx = cvs.getContext("2d");
+var ti = cvs.width / cvs.offsetWidth;
+const points = [];
+const lines = [];
+const circles = [];
+const Mode = {
+    MOVE: "move",
+    POINT: "point",
+    LINE: "line",
+    CIRCLE: "circle",
+};
+const PointType = Object.freeze({
+    FREE: { name: "free", dof: 2 },
+    ON_LINE: { name: "onLine", dof: 1 },
+    ON_CIRCLE: { name: "onCircle", dof: 1 },
+    INTERSECTION: { name: "intersection", dof: 0 },
+    LINE_LINE: { name: "lineLine", dof: 0 },
+    CIRCLE_CIRCLE: { name: "circleCircle", dof: 0 },
+    LINE_CIRCLE: { name: "lineCircle", dof: 0 }
+});
+
+let mode = Mode.MOVE;
+let draggingPoint = null; // 正在拖曳的點
+let selectedPoint = null; // LINE和CIRCLE模式下的第一個點
+let hoveredPoint = null; // 滑鼠懸停的點
+
+const history = [];
+let historyIndex = -1;
+
+const EPS = 1e-6;
+const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+const SNAP_DIST = 20*(1+isMobile*0.3); // 吸附半徑，像素值
+
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        restoreState(history[historyIndex]);
+    }
+}
+function redo() {
+    if (historyIndex < history.length - 1) {
+        historyIndex++;
+        restoreState(history[historyIndex]);
+    }
+}
+function saveState() {
+    history.splice(historyIndex + 1);
+    const state = {
+        points: points.map(p => ({
+            x: p.x, y: p.y, type: p.type.name, t: p.t, index: p.index,
+            refType: p.ref ? (Array.isArray(p.ref) ? 'array' : 'object') : null,
+            refIndices: p.ref ? (Array.isArray(p.ref) ? 
+                p.ref.map(r => lines.includes(r) ? ('l' + lines.indexOf(r)) : ('c' + circles.indexOf(r))) :
+                (lines.includes(p.ref) ? ('l' + lines.indexOf(p.ref)) : ('c' + circles.indexOf(p.ref)))
+            ) : null
+        })),
+        lines: lines.map(l => ({p1: points.indexOf(l.p1), p2: points.indexOf(l.p2)})),
+        circles: circles.map(c => ({center: points.indexOf(c.center), p: points.indexOf(c.p)}))
+    };
+    history.push(state);
+    historyIndex++;
+    updateHistoryButtons();
+}
+function restoreState(state) {
+    const typeMap = {
+        "free": PointType.FREE,
+        "onLine": PointType.ON_LINE,
+        "onCircle": PointType.ON_CIRCLE,
+        "lineLine": PointType.LINE_LINE,
+        "circleCircle": PointType.CIRCLE_CIRCLE,
+        "lineCircle": PointType.LINE_CIRCLE
+    };
+    
+    // 只更新 points 的属性，不重新创建
+    while (points.length < state.points.length) {
+        const pd = state.points[points.length];
+        points.push(new Point(pd.x, pd.y, typeMap[pd.type], null, pd.t, pd.index));
+    }
+    while (points.length > state.points.length) {
+        points.pop();
+    }
+    
+    // 只更新 lines，不重新创建
+    while (lines.length < state.lines.length) {
+        const ld = state.lines[lines.length];
+        lines.push(new Line(points[ld.p1], points[ld.p2]));
+    }
+    while (lines.length > state.lines.length) {
+        lines.pop();
+    }
+    
+    // 只更新 circles，不重新创建
+    while (circles.length < state.circles.length) {
+        const cd = state.circles[circles.length];
+        circles.push(new Circle(points[cd.center], points[cd.p]));
+    }
+    while (circles.length > state.circles.length) {
+        circles.pop();
+    }
+    
+    // 更新点的参考
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const pd = state.points[i];
+        
+        if (pd.refIndices) {
+            if (pd.refType === 'array') {
+                p.ref = pd.refIndices.map(idx => 
+                    idx.startsWith('l') ? lines[parseInt(idx.slice(1))] : circles[parseInt(idx.slice(1))]
+                );
+            } else {
+                const idx = pd.refIndices;
+                p.ref = idx.startsWith('l') ? lines[parseInt(idx.slice(1))] : circles[parseInt(idx.slice(1))];
+            }
+        }
+        
+        p.update();
+    }
+    updateHistoryButtons();
+    draw();
+}
+function updateHistoryButtons() {
+    btnUndo.disabled = historyIndex <= 0;
+    btnRedo.disabled = historyIndex >= history.length - 1;
+}
+function setMode(newMode) {
+    mode = newMode;
+    selectedPoint = null;
+    btnMove.classList.toggle("active", mode === Mode.MOVE);
+    btnPoint.classList.toggle("active", mode === Mode.POINT);
+    btnLine.classList.toggle("active", mode === Mode.LINE);
+    btnCircle.classList.toggle("active", mode === Mode.CIRCLE);
+}
+btnMove.onclick = () => setMode(Mode.MOVE);
+btnPoint.onclick = () => setMode(Mode.POINT);
+btnLine.onclick = () => setMode(Mode.LINE);
+btnCircle.onclick = () => setMode(Mode.CIRCLE);
+btnUndo.onclick = undo;
+btnRedo.onclick = redo;
+
+document.onkeydown = (e) => {
+    if (e.key === "Escape") {
+        selectedPoint = null;
+        draggingPoint = null;
+        draw();
+    }
+    if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z') { e.preventDefault(); undo(); }
+        else if (e.key === 'y') { e.preventDefault(); redo(); }
+    }
+    if(e.key==1){
+        setMode(Mode.MOVE);
+    }
+    if(e.key==2){
+        setMode(Mode.POINT);
+    }
+    if(e.key==3){
+        setMode(Mode.LINE);
+    }
+    if(e.key==4){
+        setMode(Mode.CIRCLE);
+    }
+};
+// 滑鼠移動時更新懸停狀態
+cvs.addEventListener("pointermove", (e) => {
+    const mx = e.offsetX * ti;
+    const my = e.offsetY * ti;
+    
+    hoveredPoint = null;
+    if(isMobile) return; // 行動裝置不顯示懸停點
+    if(draggingPoint) return; // 拖曳中不更新懸停點
+    const np = nearbyVisiblePoint(mx, my);
+    
+    if(np?.type.dof==0 && mode===Mode.MOVE){
+        draw();
+        return;
+    }
+    hoveredPoint = np;
+    draw();
+});
+
+cvs.addEventListener("pointerdown", (e) => {
+    const mx = e.offsetX*ti;
+    const my = e.offsetY*ti;
+    // 找最近點（mode = move）
+    if (mode === Mode.MOVE) {
+        const np=nearbyVisiblePoint(mx, my);
+        if(np){
+            draggingPoint = np;
+            dragPoint(draggingPoint, mx, my);
+            draw();
+            const moveHandler = (ev) => {
+                const mx2 = ev.offsetX*ti;
+                const my2 = ev.offsetY*ti;
+                dragPoint(draggingPoint, mx2, my2);
+                draw();
+            };
+
+            const upHandler = () => {
+                cvs.removeEventListener("pointermove", moveHandler);
+                cvs.removeEventListener("pointerup", upHandler);
+                draggingPoint = null;
+                draw();
+            };
+
+            cvs.addEventListener("pointermove", moveHandler);
+            cvs.addEventListener("pointerup", upHandler);
+        }
+    }
+    // 若 mode = point，直接新增自由點
+    if (mode === Mode.POINT) {
+        // 檢查是否已有該點
+        for (const p of points) {
+            if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+                return;
+            }
+        }
+        
+        // 嘗試在交點創建點
+        const intersection = findNearestIntersection(mx, my);
+        if (intersection) {
+            points.push(intersection);
+            saveState();
+            draw();
+            return;
+        }
+        
+        // 檢查是否在線段上
+        for (const line of lines) {
+            if (pointNearLine(mx, my, line)) {
+                createPointOnLine(line, mx, my);
+                draw();
+                return;
+            }
+        }
+        
+        // 檢查是否在圓形上
+        for (const circle of circles) {
+            if (pointNearCircle(mx, my, circle)) {
+                createPointOnCircle(circle, mx, my);
+                draw();
+                return;
+            }
+        }
+        
+        // 都不在，創建自由點
+        createFreePoint(mx, my);
+        draw();
+    }
+
+    // mode = line: 點擊兩個點來創建直線
+    if (mode === Mode.LINE) {
+        const nearbyPoint = findNearestPoint(mx, my);
+        if (nearbyPoint) {
+            if (!selectedPoint) {
+                selectedPoint = nearbyPoint;
+                draw();
+            } else {
+                if (selectedPoint === nearbyPoint) {
+                    selectedPoint = null;
+                    draw();
+                    return;
+                }
+                const exists = lines.some(l => {
+                    const onLine1 = pointOnLine(selectedPoint, l);
+                    const onLine2 = pointOnLine(nearbyPoint, l);
+                    return onLine1 && onLine2;
+                });
+                if (exists) {
+                    selectedPoint = null;
+                    draw();
+                    return;
+                }
+                // 創建直線
+                const line = new Line(selectedPoint, nearbyPoint);
+                lines.push(line);
+                saveState();
+                selectedPoint = null;
+                draw();
+            }
+        }
+    }
+
+    // mode = circle: 點擊中心和半徑點來創建圓
+    if (mode === Mode.CIRCLE) {
+        const nearbyPoint = findNearestPoint(mx, my);
+        if (nearbyPoint) {
+            if (!selectedPoint) {
+                selectedPoint = nearbyPoint;
+                draw();
+            } else {
+                if (selectedPoint === nearbyPoint) {
+                    selectedPoint = null;
+                    draw();
+                    return;
+                }
+                const exists = circles.some(c => {
+                    const centerMatch = Math.abs(dist(selectedPoint, c.center)) < EPS;
+                    const radiusMatch = Math.abs(dist(nearbyPoint, c.center) - c.r) < EPS;
+                    return centerMatch && radiusMatch;
+                });
+                if (exists) {
+                    selectedPoint = null;
+                    draw();
+                    return;
+                }
+                // 創建圓
+                const circle = new Circle(selectedPoint, nearbyPoint);
+                circles.push(circle);
+                saveState();
+                selectedPoint = null;
+                draw();
+            }
+        }
+    }
+});
+function nearbyVisiblePoint(mx, my) {
+    let minDist = SNAP_DIST;
+    let np=null;
+    for (const p of points) {
+        if(!p.visible) continue;
+        const d = dist(p, {x: mx, y: my});
+        if (d < minDist) {
+            minDist = d;
+            np = p;
+        }
+    }
+    return np;
+}
+function findNearestPoint(mx, my) {
+    for (const p of points) {
+        if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+            return p;
+        }
+    }
+    return null;
+}
+function findNearestIntersection(mx, my) {
+    const snapPoints = [];
+
+    // 線與線交點
+    for (let i = 0; i < lines.length; i++) {
+        for (let j = i + 1; j < lines.length; j++) {
+            const inter = intersectLineLine(lines[i], lines[j]);
+            if (inter && dist(inter, {x: mx, y: my}) < SNAP_DIST) {
+                snapPoints.push({
+                    point: inter,
+                    type: PointType.LINE_LINE,
+                    ref: [lines[i], lines[j]],
+                    index: 0
+                });
+            }
+        }
+    }
+
+    // 圓與圓交點
+    for (let i = 0; i < circles.length; i++) {
+        for (let j = i + 1; j < circles.length; j++) {
+            const inters = intersectCircleCircle(circles[i], circles[j]);
+            for (let k = 0; k < inters.length; k++) {
+                const p = inters[k];
+                if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+                    snapPoints.push({
+                        point: p,
+                        type: PointType.CIRCLE_CIRCLE,
+                        ref: [circles[i], circles[j]],
+                        index: k
+                    });
+                }
+            }
+        }
+    }
+
+    // 線與圓交點
+    for (let i = 0; i < lines.length; i++) {
+        for (let j = 0; j < circles.length; j++) {
+            const inters = intersectLineCircle(lines[i], circles[j]);
+            for (let k = 0; k < inters.length; k++) {
+                const p = inters[k];
+                if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+                    snapPoints.push({
+                        point: p,
+                        type: PointType.LINE_CIRCLE,
+                        ref: [lines[i], circles[j]],
+                        index: k
+                    });
+                }
+            }
+        }
+    }
+
+    if (snapPoints.length > 0) {
+        // 按距離排序，返回最近的
+        snapPoints.sort((a, b) => dist(a.point, {x: mx, y: my}) - dist(b.point, {x: mx, y: my}));
+        // 構造完整的 Point 對象
+        const info = snapPoints[0];
+        return new Point(
+            info.point.x,
+            info.point.y,
+            info.type,
+            info.ref,
+            0,
+            info.index
+        );
+    }
+
+    return null;
+}
+function pointNearLine(x, y, line) {
+    const d = Math.abs(line.A * x + line.B * y + line.C) / Math.hypot(line.A, line.B);
+    return d < SNAP_DIST;
+}
+function pointNearCircle(x, y, circle) {
+    const d = Math.abs(dist({x, y}, circle.center) - circle.r);
+    return d < SNAP_DIST;
+}
+
+function dragPoint(p, mx, my) {
+    const snap = new Point(mx, my);
+
+    if (p.type === PointType.FREE) {
+        p.x = snap.x;
+        p.y = snap.y;
+    } else if (p.type === PointType.ON_LINE) {
+        const { p1, p2 } = p.ref;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len2 = dx * dx + dy * dy;
+        p.t = ((snap.x - p1.x) * dx + (snap.y - p1.y) * dy) / len2;
+        p.update();
+    } else if (p.type === PointType.ON_CIRCLE) {
+        p.t = Math.atan2(snap.y - p.ref.center.y, snap.x - p.ref.center.x);
+        p.update();
+    }
+}
+function snapToPoint(x, y) {
+    for (const p of points) {
+        if (dist({x, y}, p) < SNAP_DIST) {
+            return {x: p.x, y: p.y}; // 吸附到現有點
+        }
+    }
+    return {x, y}; // 沒有吸附
+}
+function snapToIntersection(x, y) {
+    const snapPoints = [];
+
+    // 所有線與線交點
+    for (let i=0;i<lines.length;i++) {
+        for (let j=i+1;j<lines.length;j++) {
+            const inter = intersectLineLine(lines[i], lines[j]);
+            if (inter && dist(inter, {x,y}) < SNAP_DIST) snapPoints.push(inter);
+        }
+    }
+
+    // 所有圓與圓交點
+    for (let i=0;i<circles.length;i++) {
+        for (let j=i+1;j<circles.length;j++) {
+            const inters = intersectCircleCircle(circles[i], circles[j]);
+            for (const p of inters) if (dist(p, {x,y}) < SNAP_DIST) snapPoints.push(p);
+        }
+    }
+
+    // 圓與線交點
+    for (const c of circles) {
+        for (const l of lines) {
+            const inters = intersectLineCircle(l, c);
+            for (const p of inters) if (dist(p, {x,y}) < SNAP_DIST) snapPoints.push(p);
+        }
+    }
+
+    if (snapPoints.length > 0) {
+        // 回傳離滑鼠最近的
+        snapPoints.sort((a,b)=>dist(a,{x,y})-dist(b,{x,y}));
+        return snapPoints[0];
+    }
+
+    return {x,y};
+}
+
+class Point {
+    constructor(x, y, type = PointType.FREE, ref = null, t=0,index = 0) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.ref = ref;   // 对于交点，ref 是 [line1, line2] 或 [circle1, circle2] 等
+        this.t = t; // 用於參數化位置（線上或圓上）
+        this.index = index; // 如果有多个交点，用来区分第几个
+        this.visible = true;
+    }
+
+    update() {
+        if (this.type === PointType.ON_LINE) {
+            const { p1, p2 } = this.ref;
+            this.x = p1.x + this.t * (p2.x - p1.x);
+            this.y = p1.y + this.t * (p2.y - p1.y);
+        }
+
+        if (this.type === PointType.ON_CIRCLE) {
+            this.x = this.ref.center.x + this.ref.r * Math.cos(this.t);
+            this.y = this.ref.center.y + this.ref.r * Math.sin(this.t);
+        }
+
+        if (this.type === PointType.LINE_LINE) {
+            const [l1, l2] = this.ref;
+            const result = intersectLineLine(l1, l2);
+            if (result) {
+                this.x = result.x;
+                this.y = result.y;
+                this.visible = true;
+            }else{
+                this.visible = false;
+            }
+        }
+
+        if (this.type === PointType.CIRCLE_CIRCLE) {
+            const [c1, c2] = this.ref;
+            const results = intersectCircleCircle(c1, c2);
+            if(results.length ==0) {
+                this.visible = false;
+            }else if (results.length > this.index) {
+                const currentOccupied = points.some((p, idx) => 
+                    p !== this && 
+                    idx < points.indexOf(this) &&
+                    pointOnCircle(p, c1) &&
+                    pointOnCircle(p, c2) &&
+                    dist(p, results[this.index]) < EPS
+                );
+                
+                if (currentOccupied) {
+                    this.index = 1 - this.index;
+                }
+                
+                if (results.length > this.index) {
+                    this.x = results[this.index].x;
+                    this.y = results[this.index].y;
+                    this.visible = true;
+                } else {
+                    this.visible = false;
+                }
+            }
+        }
+
+        if (this.type === PointType.LINE_CIRCLE) {
+            const [l, c] = this.ref;
+            const results = intersectLineCircle(l, c);
+            if(results.length ==0) {
+                this.visible = false;
+            }else if (results.length > this.index) {
+                this.x = results[this.index].x;
+                this.y = results[this.index].y;
+                this.visible = true;
+            }
+        }
+    }
+}
+class Line {
+    constructor(p1, p2) {
+        // Ax + By + C = 0
+        this.p1 = p1;
+        this.p2 = p2;
+    }
+    
+    get A() {
+        return this.p2.y - this.p1.y;
+    }
+    
+    get B() {
+        return this.p1.x - this.p2.x;
+    }
+    
+    get C() {
+        return -(this.A * this.p1.x + this.B * this.p1.y);
+    }
+}
+class Circle {
+    constructor(center, p) {
+        this.center = center;
+        this.p = p;
+    }
+    get r() {
+        return dist(this.center, this.p);
+    }
+}
+
+function dist(p, q) {
+    return Math.hypot(p.x - q.x, p.y - q.y);
+}
+function $(el) {
+    return document.querySelector(el);
+}
+function DegToRad(a) {
+    return a * Math.PI / 180;
+}
+function random(a, b) {
+    return Math.floor(Math.random() * (b - a + 1)) + a;
+}
+function HSLToRGB(h, s, l) {
+    s /= 100;
+    l /= 100;
+    let c = (1 - Math.abs(2 * l - 1)) * s,
+        x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+        m = l - c / 2,
+        r = 0,
+        g = 0,
+        b = 0;
+    if (0 <= h && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+        r = c; g = 0; b = x;
+    }
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+
+    return "rgb(" + r + "," + g + "," + b + ")";
+}
+
+function createFreePoint(mx, my) {
+    const snap = snapToPoint(mx, my);
+    const p = new Point(snap.x, snap.y, PointType.FREE);
+    points.push(p);
+    saveState();
+    return p;
+}
+function createPointOnLine(line, mx, my) {
+    const { p1, p2 } = line;
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len2 = dx * dx + dy * dy;
+    
+    const t = ((mx - p1.x) * dx + (my - p1.y) * dy) / len2;
+    
+    const p = new Point(0, 0, PointType.ON_LINE, line, t);
+    p.update();
+    points.push(p);
+    saveState();
+    return p;
+}
+function createPointOnCircle(circle, mx, my) {
+    const angle = Math.atan2(my - circle.center.y, mx - circle.center.x);
+    const p = new Point(0, 0, PointType.ON_CIRCLE, circle, angle);
+    p.update();
+    points.push(p);
+    saveState();
+    return p;
+}
+
+function intersectCircleCircle(c0, c1) {
+    const x0 = c0.center.x, y0 = c0.center.y;
+    const x1 = c1.center.x, y1 = c1.center.y;
+    const r0 = c0.r, r1 = c1.r;
+
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const d = Math.hypot(dx, dy);
+
+    // 無交點
+    if (d > r0 + r1 + EPS) return [];
+    if (d < Math.abs(r0 - r1) - EPS) return [];
+    if (d < EPS && Math.abs(r0 - r1) < EPS) {
+        // 重合（通常不處理）
+        return [];
+    }
+
+    // a = 到交點連線投影長
+    const a = (r0 * r0 - r1 * r1 + d * d) / (2 * d);
+
+    // h = 垂直高度
+    const h2 = r0 * r0 - a * a;
+    const h = Math.sqrt(Math.max(0, h2));
+
+    // 中點
+    const xm = x0 + a * dx / d;
+    const ym = y0 + a * dy / d;
+
+    // 偏移向量
+    const rx = -dy * (h / d);
+    const ry = dx * (h / d);
+
+    const p1 = { x: xm + rx, y: ym + ry };
+    const p2 = { x: xm - rx, y: ym - ry };
+
+    // 切線（h ≈ 0）
+    if (h < EPS) return uniquePoints(h < EPS ? [p1] : [p1, p2]);
+
+    return [p1, p2];
+}
+function intersectLineLine(l1, l2) {
+    const D = l1.A * l2.B - l2.A * l1.B;
+    if (Math.abs(D) < EPS) return null;
+
+    const x = (l1.B * l2.C - l2.B * l1.C) / D;
+    const y = (l2.A * l1.C - l1.A * l2.C) / D;
+    return new Point(x, y);
+}
+function intersectLineCircle(line, circle) {
+    // 投影法（穩定）
+    const { A, B, C } = line;
+    const { x: x0, y: y0 } = circle.center;
+
+    const d = Math.abs(A * x0 + B * y0 + C) / Math.hypot(A, B);
+    if (d > circle.r + EPS) return [];
+
+    const t = -(A * x0 + B * y0 + C) / (A * A + B * B);
+    const x = x0 + A * t;
+    const y = y0 + B * t;
+
+    const h = Math.sqrt(Math.max(0, circle.r ** 2 - d ** 2));
+    const vx = -B / Math.hypot(A, B);
+    const vy = A / Math.hypot(A, B);
+
+    if (h < EPS) {
+    return [new Point(x, y)];
+    }
+
+    return [
+        new Point(x + vx * h, y + vy * h),
+        new Point(x - vx * h, y - vy * h)
+    ];
+}
+function pointOnLine(p, line) {
+    return Math.abs(line.A * p.x + line.B * p.y + line.C)
+        / Math.hypot(line.A, line.B) < EPS;
+}
+function pointOnCircle(p, c) {
+  return Math.abs(dist(p, c.center) - c.r) < EPS;
+}
+function equalLength(p1, p2, p3, p4) {
+    return Math.abs(dist(p1, p2) - dist(p3, p4)) < EPS;
+}
+function dot(l1, l2) {
+    return l1.A * l2.A + l1.B * l2.B;
+}
+function perpendicular(l1, l2) {
+    return Math.abs(dot(l1, l2)) < EPS;
+}
+function parallel(l1, l2) {
+    return Math.abs(l1.A * l2.B - l2.A * l1.B) < EPS;
+}
+function uniquePoints(points) {
+    const res = [];
+    for (const p of points) {
+        if (!res.some(q => dist(p, q) < EPS)) {
+            res.push(p);
+        }
+    }
+    return res;
+}
+
+function drawPoint(p,clr="#f0f") {
+    if(!p.visible) return;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 10*(1+isMobile*0.3), 0, Math.PI*2);
+    ctx.fillStyle = clr;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth=1;
+    ctx.fill();
+    ctx.stroke();
+}
+function drawLine(line, style = "#0f0") {
+    const p1 = line.p1;
+    const p2 = line.p2;
+    
+    if(!p1.visible || !p2.visible) return;
+    
+    // 計算方向向量
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    const ux = dx / len;
+    const uy = dy / len;
+    
+    // 沿著方向延伸
+    const t_large = 2000;
+    const x1 = p1.x - ux * t_large;
+    const y1 = p1.y - uy * t_large;
+    const x2 = p2.x + ux * t_large;
+    const y2 = p2.y + uy * t_large;
+    
+    ctx.strokeStyle = style;
+    ctx.lineWidth = 3*(1+isMobile*0.3);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+function drawCircle(circle, style = "#0ff") {
+    if(!circle.center.visible||!circle.p.visible) return;
+    ctx.strokeStyle = style;
+    ctx.lineWidth = 3*(1+isMobile*0.3);
+    ctx.beginPath();
+    ctx.arc(circle.center.x, circle.center.y, dist(circle.center, circle.p), 0, Math.PI * 2);
+    ctx.stroke();
+}
+function draw() {
+    bk();
+    let gdt = ctx.createLinearGradient(0, 0, cvs.width, cvs.height);
+    gdt.addColorStop(1, "#f00");
+    gdt.addColorStop(0, "#f0f");
+    ctx.strokeStyle = gdt;
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, cvs.height);
+    ctx.lineTo(cvs.width, cvs.height);
+    ctx.lineTo(cvs.width, 0);
+    ctx.lineTo(0, 0);
+    ctx.stroke();
+
+    for (const p of points) {
+        p.update();
+    }
+    for (const l of lines) drawLine(l);
+    for (const c of circles) drawCircle(c);
+    for (const p of points){
+        if(p.type.dof==2){
+            drawPoint(p, "#ff00ff");
+        }else if(p.type.dof==1){
+            drawPoint(p, "#800");
+        }else{
+            drawPoint(p, "#00f");
+        }
+    }
+    
+    // 繪製懸停點的 highlight
+    if (hoveredPoint) {
+        drawPoint(hoveredPoint, "#ffff00");
+    }
+    
+    // 繪製已選中點的 highlight
+    if (selectedPoint) {
+        drawPoint(selectedPoint, "#ffff00");
+    }
+
+    // 繪製拖曳中點的 highlight
+    if (draggingPoint) {
+        if(draggingPoint.type.dof>0){
+            drawPoint(draggingPoint, "#ffffff");
+        }
+    }
+}
+
+function bk() {
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    ctx.save();
+    ctx.fillStyle = "#181818";
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.restore();
+}
+draw();
+setMode(mode);
+saveState();
+updateHistoryButtons();
+</script>
+</body>
+
+</html>
