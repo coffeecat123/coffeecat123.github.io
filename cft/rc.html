@@ -2,9 +2,16 @@
 <html>
 
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>?</title>
     <style>
-body {
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
     background: #000;
 }
 
@@ -13,23 +20,33 @@ body {
 }
 
 #cvs {
-    height: 500px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: block;
+    z-index: 0;
+    touch-action: none;
 }
 
 #banner {
+    position: relative;
+    z-index: 3; 
     display: flex;
     align-items: center;
     padding: 10px;
+    pointer-events: auto;
+    width: fit-content;
 }
 
 #banner button {
     margin-right: 10px;
     padding: 5px 12px;
-    font-size: 16px;
+    font-size: 20px;
     background: #444;
     color: #fff;
     border: none;
-    border-radius: 4px;
+    outline: none;
+    border-radius: 5px;
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -43,10 +60,50 @@ body {
     background: #1b72c2;
     color: #000;
 }
+#inff{
+    padding: 0px 4px 4px 4px;
+    border: 1.5px #00ffbf solid;
+    z-index: 5;
+    top: 0;
+    right: 0px;
+    position: fixed;
+    width: 250px;
+    white-space: pre;
+    color: #fff;
+    background: rgb(40, 40, 40);
+    display: none;
+}
+#inf{
+    z-index: 10;
+    position: fixed;
+    top: 5px;
+    right: 4px;
+}
+.tt{
+    color: #fff;
+    font-size: 25px;
+}
 
-#wl {
-    display: flex;
-    align-items: flex-start;
+svg#svg2{
+    fill: #a7a7a7;
+    position: relative;
+    top: 2.9px;
+    left: -1px;
+    cursor: pointer;
+}
+svg#svg2:hover{
+    fill: #ffffff;
+}
+button.btn,button.btn1 {
+    background: transparent;
+    border: none;
+    height: 30px;
+    width: 30px;
+    border-radius: 15px;
+    outline: none;
+}
+button.btn:hover {
+    background: #909090;
 }
 
 ::-webkit-scrollbar-corner {
@@ -77,6 +134,19 @@ body {
     background: #828282;
     outline: 2px solid #b6b6b6;
 }
+@media screen and (max-width: 768px) {
+    #banner {
+        width: 100% !important;
+        flex-wrap: wrap !important; 
+        gap: 5px !important;
+    }
+
+    #banner button {
+        font-size: 20px !important;
+        padding: 5px 10px !important;
+        margin: 0 !important;
+    }
+}
     </style>
 </head>
 
@@ -89,17 +159,28 @@ body {
         <button id="btnUndo">↶ </button>
         <button id="btnRedo">↷</button>
     </div>
-    <div id="wl">
-        <canvas id="cvs" width="1000" height="1000"></canvas>
-    </div>
+    <canvas id="cvs"></canvas>
+    <button id="inf" class="btn1" onclick="toggleInf()" title="inf">
+            <svg id="svg2" width="20px" viewBox="0 0 416.979 416.979"><path d="M356.004,61.156c-81.37-81.47-213.377-81.551-294.848-0.182c-81.47,81.371-81.552,213.379-0.181,294.85   c81.369,81.47,213.378,81.551,294.849,0.181C437.293,274.636,437.375,142.626,356.004,61.156z M237.6,340.786   c0,3.217-2.607,5.822-5.822,5.822h-46.576c-3.215,0-5.822-2.605-5.822-5.822V167.885c0-3.217,2.607-5.822,5.822-5.822h46.576   c3.215,0,5.822,2.604,5.822,5.822V340.786z M208.49,137.901c-18.618,0-33.766-15.146-33.766-33.765   c0-18.617,15.147-33.766,33.766-33.766c18.619,0,33.766,15.148,33.766,33.766C242.256,122.755,227.107,137.901,208.49,137.901z"/></svg>
+        </button>
+    <div id="inff" class="tt"
+><b>Shortcuts</b>
+1-4 : Switch Modes
+Z   : Undo
+Y   : Redo
+Esc : Cancel
+Wheel : Zoom
+Mid-Click : Pan</div>
     <script>
-
+var banner = $("#banner");
 var btnMove = $("#btnMove");
 var btnPoint = $("#btnPoint");
 var btnLine = $("#btnLine");
 var btnCircle = $("#btnCircle");
 var btnUndo = $("#btnUndo");
 var btnRedo = $("#btnRedo");
+var inff = $("#inff");
+var inf = $("#inf");
 var cvs = $("#cvs");
 var ctx = cvs.getContext("2d");
 var ti = cvs.width / cvs.offsetWidth;
@@ -121,109 +202,196 @@ const PointType = Object.freeze({
     CIRCLE_CIRCLE: { name: "circleCircle", dof: 0 },
     LINE_CIRCLE: { name: "lineCircle", dof: 0 }
 });
-
+const camera = {
+    x: 0,
+    y: 0,
+    scale: 1
+};
+const mouse = { x: 0, y: 0, show:false };
 let mode = Mode.MOVE;
 let draggingPoint = null; // 正在拖曳的點
 let selectedPoint = null; // LINE和CIRCLE模式下的第一個點
 let hoveredPoint = null; // 滑鼠懸停的點
+let isPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+let infhd=1;
+let lastDist = 0;
+let lastTouchMid = {x: 0, y: 0};
+let isMultiTouch = false;
+let touchStartTime = 0;
+let touchStartPos = { x: 0, y: 0 };
 
 const history = [];
 let historyIndex = -1;
 
 const EPS = 1e-6;
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
-const SNAP_DIST = 20*(1+isMobile*0.3); // 吸附半徑，像素值
+const BASE_SNAP_DIST = 13*(1+isMobile*0.3); // 吸附半徑，像素值
+const dpr = window.devicePixelRatio || 1;
 
+if(isMobile){
+    inf.style.display="none";
+}
+
+function toggleInf(){
+    if(infhd){
+        inff.style.display="block";
+    }
+    else{
+        inff.style.display="none";
+    }
+    infhd^=1;
+}
+function resizeCanvas() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // 1. 設定畫布內部的渲染解析度 (放大)
+    cvs.width = width * dpr;
+    cvs.height = height * dpr;
+
+    // 2. 設定畫布在網頁上的顯示大小 (保持不變)
+    cvs.style.width = width + 'px';
+    cvs.style.height = height + 'px';
+
+    // 3. 核心：將 Context 縮放回邏輯像素，這樣你之後的繪圖邏輯都不用改
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // 先重設所有轉換
+    ctx.scale(dpr, dpr); 
+
+    draw();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+cvs.addEventListener("touchstart", (e) => {
+    if (e.touches.length >= 2) {
+        isMultiTouch = true;
+        draggingPoint = null;
+        isPanning = false;
+
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        
+        // 記錄初始距離
+        lastTouchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        
+        // 記錄初始中心點
+        lastTouchMid = {
+            x: (t1.clientX + t2.clientX) / 2,
+            y: (t1.clientY + t2.clientY) / 2
+        };
+    }else {
+        isMultiTouch = false;
+        touchStartTime = Date.now();
+        touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+}, { passive: false });
+cvs.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2) {
+        e.preventDefault(); // 禁止網頁滾動與橡皮筋效果
+
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+
+        // 1. 計算目前的中心點與距離
+        const curDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const curMid = {
+            x: (t1.clientX + t2.clientX) / 2,
+            y: (t1.clientY + t2.clientY) / 2
+        };
+
+        // 2. 處理平移 (Panning)
+        // 計算中心點位移量
+        const dx = curMid.x - lastTouchMid.x;
+        const dy = curMid.y - lastTouchMid.y;
+        
+        // 將位移量套用到 Camera（記得除以 scale）
+        camera.x -= dx / camera.scale;
+        camera.y -= dy / camera.scale;
+
+        // 3. 處理縮放 (Zooming)
+        const zoomFactor = curDist / lastTouchDist;
+        const oldScale = camera.scale;
+        
+        camera.scale *= zoomFactor;
+        camera.scale = Math.max(0.1, Math.min(camera.scale, 100));
+
+        // 修正縮放中心，使其對準雙指中點
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const midCanvasX = (curMid.x - centerX) / oldScale + camera.x;
+        const midCanvasY = (curMid.y - centerY) / oldScale + camera.y;
+        
+        camera.x = midCanvasX - (curMid.x - centerX) / camera.scale;
+        camera.y = midCanvasY - (curMid.y - centerY) / camera.scale;
+
+        // 更新最後狀態
+        lastTouchDist = curDist;
+        lastTouchMid = curMid;
+
+        draw();
+    }
+}, { passive: false });
+banner.addEventListener('pointermove', (e) => {
+    mouse.show = false;
+    draw();
+});
+function screenToCanvas(screenX, screenY) {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    return {
+        x: (screenX - centerX) / camera.scale + camera.x,
+        y: (screenY - centerY) / camera.scale + camera.y
+    };
+}
+function canvasToScreen(canvasX, canvasY) {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    return {
+        x: (canvasX - camera.x) * camera.scale + centerX,
+        y: (canvasY - camera.y) * camera.scale + centerY
+    };
+}
+function getSnapDist() {
+    return BASE_SNAP_DIST / camera.scale;
+}
+function recordAction(obj, list) {
+    // 如果在 Undo 的過程中執行了新動作，刪除後面的紀錄
+    history.splice(historyIndex + 1);
+    
+    history.push({
+        obj: obj,
+        list: list // 指向 points, lines 或 circles
+    });
+    
+    historyIndex++;
+    updateHistoryButtons();
+}
 function undo() {
-    if (historyIndex > 0) {
+    if (historyIndex >= 0) {
+        const action = history[historyIndex];
+        // 從目前的顯示陣列中移除該物件
+        const idx = action.list.indexOf(action.obj);
+        if (idx > -1) action.list.splice(idx, 1);
+        
         historyIndex--;
-        restoreState(history[historyIndex]);
+        updateHistoryButtons();
+        draw();
     }
 }
 function redo() {
     if (historyIndex < history.length - 1) {
         historyIndex++;
-        restoreState(history[historyIndex]);
-    }
-}
-function saveState() {
-    history.splice(historyIndex + 1);
-    const state = {
-        points: points.map(p => ({
-            x: p.x, y: p.y, type: p.type.name, t: p.t, index: p.index,
-            refType: p.ref ? (Array.isArray(p.ref) ? 'array' : 'object') : null,
-            refIndices: p.ref ? (Array.isArray(p.ref) ? 
-                p.ref.map(r => lines.includes(r) ? ('l' + lines.indexOf(r)) : ('c' + circles.indexOf(r))) :
-                (lines.includes(p.ref) ? ('l' + lines.indexOf(p.ref)) : ('c' + circles.indexOf(p.ref)))
-            ) : null
-        })),
-        lines: lines.map(l => ({p1: points.indexOf(l.p1), p2: points.indexOf(l.p2)})),
-        circles: circles.map(c => ({center: points.indexOf(c.center), p: points.indexOf(c.p)}))
-    };
-    history.push(state);
-    historyIndex++;
-    updateHistoryButtons();
-}
-function restoreState(state) {
-    const typeMap = {
-        "free": PointType.FREE,
-        "onLine": PointType.ON_LINE,
-        "onCircle": PointType.ON_CIRCLE,
-        "lineLine": PointType.LINE_LINE,
-        "circleCircle": PointType.CIRCLE_CIRCLE,
-        "lineCircle": PointType.LINE_CIRCLE
-    };
-    
-    // 只更新 points 的属性，不重新创建
-    while (points.length < state.points.length) {
-        const pd = state.points[points.length];
-        points.push(new Point(pd.x, pd.y, typeMap[pd.type], null, pd.t, pd.index));
-    }
-    while (points.length > state.points.length) {
-        points.pop();
-    }
-    
-    // 只更新 lines，不重新创建
-    while (lines.length < state.lines.length) {
-        const ld = state.lines[lines.length];
-        lines.push(new Line(points[ld.p1], points[ld.p2]));
-    }
-    while (lines.length > state.lines.length) {
-        lines.pop();
-    }
-    
-    // 只更新 circles，不重新创建
-    while (circles.length < state.circles.length) {
-        const cd = state.circles[circles.length];
-        circles.push(new Circle(points[cd.center], points[cd.p]));
-    }
-    while (circles.length > state.circles.length) {
-        circles.pop();
-    }
-    
-    // 更新点的参考
-    for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        const pd = state.points[i];
+        const action = history[historyIndex];
+        // 將物件放回顯示陣列
+        action.list.push(action.obj);
         
-        if (pd.refIndices) {
-            if (pd.refType === 'array') {
-                p.ref = pd.refIndices.map(idx => 
-                    idx.startsWith('l') ? lines[parseInt(idx.slice(1))] : circles[parseInt(idx.slice(1))]
-                );
-            } else {
-                const idx = pd.refIndices;
-                p.ref = idx.startsWith('l') ? lines[parseInt(idx.slice(1))] : circles[parseInt(idx.slice(1))];
-            }
-        }
-        
-        p.update();
+        updateHistoryButtons();
+        draw();
     }
-    updateHistoryButtons();
-    draw();
 }
 function updateHistoryButtons() {
-    btnUndo.disabled = historyIndex <= 0;
+    btnUndo.disabled = historyIndex < 0;
     btnRedo.disabled = historyIndex >= history.length - 1;
 }
 function setMode(newMode) {
@@ -247,9 +415,13 @@ document.onkeydown = (e) => {
         draggingPoint = null;
         draw();
     }
-    if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'z') { e.preventDefault(); undo(); }
-        else if (e.key === 'y') { e.preventDefault(); redo(); }
+    if (e.key.toLocaleLowerCase() == 'z') {
+        e.preventDefault();
+        undo();
+    }
+    if (e.key.toLocaleLowerCase() == 'y') {
+        e.preventDefault();
+        redo();
     }
     if(e.key==1){
         setMode(Mode.MOVE);
@@ -264,57 +436,12 @@ document.onkeydown = (e) => {
         setMode(Mode.CIRCLE);
     }
 };
-// 滑鼠移動時更新懸停狀態
-cvs.addEventListener("pointermove", (e) => {
-    const mx = e.offsetX * ti;
-    const my = e.offsetY * ti;
-    
-    hoveredPoint = null;
-    if(isMobile) return; // 行動裝置不顯示懸停點
-    if(draggingPoint) return; // 拖曳中不更新懸停點
-    const np = nearbyVisiblePoint(mx, my);
-    
-    if(np?.type.dof==0 && mode===Mode.MOVE){
-        draw();
-        return;
-    }
-    hoveredPoint = np;
-    draw();
-});
-
-cvs.addEventListener("pointerdown", (e) => {
-    const mx = e.offsetX*ti;
-    const my = e.offsetY*ti;
-    // 找最近點（mode = move）
-    if (mode === Mode.MOVE) {
-        const np=nearbyVisiblePoint(mx, my);
-        if(np){
-            draggingPoint = np;
-            dragPoint(draggingPoint, mx, my);
-            draw();
-            const moveHandler = (ev) => {
-                const mx2 = ev.offsetX*ti;
-                const my2 = ev.offsetY*ti;
-                dragPoint(draggingPoint, mx2, my2);
-                draw();
-            };
-
-            const upHandler = () => {
-                cvs.removeEventListener("pointermove", moveHandler);
-                cvs.removeEventListener("pointerup", upHandler);
-                draggingPoint = null;
-                draw();
-            };
-
-            cvs.addEventListener("pointermove", moveHandler);
-            cvs.addEventListener("pointerup", upHandler);
-        }
-    }
+function handleDrawingLogic(mx, my) {
     // 若 mode = point，直接新增自由點
     if (mode === Mode.POINT) {
         // 檢查是否已有該點
         for (const p of points) {
-            if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+            if (dist(p, {x: mx, y: my}) < getSnapDist()) {
                 return;
             }
         }
@@ -323,7 +450,7 @@ cvs.addEventListener("pointerdown", (e) => {
         const intersection = findNearestIntersection(mx, my);
         if (intersection) {
             points.push(intersection);
-            saveState();
+            recordAction(intersection, points);
             draw();
             return;
         }
@@ -377,7 +504,7 @@ cvs.addEventListener("pointerdown", (e) => {
                 // 創建直線
                 const line = new Line(selectedPoint, nearbyPoint);
                 lines.push(line);
-                saveState();
+                recordAction(line, lines);
                 selectedPoint = null;
                 draw();
             }
@@ -410,15 +537,149 @@ cvs.addEventListener("pointerdown", (e) => {
                 // 創建圓
                 const circle = new Circle(selectedPoint, nearbyPoint);
                 circles.push(circle);
-                saveState();
+                recordAction(circle, circles);
                 selectedPoint = null;
                 draw();
             }
         }
     }
+}
+window.addEventListener("pointermove", (e) => {
+    if (isPanning) {
+        const dx = e.clientX - panStartX;
+        const dy = e.clientY - panStartY;
+        camera.x -= dx / camera.scale;
+        camera.y -= dy / camera.scale;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        draw();
+    }
+    const isOverUI = e.target.closest('#banner') || 
+                     e.target.closest('#inff') || 
+                     e.target.closest('#inf');
+    if (isOverUI) {
+        mouse.show = false;
+        hoveredPoint = null;
+        draw();
+        return;
+    }
+    const canvasPos = screenToCanvas(e.clientX, e.clientY);
+    const mx = canvasPos.x;
+    const my = canvasPos.y;
+    mouse.x = mx;
+    mouse.y = my;
+    mouse.show = true;
+    
+    hoveredPoint = null;
+    if(isPanning) return;
+    if(draggingPoint) return; // 拖曳中不更新懸停點
+    const np = nearbyVisiblePoint(mx, my);
+    
+    if(np?.type.dof==0 && mode===Mode.MOVE){
+        cvs.style.cursor = 'not-allowed';
+        draw();
+        return;
+    }
+    cvs.style.cursor = isPanning ? 'grabbing' : 'auto';
+    hoveredPoint = np;
+    draw();
 });
+window.addEventListener("pointerdown", (e) => {
+    if (e.target !== cvs) return;
+    const canvasPos = screenToCanvas(e.clientX, e.clientY);
+    const mx = canvasPos.x;
+    const my = canvasPos.y;
+    
+    mouse.x = mx;
+    mouse.y = my;
+    mouse.show = true;
+
+    if (e.button === 1) {
+        isPanning = true;
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+        cvs.style.cursor = 'grabbing';
+        return;
+    }
+
+    
+    // 找最近點（mode = move）
+    if (mode === Mode.MOVE) {
+        const np=nearbyVisiblePoint(mx, my);
+        if(np){
+            draggingPoint = np;
+            dragPoint(draggingPoint, mx, my);
+            draw();
+            const moveHandler = (ev) => {
+                const cp = screenToCanvas(ev.clientX, ev.clientY);
+                dragPoint(draggingPoint, cp.x, cp.y);
+                draw();
+            };
+
+            const upHandler = () => {
+                window.removeEventListener("pointermove", moveHandler);
+                window.removeEventListener("pointerup", upHandler);
+                window.removeEventListener("pointercancel", upHandler);
+                draggingPoint = null;
+                draw();
+            };
+
+            window.addEventListener("pointermove", moveHandler);
+            window.addEventListener("pointerup", upHandler);
+            window.addEventListener("pointercancel", upHandler);
+        }
+    }
+    if (e.pointerType === 'mouse') {
+        handleDrawingLogic(mx, my);
+    }
+});
+window.addEventListener("pointerup", (e) => {
+    if (e.pointerType === 'touch' && !isMultiTouch && !isPanning&&e.target === cvs) {
+        const canvasPos = screenToCanvas(e.clientX, e.clientY);
+        handleDrawingLogic(canvasPos.x, canvasPos.y);
+    }
+    
+    // 手機端放開後隱藏預覽
+    mouse.show = false; 
+    
+    resetState();
+});
+window.addEventListener("pointercancel", resetState);
+window.addEventListener("blur", resetState);
+window.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const zoomSpeed = 0.1;
+    const oldScale = camera.scale;
+    
+    // 改变缩放
+    if (e.deltaY > 0) {
+        camera.scale *= (1 - zoomSpeed);
+    } else {
+        camera.scale *= (1 + zoomSpeed);
+    }
+    camera.scale = Math.max(0.1, Math.min(camera.scale, 100));
+    
+    // 以鼠标位置为中心缩放：调整相机位置以保持缩放中心
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const mouseCanvasX = (e.clientX - centerX) / oldScale + camera.x;
+    const mouseCanvasY = (e.clientY - centerY) / oldScale + camera.y;
+    
+    camera.x = mouseCanvasX - (e.clientX - centerX) / camera.scale;
+    camera.y = mouseCanvasY - (e.clientY - centerY) / camera.scale;
+    
+    draw();
+}, { passive: false });
+function resetState() {
+    isPanning = false;
+    draggingPoint = null;
+    hoveredPoint = null;
+    mouse.show = false;
+    cvs.style.cursor = 'auto';
+    draw();
+}
 function nearbyVisiblePoint(mx, my) {
-    let minDist = SNAP_DIST;
+    let minDist = getSnapDist();
     let np=null;
     for (const p of points) {
         if(!p.visible) continue;
@@ -432,7 +693,7 @@ function nearbyVisiblePoint(mx, my) {
 }
 function findNearestPoint(mx, my) {
     for (const p of points) {
-        if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+        if (dist(p, {x: mx, y: my}) < getSnapDist()) {
             return p;
         }
     }
@@ -445,7 +706,7 @@ function findNearestIntersection(mx, my) {
     for (let i = 0; i < lines.length; i++) {
         for (let j = i + 1; j < lines.length; j++) {
             const inter = intersectLineLine(lines[i], lines[j]);
-            if (inter && dist(inter, {x: mx, y: my}) < SNAP_DIST) {
+            if (inter && dist(inter, {x: mx, y: my}) < getSnapDist()) {
                 snapPoints.push({
                     point: inter,
                     type: PointType.LINE_LINE,
@@ -462,7 +723,7 @@ function findNearestIntersection(mx, my) {
             const inters = intersectCircleCircle(circles[i], circles[j]);
             for (let k = 0; k < inters.length; k++) {
                 const p = inters[k];
-                if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+                if (dist(p, {x: mx, y: my}) < getSnapDist()) {
                     snapPoints.push({
                         point: p,
                         type: PointType.CIRCLE_CIRCLE,
@@ -480,7 +741,7 @@ function findNearestIntersection(mx, my) {
             const inters = intersectLineCircle(lines[i], circles[j]);
             for (let k = 0; k < inters.length; k++) {
                 const p = inters[k];
-                if (dist(p, {x: mx, y: my}) < SNAP_DIST) {
+                if (dist(p, {x: mx, y: my}) < getSnapDist()) {
                     snapPoints.push({
                         point: p,
                         type: PointType.LINE_CIRCLE,
@@ -511,11 +772,11 @@ function findNearestIntersection(mx, my) {
 }
 function pointNearLine(x, y, line) {
     const d = Math.abs(line.A * x + line.B * y + line.C) / Math.hypot(line.A, line.B);
-    return d < SNAP_DIST;
+    return d < getSnapDist();
 }
 function pointNearCircle(x, y, circle) {
     const d = Math.abs(dist({x, y}, circle.center) - circle.r);
-    return d < SNAP_DIST;
+    return d < getSnapDist();
 }
 
 function dragPoint(p, mx, my) {
@@ -538,7 +799,7 @@ function dragPoint(p, mx, my) {
 }
 function snapToPoint(x, y) {
     for (const p of points) {
-        if (dist({x, y}, p) < SNAP_DIST) {
+        if (dist({x, y}, p) < getSnapDist()) {
             return {x: p.x, y: p.y}; // 吸附到現有點
         }
     }
@@ -551,7 +812,7 @@ function snapToIntersection(x, y) {
     for (let i=0;i<lines.length;i++) {
         for (let j=i+1;j<lines.length;j++) {
             const inter = intersectLineLine(lines[i], lines[j]);
-            if (inter && dist(inter, {x,y}) < SNAP_DIST) snapPoints.push(inter);
+            if (inter && dist(inter, {x,y}) < getSnapDist()) snapPoints.push(inter);
         }
     }
 
@@ -559,7 +820,7 @@ function snapToIntersection(x, y) {
     for (let i=0;i<circles.length;i++) {
         for (let j=i+1;j<circles.length;j++) {
             const inters = intersectCircleCircle(circles[i], circles[j]);
-            for (const p of inters) if (dist(p, {x,y}) < SNAP_DIST) snapPoints.push(p);
+            for (const p of inters) if (dist(p, {x,y}) < getSnapDist()) snapPoints.push(p);
         }
     }
 
@@ -567,7 +828,7 @@ function snapToIntersection(x, y) {
     for (const c of circles) {
         for (const l of lines) {
             const inters = intersectLineCircle(l, c);
-            for (const p of inters) if (dist(p, {x,y}) < SNAP_DIST) snapPoints.push(p);
+            for (const p of inters) if (dist(p, {x,y}) < getSnapDist()) snapPoints.push(p);
         }
     }
 
@@ -730,7 +991,7 @@ function createFreePoint(mx, my) {
     const snap = snapToPoint(mx, my);
     const p = new Point(snap.x, snap.y, PointType.FREE);
     points.push(p);
-    saveState();
+    recordAction(p, points);
     return p;
 }
 function createPointOnLine(line, mx, my) {
@@ -744,7 +1005,7 @@ function createPointOnLine(line, mx, my) {
     const p = new Point(0, 0, PointType.ON_LINE, line, t);
     p.update();
     points.push(p);
-    saveState();
+    recordAction(p, points);
     return p;
 }
 function createPointOnCircle(circle, mx, my) {
@@ -752,7 +1013,7 @@ function createPointOnCircle(circle, mx, my) {
     const p = new Point(0, 0, PointType.ON_CIRCLE, circle, angle);
     p.update();
     points.push(p);
-    saveState();
+    recordAction(p, points);
     return p;
 }
 
@@ -861,10 +1122,10 @@ function uniquePoints(points) {
 function drawPoint(p,clr="#f0f") {
     if(!p.visible) return;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 10*(1+isMobile*0.3), 0, Math.PI*2);
+    ctx.arc(p.x, p.y, BASE_SNAP_DIST*0.8/camera.scale, 0, Math.PI*2);
     ctx.fillStyle = clr;
     ctx.strokeStyle = "#000";
-    ctx.lineWidth=1;
+    ctx.lineWidth=1/camera.scale;
     ctx.fill();
     ctx.stroke();
 }
@@ -889,7 +1150,7 @@ function drawLine(line, style = "#0f0") {
     const y2 = p2.y + uy * t_large;
     
     ctx.strokeStyle = style;
-    ctx.lineWidth = 3*(1+isMobile*0.3);
+    ctx.lineWidth = 3*(1+isMobile*0.3)/camera.scale;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
@@ -898,31 +1159,125 @@ function drawLine(line, style = "#0f0") {
 function drawCircle(circle, style = "#0ff") {
     if(!circle.center.visible||!circle.p.visible) return;
     ctx.strokeStyle = style;
-    ctx.lineWidth = 3*(1+isMobile*0.3);
+    ctx.lineWidth = 3*(1+isMobile*0.3)/camera.scale;
     ctx.beginPath();
     ctx.arc(circle.center.x, circle.center.y, dist(circle.center, circle.p), 0, Math.PI * 2);
     ctx.stroke();
 }
 function draw() {
     bk();
-    let gdt = ctx.createLinearGradient(0, 0, cvs.width, cvs.height);
+    let gdt = ctx.createLinearGradient(0, 0, window.innerWidth, window.innerHeight);
     gdt.addColorStop(1, "#f00");
     gdt.addColorStop(0, "#f0f");
     ctx.strokeStyle = gdt;
     ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, cvs.height);
-    ctx.lineTo(cvs.width, cvs.height);
-    ctx.lineTo(cvs.width, 0);
-    ctx.lineTo(0, 0);
-    ctx.stroke();
+    ctx.strokeRect(0, 0, window.innerWidth, window.innerHeight);
+
+    ctx.save();
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    ctx.translate(centerX, centerY);
+    ctx.scale(camera.scale, camera.scale);
+    ctx.translate(-camera.x, -camera.y);
 
     for (const p of points) {
         p.update();
     }
     for (const l of lines) drawLine(l);
     for (const c of circles) drawCircle(c);
+
+    if(mouse.show&&!isPanning){
+        if(selectedPoint){
+            const mousePoint = (hoveredPoint)? hoveredPoint : { x: mouse.x, y: mouse.y, visible: true };
+            
+            ctx.save();
+            ctx.setLineDash([5 / camera.scale, 5 / camera.scale]); // 設置虛線，讓預覽更有質感
+            const clr="#fff8";
+            if(mode === Mode.LINE){
+                drawLine(new Line(selectedPoint, mousePoint), clr);
+            } else if(mode === Mode.CIRCLE){
+                drawCircle(new Circle(selectedPoint, mousePoint), clr);
+            }
+            ctx.restore();
+        }
+        if (mode === Mode.POINT&&!isMultiTouch) {
+            const mx = mouse.x;
+            const my = mouse.y;
+            
+            // 優先順序：1. 現有的點 2. 交點 3. 線上/圓上的投影點 4. 自由點
+            let pPos = null;
+
+            if (hoveredPoint) {
+                // 1. 吸附到現有的點
+                pPos = { x: hoveredPoint.x, y: hoveredPoint.y };
+            } else {
+                const intersection = findNearestIntersection(mx, my);
+                const clr="#f00a";
+                if (intersection) {
+                    // 2. 吸附到交點
+                    pPos = { x: intersection.x, y: intersection.y };
+                    if(intersection.type === PointType.LINE_LINE){
+                        const [l1, l2] = intersection.ref;
+                        drawLine(l1, clr);
+                        drawLine(l2, clr);
+                    }else if(intersection.type === PointType.CIRCLE_CIRCLE){
+                        const [c1, c2] = intersection.ref;
+                        drawCircle(c1, clr);
+                        drawCircle(c2, clr);
+                    }else if(intersection.type === PointType.LINE_CIRCLE){
+                        const [l, c] = intersection.ref;
+                        drawLine(l, clr);
+                        drawCircle(c, clr);
+                    }
+                } else {
+                    // 3. 檢查是否在線段上
+                    let foundOnGeometry = false;
+                    for (const line of lines) {
+                        if (pointNearLine(mx, my, line)) {
+                            const { p1, p2 } = line;
+                            const dx = p2.x - p1.x;
+                            const dy = p2.y - p1.y;
+                            const len2 = dx * dx + dy * dy;
+                            const t = ((mx - p1.x) * dx + (my - p1.y) * dy) / len2;
+                            pPos = {
+                                x: p1.x + t * dx,
+                                y: p1.y + t * dy
+                            };
+                            foundOnGeometry = true;
+                            drawLine(line, clr);
+                            break;
+                        }
+                    }
+                    
+                    // 4. 檢查是否在圓形上 (如果沒在線上)
+                    if (!foundOnGeometry) {
+                        for (const circle of circles) {
+                            if (pointNearCircle(mx, my, circle)) {
+                                const angle = Math.atan2(my - circle.center.y, mx - circle.center.x);
+                                pPos = {
+                                    x: circle.center.x + circle.r * Math.cos(angle),
+                                    y: circle.center.y + circle.r * Math.sin(angle)
+                                };
+                                foundOnGeometry = true;
+                                drawCircle(circle, clr);
+                                break;
+                            }
+                        }
+                    }
+
+                    // 5. 都沒有，就是自由點
+                    if (!foundOnGeometry) {
+                        pPos = { x: mx, y: my };
+                    }
+                }
+            }
+            const previewRadius = isMobile ? BASE_SNAP_DIST * 1.2 : BASE_SNAP_DIST * 0.8;
+            ctx.beginPath();
+            ctx.arc(pPos.x, pPos.y, previewRadius / camera.scale, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff8";
+            ctx.fill();
+        }
+    }
     for (const p of points){
         if(p.type.dof==2){
             drawPoint(p, "#ff00ff");
@@ -940,7 +1295,7 @@ function draw() {
     
     // 繪製已選中點的 highlight
     if (selectedPoint) {
-        drawPoint(selectedPoint, "#ffff00");
+        drawPoint(selectedPoint, "#ff5500");
     }
 
     // 繪製拖曳中點的 highlight
@@ -949,18 +1304,18 @@ function draw() {
             drawPoint(draggingPoint, "#ffffff");
         }
     }
+    ctx.restore();
 }
 
 function bk() {
-    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     ctx.save();
     ctx.fillStyle = "#181818";
-    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     ctx.restore();
 }
 draw();
 setMode(mode);
-saveState();
 updateHistoryButtons();
 </script>
 </body>
