@@ -572,6 +572,7 @@ function setMode(newMode) {
     mode = newMode;
     macroSelection = [];
     selectedPoint = null;
+    draggingPoint = null;
     
     if(mode!==Mode.MACRO_DEFINE){
         macroPanel.style.display="none";
@@ -705,7 +706,7 @@ btnIO.onclick = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-        a.download = `tools_min_${timestamp}.json`;
+        a.download = `tools_${timestamp}.json`;
         a.href = url;
         document.body.appendChild(a);
         a.click();
@@ -753,9 +754,7 @@ function cancelMacro() {
 document.onkeydown = (e) => {
     if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; // 忽略輸入框內的快捷鍵
     if (e.key === "Escape") {
-        selectedPoint = null;
-        draggingPoint = null;
-        draw();
+        setMode(mode);
     }
     if (e.key.toLocaleLowerCase() == 'z') {
         e.preventDefault();
