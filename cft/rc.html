@@ -17,6 +17,7 @@ body, html {
 
 * {
     font-family: "Comic Sans MS", 標楷體;
+    outline: none;
 }
 
 #cvs {
@@ -33,22 +34,28 @@ body, html {
     z-index: 3; 
     display: flex;
     align-items: center;
-    padding: 10px;
+    margin: 10px;
     pointer-events: auto;
     width: fit-content;
+    gap: 8px;
 }
 
 #banner button {
-    margin-right: 10px;
-    padding: 5px 12px;
-    font-size: 20px;
+    padding: 0 12px;
+    height: 38px;
+    font-size: 16px;
     background: #444;
     color: #fff;
     border: none;
     outline: none;
-    border-radius: 5px;
+    border-radius: 7px;
     cursor: pointer;
     transition: background 0.2s;
+    
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
 }
 #banner button:disabled {
     color: #888;
@@ -58,7 +65,22 @@ body, html {
 }
 #banner button.active {
     background: #1b72c2;
-    color: #000;
+    color: #0ff;
+}
+#banner button:has(svg) {
+    width: 38px;
+    padding: 0;
+}
+#banner svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: currentColor;
+    display: block;
+    transition: .5s;
+}
+.mobile-break {
+    display: none;
 }
 #inff{
     padding: 0px 4px 4px 4px;
@@ -105,6 +127,25 @@ button.btn,button.btn1 {
 button.btn:hover {
     background: #909090;
 }
+.selected-input {
+    filter: drop-shadow(0 0 8px #00ffbf);
+}
+.selected-output {
+    filter: drop-shadow(0 0 8px #ff5500);
+}
+#macroPanel{
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(30, 30, 30, 0.9);
+    padding: 15px;
+    border: 2px #00ffbf solid;
+    color: white;
+    z-index: 100;
+    border-radius: 8px;
+    width: 250px;
+}
 
 ::-webkit-scrollbar-corner {
     background: #181818;
@@ -136,15 +177,25 @@ button.btn:hover {
 }
 @media screen and (max-width: 768px) {
     #banner {
-        width: 100% !important;
         flex-wrap: wrap !important; 
-        gap: 5px !important;
+        width: calc(100% - 20px) !important;
+        gap: 3px 8px;
     }
 
     #banner button {
         font-size: 20px !important;
-        padding: 5px 10px !important;
         margin: 0 !important;
+    }
+
+    #macroPanel {
+        bottom: 50px !important;
+    }
+    
+    .mobile-break {
+        display: block;
+        flex-basis: 100%;
+        height: 0;
+        margin: 0;
     }
 }
     </style>
@@ -152,38 +203,117 @@ button.btn:hover {
 
 <body>
     <div id="banner">
-        <button id="btnMove">Move</button>
-        <button id="btnPoint">Point</button>
-        <button id="btnLine">Line</button>
-        <button id="btnCircle">Circle</button>
-        <button id="btnUndo">↶ </button>
-        <button id="btnRedo">↷</button>
+        <button id="btnMove">
+            <svg viewBox="0 0 36 36" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                style="stroke-width: 0.1px;">
+                <path d="M31.46,8.57A3.11,3.11,0,0,0,27,5.75a3.19,3.19,0,0,0-4.66-2.64,3.29,3.29,0,0,0-6.42-.76,3.23,3.23,0,0,0-1.66-.46A3.27,3.27,0,0,0,11,5.18V17.84c-1.28-1.6-2.53-3.18-2.72-3.45A3.19,3.19,0,0,0,5.56,12.9a3.37,3.37,0,0,0-3.47,3.48C2.18,18.18,5.66,24.54,8,28c3.54,5.24,6.92,6,7.07,6l.18,0H25.59a.92.92,0,0,0,.55-.19,13.13,13.13,0,0,0,3.75-6.13c1-3.09,1.53-7.53,1.58-13.56ZM28.18,27.12a12.46,12.46,0,0,1-2.94,5.08H15.33c-.47-.14-3.07-1.1-5.87-5.25S3.94,17.27,3.89,16.29a1.5,1.5,0,0,1,.45-1.13,1.52,1.52,0,0,1,1.14-.46,1.43,1.43,0,0,1,1.32.71c.29.43,2.36,3,3.57,4.53L12.8,18.3V5.18a1.48,1.48,0,1,1,2.95,0V16.32h1.8v-13a1.51,1.51,0,0,1,3,0V16.45h1.8V6a1.43,1.43,0,1,1,2.85,0V17.44H27V8.54a1.33,1.33,0,0,1,2.65,0v5.55C29.62,20,29.14,24.21,28.18,27.12Z"></path>
+            </svg>
+        </button>
+        <button id="btnPoint">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="transform: matrix(1.5, 0, 0, 1.5, 0, 0);stroke-width: 0.8px;">
+                <circle cx="12" cy="12" r="2" fill="none"/>
+            </svg>
+        </button>
+        <button id="btnLine">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="transform: matrix(1.5, 0, 0, 1.5, 0, 0);stroke-width: 0.8px;">
+                <circle cx="6" cy="18" r="2" fill="none"/>
+                <circle cx="18" cy="6" r="2" fill="none"/>
+                <path d="M 16.585786437626904 7.414213562373095 L 7.414213562373095 16.585786437626904" fill="none"/>
+            </svg>
+        </button>
+        <button id="btnCircle">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="transform: matrix(1.5, 0, 0, 1.5, 0, 0);stroke-width: 0.8px;">
+                <path d="M 20.3368 6.4775 A 10 10 0 1 1 17.5225217277 3.6632288164"  fill="none"/>
+                <circle cx="12" cy="12" r="2" fill="none"/>
+                <circle cx="19.071067811865476" cy="4.9289321881345245" r="2"  fill="none"/>
+            </svg>
+        </button>
+        <button id="btnUndo" title="Undo">
+            <svg viewBox="0 0 24 24" style="transform: matrix(-1.2, 0, 0, 1.2, 0, -1);">
+                <path d="M14.6644 5.47875L18.6367 9.00968C20.2053 10.404 20.9896 11.1012 20.9896 11.9993C20.9896 12.8975 20.2053 13.5946 18.6367 14.989L14.6644 18.5199C13.9484 19.1563 13.5903 19.4746 13.2952 19.342C13 19.2095 13 18.7305 13 17.7725V15.4279C9.4 15.4279 5.5 17.1422 4 19.9993C4 10.8565 9.33333 8.57075 13 8.57075V6.22616C13 5.26817 13 4.78917 13.2952 4.65662C13.5903 4.52407 13.9484 4.8423 14.6644 5.47875Z" 
+                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+        </button>
+        <button id="btnRedo" title="Redo">
+            <svg viewBox="0 0 24 24" style="transform: matrix(1.2, 0, 0, -1.2, 0, 2);" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.6644 5.47875L18.6367 9.00968C20.2053 10.404 20.9896 11.1012 20.9896 11.9993C20.9896 12.8975 20.2053 13.5946 18.6367 14.989L14.6644 18.5199C13.9484 19.1563 13.5903 19.4746 13.2952 19.342C13 19.2095 13 18.7305 13 17.7725V15.4279C9.4 15.4279 5.5 17.1422 4 19.9993C4 10.8565 9.33333 8.57075 13 8.57075V6.22616C13 5.26817 13 4.78917 13.2952 4.65662C13.5903 4.52407 13.9484 4.8423 14.6644 5.47875Z" 
+                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+        </button>
+        <div class="mobile-break"></div>
+        <button id="btnDefine">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="transform: matrix(1, 0, 0, 1, 0, 0);stroke-width: 2px;stroke-linecap: round;">
+                
+                <path d="M 12 3 L 12 21"/>
+                <path d="M 3 12 L 21 12"/>
+            </svg>
+        </button>
+        <div id="executeWrapper" style="display: flex; align-items: center;">
+            <select id="selectTool" style="user-select: none;height: 38px;padding: 5px; font-size: 16px; background: #444; color: white; border: none; border-radius: 7px; margin-right: 5px; display: none;">
+                <option value="">Select Tool...</option>
+            </select>
+            <button id="btnExecute">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="stroke-width: 1.5px;">
+                    <path d="M6 6L10.5 10.5M6 6H3L2 3L3 2L6 3V6ZM19.259 2.74101L16.6314 5.36863C16.2354 5.76465 16.0373 5.96265 15.9632 6.19098C15.8979 6.39183 15.8979 6.60817 15.9632 6.80902C16.0373 7.03735 16.2354 7.23535 16.6314 7.63137L16.8686 7.86863C17.2646 8.26465 17.4627 8.46265 17.691 8.53684C17.8918 8.6021 18.1082 8.6021 18.309 8.53684C18.5373 8.46265 18.7354 8.26465 19.1314 7.86863L21.5893 5.41072C21.854 6.05488 22 6.76039 22 7.5C22 10.5376 19.5376 13 16.5 13C16.1338 13 15.7759 12.9642 15.4298 12.8959C14.9436 12.8001 14.7005 12.7521 14.5532 12.7668C14.3965 12.7824 14.3193 12.8059 14.1805 12.8802C14.0499 12.9501 13.919 13.081 13.657 13.343L6.5 20.5C5.67157 21.3284 4.32843 21.3284 3.5 20.5C2.67157 19.6716 2.67157 18.3284 3.5 17.5L10.657 10.343C10.919 10.081 11.0499 9.95005 11.1198 9.81949C11.1941 9.68068 11.2176 9.60347 11.2332 9.44681C11.2479 9.29945 11.1999 9.05638 11.1041 8.57024C11.0358 8.22406 11 7.86621 11 7.5C11 4.46243 13.4624 2 16.5 2C17.5055 2 18.448 2.26982 19.259 2.74101ZM12.0001 14.9999L17.5 20.4999C18.3284 21.3283 19.6716 21.3283 20.5 20.4999C21.3284 19.6715 21.3284 18.3283 20.5 17.4999L15.9753 12.9753C15.655 12.945 15.3427 12.8872 15.0408 12.8043C14.6517 12.6975 14.2249 12.7751 13.9397 13.0603L12.0001 14.9999Z" fill="none"/>
+                </svg>
+            </button>
+        </div>
+        <button id="btnIO" title="Import/Export JSON" style="font-size: 12px;">
+            <svg viewBox="0 0 28 28" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                style="transform: matrix(0.9, 0, 0, 0.9, 0, 0);stroke-width: 0.8px;">
+                <g transform="translate(-310.000000, -933.000000)">
+                    <path d="M336,957 C336,958.087 335.087,959 334,959 L313.935,959.033 C312.848,959.033 311.967,958.152 311.967,957.065 L312,937 C312,935.913 312.913,935 314,935 L325,935 L325,933 L314,933 C311.827,933 310,935.221 310,937.394 L310,957.065 C310,959.238 311.762,961 313.935,961 L333.606,961 C335.779,961 338,959.173 338,957 L338,946 L336,946 L336,957 L336,957 Z M336.979,933 L330,933 C329.433,933.001 329.001,933.459 329,934 C328.999,934.541 329.433,935.001 330,935 L334.395,934.968 L319.308,949.357 C318.908,949.738 318.908,950.355 319.308,950.736 C319.706,951.117 320.354,951.117 320.753,950.736 L335.971,936.222 L336,941 C335.999,941.541 336.433,942.001 337,942 C337.567,941.999 337.999,941.541 338,941 L338,933.975 C338.001,933.434 337.546,932.999 336.979,933 L336.979,933 Z">
+                    </path>
+                </g>
+            </svg>
+        </button>
+        <input type="file" id="fileInput" accept=".json" style="display:none;">
     </div>
     <canvas id="cvs"></canvas>
+    <div id="macroPanel">
+        <h3 id="macroTitle" style="margin-top:0; color:#00ffbf;">Create Tool</h3>
+        <div id="macroStep" style="margin-bottom:10px; font-size:14px; color:#ccc;">Step 1: Select Inputs</div>
+        <input type="text" id="toolName" placeholder="Tool Name" style="width:100%; margin-bottom:10px; background:#444; border:none; color:white; padding:5px;">
+        <div style="display:flex; gap:5px;">
+            <button id="btnMacroNext" style="flex:1; background:#1b72c2; color:white; border:none; padding:5px; cursor:pointer;">Next</button>
+            <button id="btnMacroCancel" style="flex:1; background:#666; color:white; border:none; padding:5px; cursor:pointer;">Cancel</button>
+        </div>
+    </div>
     <button id="inf" class="btn1" onclick="toggleInf()" title="inf">
             <svg id="svg2" width="20px" viewBox="0 0 416.979 416.979"><path d="M356.004,61.156c-81.37-81.47-213.377-81.551-294.848-0.182c-81.47,81.371-81.552,213.379-0.181,294.85   c81.369,81.47,213.378,81.551,294.849,0.181C437.293,274.636,437.375,142.626,356.004,61.156z M237.6,340.786   c0,3.217-2.607,5.822-5.822,5.822h-46.576c-3.215,0-5.822-2.605-5.822-5.822V167.885c0-3.217,2.607-5.822,5.822-5.822h46.576   c3.215,0,5.822,2.604,5.822,5.822V340.786z M208.49,137.901c-18.618,0-33.766-15.146-33.766-33.765   c0-18.617,15.147-33.766,33.766-33.766c18.619,0,33.766,15.148,33.766,33.766C242.256,122.755,227.107,137.901,208.49,137.901z"/></svg>
         </button>
     <div id="inff" class="tt"
 ><b>Shortcuts</b>
-1-4 : Switch Modes
+1-6 : Switch Modes
 Z   : Undo
 Y   : Redo
 Esc : Cancel
 Wheel : Zoom
 Mid-Click : Pan</div>
     <script>
-var banner = $("#banner");
-var btnMove = $("#btnMove");
-var btnPoint = $("#btnPoint");
-var btnLine = $("#btnLine");
-var btnCircle = $("#btnCircle");
-var btnUndo = $("#btnUndo");
-var btnRedo = $("#btnRedo");
-var inff = $("#inff");
-var inf = $("#inf");
-var cvs = $("#cvs");
-var ctx = cvs.getContext("2d");
-var ti = cvs.width / cvs.offsetWidth;
+const banner = $("#banner");
+const btnMove = $("#btnMove");
+const btnPoint = $("#btnPoint");
+const btnLine = $("#btnLine");
+const btnCircle = $("#btnCircle");
+const btnUndo = $("#btnUndo");
+const btnRedo = $("#btnRedo");
+const btnDefine = $("#btnDefine");
+const btnExecute = $("#btnExecute");
+const macroPanel = $("#macroPanel");
+const macroStepText = $("#macroStep");
+const toolNameInput = $("#toolName");
+const selectTool = $("#selectTool");
+const btnIO = $("#btnIO");
+const fileInput = $("#fileInput");
+const inff = $("#inff");
+const inf = $("#inf");
+const cvs = $("#cvs");
+const ctx = cvs.getContext("2d");
 const points = [];
 const lines = [];
 const circles = [];
@@ -192,6 +322,8 @@ const Mode = {
     POINT: "point",
     LINE: "line",
     CIRCLE: "circle",
+    MACRO_DEFINE :"macro_define",
+    MACRO_EXECUTE :"macro_execute"
 };
 const PointType = Object.freeze({
     FREE: { name: "free", dof: 2 },
@@ -222,8 +354,20 @@ let isMultiTouch = false;
 let touchStartTime = 0;
 let touchStartPos = { x: 0, y: 0 };
 
+let objectCounter = 0;
 const history = [];
 let historyIndex = -1;
+
+let macroData = null;
+let macroSelection = [];
+let macroCreator = {
+    stage: 'none', // 'inputs', 'outputs'
+    name: '',
+    inputs: [],
+    outputs: []
+};
+const tools = []; // 儲存所有自定義工具
+let activeTool = null;
 
 const EPS = 1e-6;
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
@@ -234,6 +378,32 @@ if(isMobile){
     inf.style.display="none";
 }
 
+function getUniqueToolName(baseName) {
+    let name = baseName.trim() || "Custom Tool";
+    let finalName = name;
+    let counter = 1;
+    
+    // 檢查 tools 陣列中是否已有同名工具
+    while (tools.some(t => t.name === finalName)) {
+        counter++;
+        finalName = `${name} (${counter})`;
+    }
+    return finalName;
+}
+function updateToolList() {
+    if (tools.length === 0) {
+        selectTool.style.display = "none";
+        return;
+    }
+    selectTool.style.display = "block";
+    selectTool.innerHTML = '<option value="">Select Tool...</option>';
+    tools.forEach((t, index) => {
+        const opt = document.createElement("option");
+        opt.value = index;
+        opt.innerText = t.name;
+        selectTool.appendChild(opt);
+    });
+}
 function toggleInf(){
     if(infhd){
         inff.style.display="block";
@@ -356,7 +526,9 @@ function getSnapDist() {
     return BASE_SNAP_DIST / camera.scale;
 }
 function recordAction(obj, list) {
-    // 如果在 Undo 的過程中執行了新動作，刪除後面的紀錄
+    if (obj.id === null || obj.id === undefined) {
+        obj.id = objectCounter++;
+    }
     history.splice(historyIndex + 1);
     
     history.push({
@@ -396,20 +568,186 @@ function updateHistoryButtons() {
 }
 function setMode(newMode) {
     mode = newMode;
+    macroSelection = [];
     selectedPoint = null;
-    btnMove.classList.toggle("active", mode === Mode.MOVE);
-    btnPoint.classList.toggle("active", mode === Mode.POINT);
-    btnLine.classList.toggle("active", mode === Mode.LINE);
-    btnCircle.classList.toggle("active", mode === Mode.CIRCLE);
+    
+    if(mode!==Mode.MACRO_DEFINE){
+        macroPanel.style.display="none";
+        macroCreator = { stage: 'inputs', inputs: [], outputs: [] };
+    }else{
+        macroPanel.style.display="block";
+    }
+    
+    // 更新按鈕樣式
+    [btnMove, btnPoint, btnLine, btnCircle, btnDefine, btnExecute].forEach(btn => btn.classList.remove("active"));
+    if(mode === Mode.MOVE) btnMove.classList.add("active");
+    if(mode === Mode.POINT) btnPoint.classList.add("active");
+    if(mode === Mode.LINE) btnLine.classList.add("active");
+    if(mode === Mode.CIRCLE) btnCircle.classList.add("active");
+    if(mode === Mode.MACRO_DEFINE) btnDefine.classList.add("active");
+    if(mode === Mode.MACRO_EXECUTE) btnExecute.classList.add("active");
+    draw();
 }
 btnMove.onclick = () => setMode(Mode.MOVE);
 btnPoint.onclick = () => setMode(Mode.POINT);
 btnLine.onclick = () => setMode(Mode.LINE);
 btnCircle.onclick = () => setMode(Mode.CIRCLE);
+btnDefine.onclick = () => {
+    setMode(Mode.MACRO_DEFINE);
+    macroCreator = { stage: 'inputs', inputs: [], outputs: [] };
+    macroStepText.innerText = "Step 1: Select Input Objects";
+    toolNameInput.style.display = "none";
+};
+$("#btnMacroNext").onclick = () => {
+    if (macroCreator.stage === 'inputs') {
+        if (macroCreator.inputs.length === 0) return alert("Select at least one input!");
+        macroCreator.stage = 'outputs';
+        macroStepText.innerText = "Step 2: Select Final Objects";
+    } else if (macroCreator.stage === 'outputs') {
+        if (macroCreator.outputs.length === 0) return alert("Select at least one output!");
+        macroCreator.stage = 'naming';
+        macroStepText.innerText = "Step 3: Name your Tool";
+        toolNameInput.style.display = "block";
+        $("#btnMacroNext").innerText = "Save Tool";
+    } else {
+        const finalName = getUniqueToolName(toolNameInput.value);
+
+        const steps = getMacroSteps(macroCreator.outputs, macroCreator.inputs);
+        const newTool = {
+            name: finalName, 
+            inputs: macroCreator.inputs.map(o => {
+                const info = { className: o.constructor.name, id: o.id };
+                // 自動找出組成的點 ID
+                if (o instanceof Line) {
+                    info.sub = [o.p1.id, o.p2.id]; // 紀錄原始 p1, p2 的 ID
+                } else if (o instanceof Circle) {
+                    info.sub = [o.center.id, o.p.id]; // 紀錄原始 center, p 的 ID
+                }
+                return info;
+            }),
+            steps: getMacroSteps(macroCreator.outputs, macroCreator.inputs)
+        };
+        
+        tools.push(newTool);
+        updateToolList();
+        activeTool = newTool;
+        selectTool.value = tools.length - 1;
+        alert(`Tool "${finalName}" created!`);
+        cancelMacro();
+        $("#btnMacroNext").innerText = "Next";
+        toolNameInput.value = ""; // 清空輸入框
+    }
+};
+$("#btnMacroCancel").onclick = cancelMacro;
+selectTool.onchange = (e) => {
+    const toolIndex = e.target.value;
+    if (toolIndex === "") {
+        activeTool = null;
+        setMode(Mode.MOVE);
+        return;
+    }
+    activeTool = tools[toolIndex];
+    macroSelection = [];
+    setMode(Mode.MACRO_EXECUTE);
+    console.log(`Tool "${activeTool.name}" active. Select ${activeTool.inputs.length} objects.`);
+};
+btnExecute.onclick =()=>{
+    setMode(Mode.MACRO_EXECUTE);
+};
+btnExecute.ondblclick = () => {
+    const choice = confirm("Press 'OK' to upload a .json file, or 'Cancel' to paste JSON code.");
+    
+    if (choice) {
+        // 觸發隱藏的檔案選取器
+        fileInput.click();
+    } else {
+        const json = prompt("Paste Tool JSON here:");
+        if (json) processImportedJSON(json);
+    }
+};
+fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        processImportedJSON(event.target.result);
+        fileInput.value = "";
+    };
+    reader.readAsText(file);
+};
+btnIO.onclick = () => {
+    if (tools.length === 0) return alert("No tools to export.");
+    
+    // 使用 replacer 函式過濾掉冗餘資訊並限制數字長度
+    const jsonString = JSON.stringify(tools, (key, value) => {
+        // 1. 移除 null, undefined 或空字串
+        if (value === null || value === undefined || value === "") return undefined;
+        
+        // 2. 移除數值物件中的預設值 (0) 以節省空間
+        if ((key === 't' || key === 'index') && value === 0) return undefined;
+        
+        // 3. 限制浮點數長度（例如參數 t）
+        if (typeof value === 'number') return Math.round(value * 1e6) / 1e6;
+        
+        return value;
+    });
+
+    // 彈窗顯示（此時是一整行超長字串，最省空間）
+    prompt("Compact Tool JSON:", jsonString);
+
+    if (confirm("Download compact .json file?")) {
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        a.download = `tools_min_${timestamp}.json`;
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+};
 btnUndo.onclick = undo;
 btnRedo.onclick = redo;
+function processImportedJSON(jsonString) {
+    try {
+        const imported = JSON.parse(jsonString);
+        const addTool = (tool) => {
+            if (tool.name && tool.inputs && tool.steps) {
+                // 自動查重與更名
+                tool.name = getUniqueToolName(tool.name);
+                tools.push(tool);
+            }
+        };
+
+        if (Array.isArray(imported)) {
+            imported.forEach(addTool);
+        } else {
+            addTool(imported);
+        }
+
+        updateToolList();
+        alert("Import successful!");
+        activeTool = tools[tools.length - 1];
+        selectTool.value = tools.length - 1;
+    } catch (e) {
+        console.error(e);
+        alert("Import failed: Invalid file format.");
+    }
+}
+function cancelMacro() {
+    macroPanel.style.display = "none";
+    macroCreator.stage = 'none';
+    macroCreator.inputs = [];
+    macroCreator.outputs = [];
+    setMode(Mode.MOVE);
+    draw();
+}
 
 document.onkeydown = (e) => {
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; // 忽略輸入框內的快捷鍵
     if (e.key === "Escape") {
         selectedPoint = null;
         draggingPoint = null;
@@ -435,7 +773,79 @@ document.onkeydown = (e) => {
     if(e.key==4){
         setMode(Mode.CIRCLE);
     }
+    if(e.key==5){
+        setMode(Mode.MACRO_DEFINE);
+    }
+    if(e.key==6){
+        setMode(Mode.MACRO_EXECUTE);
+    }
 };
+function newPointToActiveMacro(p){
+    macroPoints.push(p);
+    if(macroPoints.length==activeMacro.inputsCount){
+        runMacro();
+    }
+}
+function handleMacroSelection(mx, my) {
+    if (mode === Mode.MACRO_DEFINE) {
+        const obj = findNearestAny(mx, my);
+        if (obj) {
+            if (macroCreator.stage === 'inputs') {
+                if (macroCreator.inputs.includes(obj)) {
+                    macroCreator.inputs = macroCreator.inputs.filter(i => i !== obj);
+                } else {
+                    if (isInputRedundant(obj, macroCreator.inputs)) {
+                        alert("Invalid Input: These objects have dependency relationships.");
+                        return;
+                    }
+                    macroCreator.inputs.push(obj);
+                }
+            } else if (macroCreator.stage === 'outputs') {
+                if (macroCreator.inputs.includes(obj)) {
+                    alert("Output cannot be the same as Input.");
+                    return;
+                }
+                if (obj instanceof Point && obj.type === PointType.FREE) {
+                    alert("A 'Free Point' cannot be an output.");
+                    return;
+                }
+                if (macroCreator.outputs.includes(obj)) {
+                    macroCreator.outputs = macroCreator.outputs.filter(i => i !== obj);
+                } else {
+                    if (!validateOutput(obj, macroCreator.inputs)) {
+                        alert("Invalid Output: Dependency missing from Inputs.");
+                        return;
+                    }
+                    macroCreator.outputs.push(obj);
+                }
+            }
+            draw();
+        }
+    }
+    
+    if (mode === Mode.MACRO_EXECUTE) {
+        if (!activeTool) return;
+        const obj = findNearestAny(mx, my);
+        if (obj) {
+            const expected = activeTool.inputs[macroSelection.length];
+            if(macroSelection.includes(obj)){
+                alert("Already selected.");
+                return;
+            }
+            if (obj.constructor.name === expected.className) {
+                macroSelection.push(obj);
+                if (macroSelection.length === activeTool.inputs.length) {
+                    runTool(activeTool, macroSelection);
+                    macroSelection = [];
+                    console.log("Macro applied!");
+                }
+            } else {
+                alert(`Need a ${expected.className}`);
+            }
+            draw();
+        }
+    }
+}
 function handleDrawingLogic(mx, my) {
     // 若 mode = point，直接新增自由點
     if (mode === Mode.POINT) {
@@ -491,11 +901,7 @@ function handleDrawingLogic(mx, my) {
                     draw();
                     return;
                 }
-                const exists = lines.some(l => {
-                    const onLine1 = pointOnLine(selectedPoint, l);
-                    const onLine2 = pointOnLine(nearbyPoint, l);
-                    return onLine1 && onLine2;
-                });
+                const exists = findExistingLine(selectedPoint, nearbyPoint);
                 if (exists) {
                     selectedPoint = null;
                     draw();
@@ -524,11 +930,7 @@ function handleDrawingLogic(mx, my) {
                     draw();
                     return;
                 }
-                const exists = circles.some(c => {
-                    const centerMatch = Math.abs(dist(selectedPoint, c.center)) < EPS;
-                    const radiusMatch = Math.abs(dist(nearbyPoint, c.center) - c.r) < EPS;
-                    return centerMatch && radiusMatch;
-                });
+                const exists = findExistingCircle(selectedPoint, nearbyPoint);
                 if (exists) {
                     selectedPoint = null;
                     draw();
@@ -558,6 +960,12 @@ window.addEventListener("pointermove", (e) => {
                      e.target.closest('#inff') || 
                      e.target.closest('#inf');
     if (isOverUI) {
+        mouse.show = false;
+        hoveredPoint = null;
+        draw();
+        return;
+    }
+    if(isMultiTouch){
         mouse.show = false;
         hoveredPoint = null;
         draw();
@@ -629,13 +1037,16 @@ window.addEventListener("pointerdown", (e) => {
             window.addEventListener("pointercancel", upHandler);
         }
     }
+  
     if (e.pointerType === 'mouse') {
+        handleMacroSelection(mx, my);
         handleDrawingLogic(mx, my);
     }
 });
 window.addEventListener("pointerup", (e) => {
     if (e.pointerType === 'touch' && !isMultiTouch && !isPanning&&e.target === cvs) {
         const canvasPos = screenToCanvas(e.clientX, e.clientY);
+        handleMacroSelection(canvasPos.x, canvasPos.y);
         handleDrawingLogic(canvasPos.x, canvasPos.y);
     }
     
@@ -682,7 +1093,7 @@ function nearbyVisiblePoint(mx, my) {
     let minDist = getSnapDist();
     let np=null;
     for (const p of points) {
-        if(!p.visible) continue;
+        if(!p.isDefined) continue;
         const d = dist(p, {x: mx, y: my});
         if (d < minDist) {
             minDist = d;
@@ -778,6 +1189,49 @@ function pointNearCircle(x, y, circle) {
     const d = Math.abs(dist({x, y}, circle.center) - circle.r);
     return d < getSnapDist();
 }
+function findNearestLine(mx, my) {
+    for (const l of lines) {
+        if (pointNearLine(mx, my, l)) return l;
+    }
+    return null;
+}
+function findNearestCircle(mx, my) {
+    for (const c of circles) {
+        if (pointNearCircle(mx, my, c)) return c;
+    }
+    return null;
+}
+function findNearestAny(mx, my) {
+    const p = nearbyVisiblePoint(mx, my);
+    if (p) return p;
+    const l = findNearestLine(mx, my);
+    if (l) return l;
+    const c = findNearestCircle(mx, my);
+    if (c) return c;
+    return null;
+}
+function findExistingLine(p1, p2) {
+    // 兩點距離太近無法構成線
+    if (dist(p1, p2) < EPS) return null;
+    
+    return lines.find(l => {
+        // 如果 p1 和 p2 都在這條線上，那這條線就是我們要找的
+        return pointOnLine(p1, l) && pointOnLine(p2, l);
+    });
+}
+function findExistingCircle(center, p) {
+    const radius = dist(center, p);
+    // 半徑太小無法構成圓
+    if (radius < EPS) return null;
+
+    return circles.find(c => {
+        // 圓心相同且半徑相同
+        return dist(c.center, center) < EPS && Math.abs(c.r - radius) < EPS;
+    });
+}
+function findExistingPointAt(x, y) {
+    return points.find(p => p.isDefined && dist(p, { x, y }) < EPS);
+}
 
 function dragPoint(p, mx, my) {
     const snap = new Point(mx, my);
@@ -840,6 +1294,13 @@ function snapToIntersection(x, y) {
 
     return {x,y};
 }
+function getRank(obj) {
+    if (!obj) return 0;
+    if (Array.isArray(obj)) {
+        return Math.max(...obj.map(o => o.rank || 0));
+    }
+    return obj.rank || 0;
+}
 
 class Point {
     constructor(x, y, type = PointType.FREE, ref = null, t=0,index = 0) {
@@ -849,7 +1310,14 @@ class Point {
         this.ref = ref;   // 对于交点，ref 是 [line1, line2] 或 [circle1, circle2] 等
         this.t = t; // 用於參數化位置（線上或圓上）
         this.index = index; // 如果有多个交点，用来区分第几个
+        this.isDefined = true;
         this.visible = true;
+        this.id = null;
+        if (this.type === PointType.FREE) {
+            this.rank = 0;
+        } else {
+            this.rank = getRank(this.ref) + 1;
+        }
     }
 
     update() {
@@ -870,9 +1338,9 @@ class Point {
             if (result) {
                 this.x = result.x;
                 this.y = result.y;
-                this.visible = true;
+                this.isDefined = true;
             }else{
-                this.visible = false;
+                this.isDefined = false;
             }
         }
 
@@ -880,7 +1348,7 @@ class Point {
             const [c1, c2] = this.ref;
             const results = intersectCircleCircle(c1, c2);
             if(results.length ==0) {
-                this.visible = false;
+                this.isDefined = false;
             }else if (results.length > this.index) {
                 const currentOccupied = points.some((p, idx) => 
                     p !== this && 
@@ -897,9 +1365,9 @@ class Point {
                 if (results.length > this.index) {
                     this.x = results[this.index].x;
                     this.y = results[this.index].y;
-                    this.visible = true;
+                    this.isDefined = true;
                 } else {
-                    this.visible = false;
+                    this.isDefined = false;
                 }
             }
         }
@@ -908,11 +1376,21 @@ class Point {
             const [l, c] = this.ref;
             const results = intersectLineCircle(l, c);
             if(results.length ==0) {
-                this.visible = false;
+                this.isDefined = false;
             }else if (results.length > this.index) {
                 this.x = results[this.index].x;
                 this.y = results[this.index].y;
-                this.visible = true;
+                this.isDefined = true;
+            }
+        }
+        
+        if(this.ref){
+            if(Array.isArray(this.ref)){
+                this.ref.forEach(r=>{
+                    if(r.isDefined===false){
+                        this.isDefined=false;
+                    }
+                });
             }
         }
     }
@@ -922,6 +1400,9 @@ class Line {
         // Ax + By + C = 0
         this.p1 = p1;
         this.p2 = p2;
+        this.id = null;
+        this.isDefined = true;
+        this.rank = Math.max(p1.rank, p2.rank) + 1;
     }
     
     get A() {
@@ -935,14 +1416,197 @@ class Line {
     get C() {
         return -(this.A * this.p1.x + this.B * this.p1.y);
     }
+    update() {
+        if (!this.p1.isDefined || !this.p2.isDefined) {
+            this.isDefined = false;
+        } else {
+            this.isDefined = true;
+        }
+    }
 }
 class Circle {
     constructor(center, p) {
         this.center = center;
         this.p = p;
+        this.id = null;
+        this.isDefined = true;
+        this.rank = Math.max(center.rank, p.rank) + 1;
     }
     get r() {
         return dist(this.center, this.p);
+    }
+    update() {
+        if (!this.center.isDefined || !this.p.isDefined) {
+            this.isDefined = false;
+        } else {
+            this.isDefined = true;
+        }
+    }
+}
+
+function getAllAncestors(obj, ancestors = new Set()) {
+    if (!obj || ancestors.has(obj)) return ancestors;
+    
+    let parents = [];
+    if (obj instanceof Line) parents = [obj.p1, obj.p2];
+    else if (obj instanceof Circle) parents = [obj.center, obj.p];
+    else if (obj instanceof Point && obj.ref) {
+        parents = Array.isArray(obj.ref) ? obj.ref : [obj.ref];
+    }
+
+    parents.forEach(p => {
+        ancestors.add(p);
+        getAllAncestors(p, ancestors);
+    });
+    return ancestors;
+}
+function validateOutput(output, inputs) {
+    const inputIds = new Set(inputs.map(i => i.id));
+
+    if (output instanceof Point && output.type === PointType.FREE) {
+        return false; 
+    }
+    const ancestors = getAllAncestors(output);
+    for (let ancestor of ancestors) {
+        // 如果依賴鏈中存在一個「自由點」，但它不在輸入清單裡
+        if (ancestor instanceof Point && ancestor.type === PointType.FREE) {
+            if (!inputIds.has(ancestor.id)) return false;
+        }
+        // 如果依賴鏈中存在一個物件，其父級不在輸入也不在祖先中（針對線上點等）
+        // 這裡簡化邏輯：只要確保所有源頭自由點都在輸入中即可
+    }
+    return true;
+}
+function isInputRedundant(newInput, existingInputs) {
+    for (let input of existingInputs) {
+        if (getAllAncestors(newInput).has(input)) return true; // 新輸入依賴舊輸入
+        if (getAllAncestors(input).has(newInput)) return true; // 舊輸入依賴新輸入
+    }
+    return false;
+}
+function getMacroSteps(outputs, inputs) {
+    const steps = [];
+    const visited = new Set();
+    
+    inputs.forEach(o => {
+        visited.add(o.id);
+        if (o instanceof Line) { visited.add(o.p1.id); visited.add(o.p2.id); }
+        if (o instanceof Circle) { visited.add(o.center.id); visited.add(o.p.id); }
+    });
+
+    function trace(obj) {
+        if (!obj || visited.has(obj.id)) return;
+        
+        let parents = [];
+        if (obj instanceof Line) parents = [obj.p1, obj.p2];
+        else if (obj instanceof Circle) parents = [obj.center, obj.p];
+        else if (obj instanceof Point && obj.ref) {
+            parents = Array.isArray(obj.ref) ? obj.ref : [obj.ref];
+        }
+
+        parents.forEach(p => trace(p));
+
+        if (!visited.has(obj.id)) {
+            visited.add(obj.id);
+            steps.push(serializeObject(obj));
+        }
+    }
+
+    outputs.forEach(o => trace(o));
+    return steps;
+}
+function serializeObject(obj) {
+    const data = {
+        id: obj.id,
+        className: obj.constructor.name,
+        type: obj.type ? obj.type.name : null,
+        t: obj.t || 0,
+        index: obj.index || 0
+    };
+    if (obj instanceof Line) data.parents = [obj.p1.id, obj.p2.id];
+    if (obj instanceof Circle) data.parents = [obj.center.id, obj.p.id];
+    if (obj instanceof Point && obj.ref) {
+        data.parents = Array.isArray(obj.ref) ? obj.ref.map(r => r.id) : [obj.ref.id];
+    }
+    return data;
+}
+function runTool(toolData, currentSelectedObjects) {
+    const idMap = new Map();
+    
+    toolData.inputs.forEach((inputInfo, i) => {
+        const realObj = currentSelectedObjects[i];
+        idMap.set(inputInfo.id, realObj);
+        
+        // 【核心自動化】如果輸入有紀錄子點 (sub)，自動找出並映射
+        if (inputInfo.sub) {
+            if (realObj instanceof Line) {
+                // 自動將新線的 p1/p2 對應到舊的 ID
+                idMap.set(inputInfo.sub[0], realObj.p1);
+                idMap.set(inputInfo.sub[1], realObj.p2);
+            } else if (realObj instanceof Circle) {
+                // 自動將新圓的 center/p 對應到舊的 ID
+                idMap.set(inputInfo.sub[0], realObj.center);
+                idMap.set(inputInfo.sub[1], realObj.p);
+            }
+        }
+    });
+
+    // 依序重建步驟
+    toolData.steps.forEach(step => {
+        const parents = step.parents.map(pid => idMap.get(pid));
+        //if (parents.some(p => !p)) return;
+        let obj = null;
+
+        if (step.className === "Line") {
+            obj = findExistingLine(parents[0], parents[1]);
+            if (!obj) {
+                obj = new Line(parents[0], parents[1]);
+                lines.push(obj);
+                recordAction(obj, lines);
+            }
+        } 
+        else if (step.className === "Circle") {
+            obj = findExistingCircle(parents[0], parents[1]);
+            if (!obj) {
+                obj = new Circle(parents[0], parents[1]);
+                circles.push(obj);
+                recordAction(obj, circles);
+            }
+        } 
+        else if (step.className === "Point") {
+            const typeObj = Object.values(PointType).find(t => t.name === step.type);
+            const ref = parents.length > 1 ? parents : parents[0];
+            
+            // 先計算座標
+            let tempP = new Point(0, 0, typeObj, ref, step.t !== undefined ? step.t : 0, step.index !== undefined ? step.index : 0);
+            tempP.update();
+
+            if (!tempP.isDefined) {
+                obj = tempP; // 即使不可見也需存入 map 供後續引用
+            } else {
+                // 座標查重：避免在交點上重複生點
+                let existing = findExistingPointAt(tempP.x, tempP.y);
+                if (existing) {
+                    obj = existing;
+                } else {
+                    obj = tempP;
+                    points.push(obj);
+                    recordAction(obj, points);
+                }
+            }
+        }
+        if (obj) idMap.set(step.id, obj);
+    });
+    draw();
+}
+function getAllObjectsSorted() {
+    const all = [...points, ...lines, ...circles];
+    return all.sort((a, b) => a.rank - b.rank);
+}
+function updateAll() {
+    const sortedObjects = getAllObjectsSorted();
+    for (const obj of sortedObjects) {
+        obj.update();
     }
 }
 
@@ -1120,7 +1784,7 @@ function uniquePoints(points) {
 }
 
 function drawPoint(p,clr="#f0f") {
-    if(!p.visible) return;
+    if(!p.isDefined) return;
     ctx.beginPath();
     ctx.arc(p.x, p.y, BASE_SNAP_DIST*0.8/camera.scale, 0, Math.PI*2);
     ctx.fillStyle = clr;
@@ -1130,49 +1794,58 @@ function drawPoint(p,clr="#f0f") {
     ctx.stroke();
 }
 function drawLine(line, style = "#0f0") {
+    if(!line.isDefined) return;
     const p1 = line.p1;
     const p2 = line.p2;
     
-    if(!p1.visible || !p2.visible) return;
-    
-    // 計算方向向量
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const len = Math.hypot(dx, dy);
+
     const ux = dx / len;
     const uy = dy / len;
     
-    // 沿著方向延伸
-    const t_large = 2000;
+    const viewW = window.innerWidth / camera.scale;
+    const viewH = window.innerHeight / camera.scale;
+    const screenDiagonal = Math.hypot(viewW, viewH);
+    
+    const distToCamera = Math.hypot(p1.x - camera.x, p1.y - camera.y);
+    
+    const t_large = distToCamera + screenDiagonal;
+    
     const x1 = p1.x - ux * t_large;
     const y1 = p1.y - uy * t_large;
-    const x2 = p2.x + ux * t_large;
-    const y2 = p2.y + uy * t_large;
+    const x2 = p1.x + ux * t_large;
+    const y2 = p1.y + uy * t_large;
     
+    ctx.save();
     ctx.strokeStyle = style;
-    ctx.lineWidth = 3*(1+isMobile*0.3)/camera.scale;
+    ctx.lineWidth = 3 * (1 + isMobile * 0.3) / camera.scale;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
+    ctx.restore();
 }
 function drawCircle(circle, style = "#0ff") {
-    if(!circle.center.visible||!circle.p.visible) return;
+    if(!circle.isDefined) return;
     ctx.strokeStyle = style;
     ctx.lineWidth = 3*(1+isMobile*0.3)/camera.scale;
     ctx.beginPath();
     ctx.arc(circle.center.x, circle.center.y, dist(circle.center, circle.p), 0, Math.PI * 2);
     ctx.stroke();
 }
+function highlightObj(obj, color) {
+    ctx.save();
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = color;
+    if (obj instanceof Point) drawPoint(obj, color);
+    if (obj instanceof Line) drawLine(obj, color);
+    if (obj instanceof Circle) drawCircle(obj, color);
+    ctx.restore();
+}
 function draw() {
     bk();
-    let gdt = ctx.createLinearGradient(0, 0, window.innerWidth, window.innerHeight);
-    gdt.addColorStop(1, "#f00");
-    gdt.addColorStop(0, "#f0f");
-    ctx.strokeStyle = gdt;
-    ctx.lineWidth = 10;
-    ctx.strokeRect(0, 0, window.innerWidth, window.innerHeight);
-
     ctx.save();
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
@@ -1180,15 +1853,14 @@ function draw() {
     ctx.scale(camera.scale, camera.scale);
     ctx.translate(-camera.x, -camera.y);
 
-    for (const p of points) {
-        p.update();
-    }
+    updateAll();
+
     for (const l of lines) drawLine(l);
     for (const c of circles) drawCircle(c);
 
     if(mouse.show&&!isPanning){
         if(selectedPoint){
-            const mousePoint = (hoveredPoint)? hoveredPoint : { x: mouse.x, y: mouse.y, visible: true };
+            const mousePoint = (hoveredPoint)? hoveredPoint : { x: mouse.x, y: mouse.y, isDefined: true };
             
             ctx.save();
             ctx.setLineDash([5 / camera.scale, 5 / camera.scale]); // 設置虛線，讓預覽更有質感
@@ -1304,7 +1976,55 @@ function draw() {
             drawPoint(draggingPoint, "#ffffff");
         }
     }
+    const fontSize=20*dpr;
+    const fontStyle=`bold ${fontSize}px Arial`;
+    if (mode === Mode.MACRO_DEFINE) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = "#00ffbf";
+        ctx.font = fontStyle;
+        ctx.fillText(`Inputs: ${macroCreator.inputs.length} | Outputs: ${macroCreator.outputs.length}`, 20, window.innerHeight*dpr - fontSize*1.2-30);
+        ctx.restore();
+        
+        macroCreator.inputs.forEach(o => highlightObj(o, "#00ffbf"));
+        macroCreator.outputs.forEach(o => highlightObj(o, "#ff5500"));
+    }
+    if (mode === Mode.MACRO_EXECUTE && activeTool) {
+        const currentIndex = macroSelection.length;
+        
+        // 只有在還沒選滿時，才去讀取「下一個預期物件」的資料
+        if (currentIndex < activeTool.inputs.length) {
+            const expected = activeTool.inputs[currentIndex];
+            const outputType = expected.className;
+            
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0); 
+            ctx.fillStyle = "#00ffbf";
+            ctx.font = fontStyle;
+            ctx.fillText(`Step ${currentIndex + 1}/${activeTool.inputs.length}: Select a ${outputType}`, 20, window.innerHeight * dpr - fontSize*1.2-30);
+            ctx.restore();
+        }
+        
+        // 繪製已經選中的高亮
+        macroSelection.forEach(o => highlightObj(o, "#00ffbf"));
+    }
+    
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); 
+    ctx.fillStyle = "#888";
+    ctx.font = fontStyle;
+    ctx.fillText(`Points: ${points.length} | Lines: ${lines.length} | Circles: ${circles.length}`, 20, window.innerHeight * dpr - 30);
     ctx.restore();
+
+    ctx.restore();
+
+    let gdt = ctx.createLinearGradient(0, 0, window.innerWidth, window.innerHeight);
+    gdt.addColorStop(1, "#f00");
+    gdt.addColorStop(0, "#f0f");
+    ctx.strokeStyle = gdt;
+    ctx.lineWidth = 10;
+    ctx.strokeRect(0, 0, window.innerWidth, window.innerHeight);
+    
 }
 
 function bk() {
