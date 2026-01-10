@@ -547,6 +547,7 @@ function undo() {
         if (idx > -1) action.list.splice(idx, 1);
         
         historyIndex--;
+        setMode(mode);
         updateHistoryButtons();
         draw();
     }
@@ -558,6 +559,7 @@ function redo() {
         // 將物件放回顯示陣列
         action.list.push(action.obj);
         
+        setMode(mode);
         updateHistoryButtons();
         draw();
     }
@@ -574,6 +576,8 @@ function setMode(newMode) {
     if(mode!==Mode.MACRO_DEFINE){
         macroPanel.style.display="none";
         macroCreator = { stage: 'inputs', inputs: [], outputs: [] };
+        macroStepText.innerText = "Step 1: Select Input Objects";
+        toolNameInput.style.display = "none";
     }else{
         macroPanel.style.display="block";
     }
@@ -1037,7 +1041,7 @@ window.addEventListener("pointerdown", (e) => {
             window.addEventListener("pointercancel", upHandler);
         }
     }
-  
+
     if (e.pointerType === 'mouse') {
         handleMacroSelection(mx, my);
         handleDrawingLogic(mx, my);
@@ -1387,6 +1391,7 @@ class Point {
         if(this.ref){
             if(Array.isArray(this.ref)){
                 this.ref.forEach(r=>{
+                    r.update();
                     if(r.isDefined===false){
                         this.isDefined=false;
                     }
@@ -1461,37 +1466,54 @@ function getAllAncestors(obj, ancestors = new Set()) {
     return ancestors;
 }
 function validateOutput(output, inputs) {
-    const inputIds = new Set(inputs.map(i => i.id));
+    const availableIds = new Set();
+    
+    // 将所有输入对象及其“物理组件”加入可用清单
+    inputs.forEach(i => {
+        availableIds.add(i.id);
+        if (i instanceof Line) {
+            availableIds.add(i.p1.id);
+            availableIds.add(i.p2.id);
+        } else if (i instanceof Circle) {
+            availableIds.add(i.center.id);
+            availableIds.add(i.p.id);
+        }
+    });
 
     if (output instanceof Point && output.type === PointType.FREE) {
         return false; 
     }
+
     const ancestors = getAllAncestors(output);
     for (let ancestor of ancestors) {
-        // 如果依賴鏈中存在一個「自由點」，但它不在輸入清單裡
+        // 如果祖先是一个自由点，它必须在“可用清单”中（或者是输入本身，或者是输入的端点/圆心）
         if (ancestor instanceof Point && ancestor.type === PointType.FREE) {
-            if (!inputIds.has(ancestor.id)) return false;
+            if (!availableIds.has(ancestor.id)) return false;
         }
-        // 如果依賴鏈中存在一個物件，其父級不在輸入也不在祖先中（針對線上點等）
-        // 這裡簡化邏輯：只要確保所有源頭自由點都在輸入中即可
     }
     return true;
 }
 function isInputRedundant(newInput, existingInputs) {
     for (let input of existingInputs) {
-        if (getAllAncestors(newInput).has(input)) return true; // 新輸入依賴舊輸入
-        if (getAllAncestors(input).has(newInput)) return true; // 舊輸入依賴新輸入
+        if (input === newInput) return true;
     }
-    return false;
+    return false; 
 }
 function getMacroSteps(outputs, inputs) {
     const steps = [];
     const visited = new Set();
     
+    // 初始化已访问集合：包含输入本身及其组件点
     inputs.forEach(o => {
         visited.add(o.id);
-        if (o instanceof Line) { visited.add(o.p1.id); visited.add(o.p2.id); }
-        if (o instanceof Circle) { visited.add(o.center.id); visited.add(o.p.id); }
+        if (o instanceof Line) {
+            visited.add(o.p1.id);
+            visited.add(o.p2.id);
+        }
+        if (o instanceof Circle) {
+            visited.add(o.center.id);
+            visited.add(o.p.id);
+        }
     });
 
     function trace(obj) {
@@ -1504,8 +1526,10 @@ function getMacroSteps(outputs, inputs) {
             parents = Array.isArray(obj.ref) ? obj.ref : [obj.ref];
         }
 
+        // 先递归追踪父级
         parents.forEach(p => trace(p));
 
+        // 如果父级都处理完了且自己还没被记录，则记录此步骤
         if (!visited.has(obj.id)) {
             visited.add(obj.id);
             steps.push(serializeObject(obj));
@@ -1523,8 +1547,14 @@ function serializeObject(obj) {
         t: obj.t || 0,
         index: obj.index || 0
     };
-    if (obj instanceof Line) data.parents = [obj.p1.id, obj.p2.id];
-    if (obj instanceof Circle) data.parents = [obj.center.id, obj.p.id];
+    if (obj instanceof Line) {
+        data.parents = [obj.p1.id, obj.p2.id];
+        data.sub = [obj.p1.id, obj.p2.id];
+    }
+    if (obj instanceof Circle) {
+        data.parents = [obj.center.id, obj.p.id];
+        data.sub = [obj.center.id, obj.p.id];
+    }
     if (obj instanceof Point && obj.ref) {
         data.parents = Array.isArray(obj.ref) ? obj.ref.map(r => r.id) : [obj.ref.id];
     }
@@ -1533,21 +1563,20 @@ function serializeObject(obj) {
 function runTool(toolData, currentSelectedObjects) {
     const idMap = new Map();
     
+    
     toolData.inputs.forEach((inputInfo, i) => {
         const realObj = currentSelectedObjects[i];
         idMap.set(inputInfo.id, realObj);
         
-        // 【核心自動化】如果輸入有紀錄子點 (sub)，自動找出並映射
-        if (inputInfo.sub) {
-            if (realObj instanceof Line) {
-                // 自動將新線的 p1/p2 對應到舊的 ID
-                idMap.set(inputInfo.sub[0], realObj.p1);
-                idMap.set(inputInfo.sub[1], realObj.p2);
-            } else if (realObj instanceof Circle) {
-                // 自動將新圓的 center/p 對應到舊的 ID
-                idMap.set(inputInfo.sub[0], realObj.center);
-                idMap.set(inputInfo.sub[1], realObj.p);
-            }
+        // 自动建立子物体映射
+        if (realObj instanceof Line) {
+            // 将工具定义时的 p1/p2 ID 映射到当前选择线段的真实 p1/p2
+            idMap.set(inputInfo.sub[0], realObj.p1);
+            idMap.set(inputInfo.sub[1], realObj.p2);
+        } else if (realObj instanceof Circle) {
+            // 解决你提到的问题1：输入圆，自动映射圆心
+            idMap.set(inputInfo.sub[0], realObj.center);
+            idMap.set(inputInfo.sub[1], realObj.p);
         }
     });
 
@@ -1950,6 +1979,21 @@ function draw() {
             ctx.fill();
         }
     }
+    if (draggingPoint) {
+        if(draggingPoint.type.dof>0){
+            circles.forEach(c=>{
+                if(c.center===draggingPoint||c.p===draggingPoint){
+                    highlightObj(c, "#ffffff");
+                }
+            });
+            lines.forEach(l=>{
+                if(l.p1===draggingPoint||l.p2===draggingPoint){
+                    highlightObj(l, "#ffffff");
+                }
+            });
+        }
+    }
+    // 繪製所有點
     for (const p of points){
         if(p.type.dof==2){
             drawPoint(p, "#ff00ff");
@@ -1973,7 +2017,7 @@ function draw() {
     // 繪製拖曳中點的 highlight
     if (draggingPoint) {
         if(draggingPoint.type.dof>0){
-            drawPoint(draggingPoint, "#ffffff");
+            highlightObj(draggingPoint, "#ffffff");
         }
     }
     const fontSize=20*dpr;
