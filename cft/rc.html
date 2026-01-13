@@ -38,6 +38,8 @@ body, html {
     pointer-events: auto;
     width: fit-content;
     gap: 8px;
+    pointer-events: none; 
+    user-select: none;
 }
 
 #banner button {
@@ -78,6 +80,12 @@ body, html {
     fill: currentColor;
     display: block;
     transition: .5s;
+}
+#banner button, 
+#banner select, 
+#banner input,
+#macroPanel {
+    pointer-events: auto;
 }
 .mobile-break {
     display: none;
@@ -353,6 +361,11 @@ let lastTouchMid = {x: 0, y: 0};
 let isMultiTouch = false;
 let touchStartTime = 0;
 let touchStartPos = { x: 0, y: 0 };
+let pointerStartTime = 0;
+let pointerStartPos = { x: 0, y: 0 };
+let highlightedObject = null;
+let activePointers = new Set();
+let touchPendingTimeout = null;
 
 let objectCounter = 0;
 const history = [];
@@ -371,7 +384,8 @@ let activeTool = null;
 
 const EPS = 1e-6;
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
-const BASE_SNAP_DIST = 13*(1+isMobile*0.3); // 吸附半徑，像素值
+const BASE_POINT_RADIUS = 10*(1+isMobile*0.3);
+const BASE_SNAP_DIST = BASE_POINT_RADIUS*(1+isMobile*0.3);
 const dpr = window.devicePixelRatio || 1;
 
 if(isMobile){
@@ -573,6 +587,7 @@ function setMode(newMode) {
     macroSelection = [];
     selectedPoint = null;
     draggingPoint = null;
+    highlightedObject = null;
     
     if(mode!==Mode.MACRO_DEFINE){
         macroPanel.style.display="none";
@@ -849,104 +864,148 @@ function handleMacroSelection(mx, my) {
         }
     }
 }
-function handleDrawingLogic(mx, my) {
-    // 若 mode = point，直接新增自由點
-    if (mode === Mode.POINT) {
-        // 檢查是否已有該點
-        for (const p of points) {
-            if (dist(p, {x: mx, y: my}) < getSnapDist()) {
-                return;
-            }
+function addPoint(mx,my){
+    // 檢查是否已有該點
+    for (const p of points) {
+        if (dist(p, {x: mx, y: my}) < getSnapDist()) {
+            return p;
         }
-        
-        // 嘗試在交點創建點
-        const intersection = findNearestIntersection(mx, my);
-        if (intersection) {
-            points.push(intersection);
-            recordAction(intersection, points);
+    }
+    
+    // 嘗試在交點創建點
+    const intersection = findNearestIntersection(mx, my);
+    if (intersection) {
+        points.push(intersection);
+        recordAction(intersection, points);
+        draw();
+        return intersection;
+    }
+    
+    // 檢查是否在線段上
+    for (const line of lines) {
+        if (pointNearLine(mx, my, line)) {
+            const p=createPointOnLine(line, mx, my);
+            draw();
+            return p;
+        }
+    }
+    
+    // 檢查是否在圓形上
+    for (const circle of circles) {
+        if (pointNearCircle(mx, my, circle)) {
+            const p=createPointOnCircle(circle, mx, my);
+            draw();
+            return p;
+        }
+    }
+    
+    // 都不在，創建自由點
+    const p = createFreePoint(mx, my);
+    draw();
+    return p;
+}
+function addLine(mx,my){
+    var nearbyPoint = findNearestPoint(mx, my);
+    if(nearbyPoint==null){
+        nearbyPoint = addPoint(mx,my);
+    }
+    if (!selectedPoint) {
+        selectedPoint = nearbyPoint;
+        draw();
+    } else {
+        if (selectedPoint === nearbyPoint) {
+            selectedPoint = null;
             draw();
             return;
         }
-        
-        // 檢查是否在線段上
-        for (const line of lines) {
-            if (pointNearLine(mx, my, line)) {
-                createPointOnLine(line, mx, my);
-                draw();
-                return;
-            }
+        const exists = findExistingLine(selectedPoint, nearbyPoint);
+        if (exists) {
+            selectedPoint = null;
+            draw();
+            return;
         }
-        
-        // 檢查是否在圓形上
-        for (const circle of circles) {
-            if (pointNearCircle(mx, my, circle)) {
-                createPointOnCircle(circle, mx, my);
-                draw();
-                return;
-            }
-        }
-        
-        // 都不在，創建自由點
-        createFreePoint(mx, my);
+        // 創建直線
+        const line = new Line(selectedPoint, nearbyPoint);
+        lines.push(line);
+        recordAction(line, lines);
+        selectedPoint = null;
         draw();
     }
-
-    // mode = line: 點擊兩個點來創建直線
-    if (mode === Mode.LINE) {
-        const nearbyPoint = findNearestPoint(mx, my);
-        if (nearbyPoint) {
-            if (!selectedPoint) {
-                selectedPoint = nearbyPoint;
-                draw();
-            } else {
-                if (selectedPoint === nearbyPoint) {
-                    selectedPoint = null;
-                    draw();
-                    return;
-                }
-                const exists = findExistingLine(selectedPoint, nearbyPoint);
-                if (exists) {
-                    selectedPoint = null;
-                    draw();
-                    return;
-                }
-                // 創建直線
-                const line = new Line(selectedPoint, nearbyPoint);
-                lines.push(line);
-                recordAction(line, lines);
-                selectedPoint = null;
-                draw();
-            }
-        }
+}
+function addCircle(mx,my){
+    var nearbyPoint = findNearestPoint(mx, my);
+    if(nearbyPoint==null){
+        nearbyPoint = addPoint(mx,my);
     }
-
-    // mode = circle: 點擊中心和半徑點來創建圓
-    if (mode === Mode.CIRCLE) {
-        const nearbyPoint = findNearestPoint(mx, my);
-        if (nearbyPoint) {
-            if (!selectedPoint) {
-                selectedPoint = nearbyPoint;
-                draw();
-            } else {
-                if (selectedPoint === nearbyPoint) {
-                    selectedPoint = null;
-                    draw();
-                    return;
-                }
-                const exists = findExistingCircle(selectedPoint, nearbyPoint);
-                if (exists) {
-                    selectedPoint = null;
-                    draw();
-                    return;
-                }
-                // 創建圓
-                const circle = new Circle(selectedPoint, nearbyPoint);
-                circles.push(circle);
-                recordAction(circle, circles);
-                selectedPoint = null;
-                draw();
-            }
+    if (!selectedPoint) {
+        selectedPoint = nearbyPoint;
+        draw();
+    } else {
+        if (selectedPoint === nearbyPoint) {
+            selectedPoint = null;
+            draw();
+            return;
         }
+        const exists = findExistingCircle(selectedPoint, nearbyPoint);
+        if (exists) {
+            selectedPoint = null;
+            draw();
+            return;
+        }
+        // 創建圓
+        const circle = new Circle(selectedPoint, nearbyPoint);
+        circles.push(circle);
+        recordAction(circle, circles);
+        selectedPoint = null;
+        draw();
+    }
+}
+function handleDrawingLogic(mx, my) {
+    if (mode === Mode.POINT) {
+        addPoint(mx, my);
+        return;
+    }
+    if (mode === Mode.LINE) {
+        addLine(mx, my);
+        return;
+    }
+    if (mode === Mode.CIRCLE) {
+        addCircle(mx, my);
+        return;
+    }
+}
+function handleMovingLogic(mx, my) {
+    const np = nearbyVisiblePoint(mx, my);
+    if (np) {
+        draggingPoint = np;
+        dragPoint(draggingPoint, mx, my);
+        draw();
+        
+        const moveHandler = (ev) => {
+            if (isMultiTouch) return; // 拖動中若變雙指則停止
+            const cp = screenToCanvas(ev.clientX, ev.clientY);
+            dragPoint(draggingPoint, cp.x, cp.y);
+            draw();
+        };
+
+        const upHandler = () => {
+            window.removeEventListener("pointermove", moveHandler);
+            window.removeEventListener("pointerup", upHandler);
+            window.removeEventListener("pointercancel", upHandler);
+            draggingPoint = null;
+            draw();
+        };
+
+        window.addEventListener("pointermove", moveHandler);
+        window.addEventListener("pointerup", upHandler);
+        window.addEventListener("pointercancel", upHandler);
+        return;
+    }
+    
+    const obj = findNearestAny(mx, my);
+    if (obj) {
+        highlightedObject = (highlightedObject === obj) ? null : obj;
+        draw();
     }
 }
 window.addEventListener("pointermove", (e) => {
@@ -959,7 +1018,7 @@ window.addEventListener("pointermove", (e) => {
         panStartY = e.clientY;
         draw();
     }
-    const isOverUI = e.target.closest('#banner') || 
+    const isOverUI = e.target.closest('button') || 
                      e.target.closest('#inff') || 
                      e.target.closest('#inf');
     if (isOverUI) {
@@ -983,7 +1042,7 @@ window.addEventListener("pointermove", (e) => {
     
     hoveredPoint = null;
     if(isPanning) return;
-    if(draggingPoint) return; // 拖曳中不更新懸停點
+    if(draggingPoint) return;
     const np = nearbyVisiblePoint(mx, my);
     
     if(np?.type.dof==0 && mode===Mode.MOVE){
@@ -996,10 +1055,27 @@ window.addEventListener("pointermove", (e) => {
     draw();
 });
 window.addEventListener("pointerdown", (e) => {
-    if (e.target !== cvs) return;
+    pointerStartTime = Date.now();
+    activePointers.add(e.pointerId);
+    
+    if(e.target!==cvs)return;
+
+    if (activePointers.size > 1) {
+        if (touchPendingTimeout) {
+            clearTimeout(touchPendingTimeout);
+            touchPendingTimeout = null;
+        }
+        isMultiTouch = true;
+        mouse.show = false;
+        hoveredPoint = null;
+        draw();
+        return;
+    }
     const canvasPos = screenToCanvas(e.clientX, e.clientY);
     const mx = canvasPos.x;
     const my = canvasPos.y;
+
+    pointerStartPos=canvasPos;
     
     mouse.x = mx;
     mouse.y = my;
@@ -1013,52 +1089,82 @@ window.addEventListener("pointerdown", (e) => {
         return;
     }
 
-    
-    // 找最近點（mode = move）
-    if (mode === Mode.MOVE) {
-        const np=nearbyVisiblePoint(mx, my);
-        if(np){
-            draggingPoint = np;
-            dragPoint(draggingPoint, mx, my);
-            draw();
-            const moveHandler = (ev) => {
-                const cp = screenToCanvas(ev.clientX, ev.clientY);
-                dragPoint(draggingPoint, cp.x, cp.y);
-                draw();
-            };
+    const executeSinglePointerLogic = () => {
+        if (isMultiTouch) return;
 
-            const upHandler = () => {
-                window.removeEventListener("pointermove", moveHandler);
-                window.removeEventListener("pointerup", upHandler);
-                window.removeEventListener("pointercancel", upHandler);
-                draggingPoint = null;
-                draw();
-            };
-
-            window.addEventListener("pointermove", moveHandler);
-            window.addEventListener("pointerup", upHandler);
-            window.addEventListener("pointercancel", upHandler);
+        if (mode === Mode.MOVE) {
+            handleMovingLogic(mx, my);
+            return;
         }
-    }
 
-    if (e.pointerType === 'mouse') {
-        handleMacroSelection(mx, my);
-        handleDrawingLogic(mx, my);
+        if (e.pointerType === 'mouse') {
+            handleMacroSelection(mx, my);
+            handleDrawingLogic(mx, my);
+        } else if (e.pointerType === 'touch') {
+            if (mode === Mode.LINE || mode === Mode.CIRCLE) {
+                handleDrawingLogic(mx, my);
+            }
+            if (mode === Mode.MACRO_DEFINE || mode === Mode.MACRO_EXECUTE) {
+                handleMacroSelection(mx, my);
+            }
+        }
+    };
+
+    if (e.pointerType === 'touch') {
+        touchPendingTimeout = setTimeout(() => {
+            executeSinglePointerLogic();
+            touchPendingTimeout = null;
+        }, 20);
+    } else {
+        executeSinglePointerLogic();
     }
 });
 window.addEventListener("pointerup", (e) => {
+
+    if (touchPendingTimeout) {
+        clearTimeout(touchPendingTimeout);
+        touchPendingTimeout = null;
+        const canvasPos = screenToCanvas(e.clientX, e.clientY);
+        if (mode===Mode.MOVE) handleMovingLogic(canvasPos.x, canvasPos.y);
+        if (mode === Mode.POINT) handleDrawingLogic(canvasPos.x, canvasPos.y);
+        if (mode === Mode.LINE || mode === Mode.CIRCLE) handleDrawingLogic(canvasPos.x, canvasPos.y);
+        if (mode === Mode.MACRO_DEFINE || mode === Mode.MACRO_EXECUTE) handleMacroSelection(canvasPos.x, canvasPos.y);
+    }
+
+    activePointers.delete(e.pointerId);
+    if (activePointers.size === 0) {
+        setTimeout(() => {
+            if (activePointers.size === 0) isMultiTouch = false;
+        }, 50); 
+    }
+
+    if (isMultiTouch) return;
+
     if (e.pointerType === 'touch' && !isMultiTouch && !isPanning&&e.target === cvs) {
         const canvasPos = screenToCanvas(e.clientX, e.clientY);
-        handleMacroSelection(canvasPos.x, canvasPos.y);
-        handleDrawingLogic(canvasPos.x, canvasPos.y);
+        if(dist(pointerStartPos, canvasPos)>BASE_POINT_RADIUS&&(mode===Mode.LINE||mode===Mode.CIRCLE)&&selectedPoint){
+            handleDrawingLogic(canvasPos.x, canvasPos.y);
+        }
+        if(mode===Mode.POINT){
+            handleDrawingLogic(canvasPos.x, canvasPos.y);
+        }
+    }
+    if(e.pointerType === 'mouse' && !isPanning&&e.target === cvs){
+        const canvasPos = screenToCanvas(e.clientX, e.clientY);
+        if(dist(pointerStartPos, canvasPos)>BASE_POINT_RADIUS&&(mode===Mode.LINE||mode===Mode.CIRCLE)&&selectedPoint){
+            handleDrawingLogic(canvasPos.x, canvasPos.y);
+        }
     }
     
-    // 手機端放開後隱藏預覽
     mouse.show = false; 
     
     resetState();
 });
-window.addEventListener("pointercancel", resetState);
+window.addEventListener("pointercancel", (e) => {
+    activePointers.delete(e.pointerId);
+    if (activePointers.size === 0) isMultiTouch = false;
+    resetState();
+});
 window.addEventListener("blur", resetState);
 window.addEventListener("wheel", (e) => {
     e.preventDefault();
@@ -1789,11 +1895,82 @@ function uniquePoints(points) {
     }
     return res;
 }
+function stickTo(mx,my){
+
+    // 優先順序：1. 現有的點 2. 交點 3. 線上/圓上的投影點 4. 自由點
+    let pPos = null;
+
+    if (hoveredPoint) {
+        // 1. 吸附到現有的點
+        pPos = { x: hoveredPoint.x, y: hoveredPoint.y };
+    } else {
+        const intersection = findNearestIntersection(mx, my);
+        const clr="#f00";
+        if (intersection) {
+            // 2. 吸附到交點
+            pPos = { x: intersection.x, y: intersection.y };
+            if(intersection.type === PointType.LINE_LINE){
+                const [l1, l2] = intersection.ref;
+                drawLine(l1, clr);
+                drawLine(l2, clr);
+            }else if(intersection.type === PointType.CIRCLE_CIRCLE){
+                const [c1, c2] = intersection.ref;
+                drawCircle(c1, clr);
+                drawCircle(c2, clr);
+            }else if(intersection.type === PointType.LINE_CIRCLE){
+                const [l, c] = intersection.ref;
+                drawLine(l, clr);
+                drawCircle(c, clr);
+            }
+        } else {
+            // 3. 檢查是否在線段上
+            let foundOnGeometry = false;
+            for (const line of lines) {
+                if (pointNearLine(mx, my, line)) {
+                    const { p1, p2 } = line;
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const len2 = dx * dx + dy * dy;
+                    const t = ((mx - p1.x) * dx + (my - p1.y) * dy) / len2;
+                    pPos = {
+                        x: p1.x + t * dx,
+                        y: p1.y + t * dy
+                    };
+                    foundOnGeometry = true;
+                    drawLine(line, clr);
+                    break;
+                }
+            }
+            
+            // 4. 檢查是否在圓形上 (如果沒在線上)
+            if (!foundOnGeometry) {
+                for (const circle of circles) {
+                    if (pointNearCircle(mx, my, circle)) {
+                        const angle = Math.atan2(my - circle.center.y, mx - circle.center.x);
+                        pPos = {
+                            x: circle.center.x + circle.r * Math.cos(angle),
+                            y: circle.center.y + circle.r * Math.sin(angle)
+                        };
+                        foundOnGeometry = true;
+                        drawCircle(circle, clr);
+                        break;
+                    }
+                }
+            }
+
+            // 5. 都沒有，就是自由點
+            if (!foundOnGeometry) {
+                pPos = { x: mx, y: my };
+            }
+        }
+    }
+    return pPos;
+}
 
 function drawPoint(p,clr="#f0f") {
     if(!p.isDefined) return;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, BASE_SNAP_DIST*0.8/camera.scale, 0, Math.PI*2);
+    ctx.arc(p.x, p.y, BASE_POINT_RADIUS*0.8/camera.scale, 0, Math.PI*2);
     ctx.fillStyle = clr;
     ctx.strokeStyle = "#000";
     ctx.lineWidth=1/camera.scale;
@@ -1865,91 +2042,53 @@ function draw() {
     for (const l of lines) drawLine(l);
     for (const c of circles) drawCircle(c);
 
+    if(mode===Mode.MOVE&&highlightedObject){
+        const obj=highlightedObject;
+        if(obj instanceof Line){
+            highlightObj(obj, "#ffff00");
+            highlightObj(obj.p1, "#ffff00");
+            highlightObj(obj.p2, "#ffff00");
+        }
+        if(obj instanceof Circle){
+            highlightObj(obj, "#ffff00");
+            highlightObj(obj.center, "#ffff00");
+            highlightObj(obj.p, "#ffff00");
+        }
+    }
+
     if(mouse.show&&!isPanning){
         if(selectedPoint){
-            const mousePoint = (hoveredPoint)? hoveredPoint : { x: mouse.x, y: mouse.y, isDefined: true };
-            
+            const mousePoint = stickTo(mouse.x, mouse.y);
             ctx.save();
-            ctx.setLineDash([5 / camera.scale, 5 / camera.scale]); // 設置虛線，讓預覽更有質感
+            ctx.setLineDash([5 / camera.scale, 5 / camera.scale]);
             const clr="#fff8";
-            if(mode === Mode.LINE){
-                drawLine(new Line(selectedPoint, mousePoint), clr);
-            } else if(mode === Mode.CIRCLE){
-                drawCircle(new Circle(selectedPoint, mousePoint), clr);
+            if(dist(selectedPoint, mousePoint)>BASE_SNAP_DIST){
+                if(mode === Mode.LINE){
+                    drawLine(new Line(selectedPoint, mousePoint), clr);
+                } else if(mode === Mode.CIRCLE){
+                    drawCircle(new Circle(selectedPoint, mousePoint), clr);
+                }
             }
             ctx.restore();
         }
-        if (mode === Mode.POINT&&!isMultiTouch) {
+        if(mode === Mode.POINT&&!isMultiTouch) {
             const mx = mouse.x;
             const my = mouse.y;
             
-            // 優先順序：1. 現有的點 2. 交點 3. 線上/圓上的投影點 4. 自由點
-            let pPos = null;
+            const pPos = stickTo(mx, my);
 
-            if (hoveredPoint) {
-                // 1. 吸附到現有的點
-                pPos = { x: hoveredPoint.x, y: hoveredPoint.y };
-            } else {
-                const intersection = findNearestIntersection(mx, my);
-                const clr="#f00a";
-                if (intersection) {
-                    // 2. 吸附到交點
-                    pPos = { x: intersection.x, y: intersection.y };
-                    if(intersection.type === PointType.LINE_LINE){
-                        const [l1, l2] = intersection.ref;
-                        drawLine(l1, clr);
-                        drawLine(l2, clr);
-                    }else if(intersection.type === PointType.CIRCLE_CIRCLE){
-                        const [c1, c2] = intersection.ref;
-                        drawCircle(c1, clr);
-                        drawCircle(c2, clr);
-                    }else if(intersection.type === PointType.LINE_CIRCLE){
-                        const [l, c] = intersection.ref;
-                        drawLine(l, clr);
-                        drawCircle(c, clr);
-                    }
-                } else {
-                    // 3. 檢查是否在線段上
-                    let foundOnGeometry = false;
-                    for (const line of lines) {
-                        if (pointNearLine(mx, my, line)) {
-                            const { p1, p2 } = line;
-                            const dx = p2.x - p1.x;
-                            const dy = p2.y - p1.y;
-                            const len2 = dx * dx + dy * dy;
-                            const t = ((mx - p1.x) * dx + (my - p1.y) * dy) / len2;
-                            pPos = {
-                                x: p1.x + t * dx,
-                                y: p1.y + t * dy
-                            };
-                            foundOnGeometry = true;
-                            drawLine(line, clr);
-                            break;
-                        }
-                    }
-                    
-                    // 4. 檢查是否在圓形上 (如果沒在線上)
-                    if (!foundOnGeometry) {
-                        for (const circle of circles) {
-                            if (pointNearCircle(mx, my, circle)) {
-                                const angle = Math.atan2(my - circle.center.y, mx - circle.center.x);
-                                pPos = {
-                                    x: circle.center.x + circle.r * Math.cos(angle),
-                                    y: circle.center.y + circle.r * Math.sin(angle)
-                                };
-                                foundOnGeometry = true;
-                                drawCircle(circle, clr);
-                                break;
-                            }
-                        }
-                    }
+            const previewRadius = isMobile ? BASE_SNAP_DIST * 1.2 : BASE_SNAP_DIST * 0.8;
+            ctx.beginPath();
+            ctx.arc(pPos.x, pPos.y, previewRadius / camera.scale, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff8";
+            ctx.fill();
+        }
+        if((mode === Mode.CIRCLE||mode === Mode.LINE)&&!isMultiTouch&&selectedPoint) {
+            const mx = mouse.x;
+            const my = mouse.y;
+            
+            const pPos = stickTo(mx, my);
 
-                    // 5. 都沒有，就是自由點
-                    if (!foundOnGeometry) {
-                        pPos = { x: mx, y: my };
-                    }
-                }
-            }
             const previewRadius = isMobile ? BASE_SNAP_DIST * 1.2 : BASE_SNAP_DIST * 0.8;
             ctx.beginPath();
             ctx.arc(pPos.x, pPos.y, previewRadius / camera.scale, 0, Math.PI * 2);
