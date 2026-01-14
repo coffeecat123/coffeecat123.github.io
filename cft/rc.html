@@ -81,6 +81,16 @@ body, html {
     display: block;
     transition: .5s;
 }
+#hideLine {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+    transform-origin: center;
+    transform: scale(0);
+    opacity: 0;
+}
+#btnHide.active #hideLine {
+    transform: scale(1);
+    opacity: 1;
+}
 #banner button, 
 #banner select, 
 #banner input,
@@ -239,6 +249,13 @@ button.btn:hover {
                 <circle cx="19.071067811865476" cy="4.9289321881345245" r="2"  fill="none"/>
             </svg>
         </button>
+        <button id="btnHide" title="Show/Hide">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="stroke-width: 2px;">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" fill="none"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" fill="none"/>
+                <line x1="3" y1="21" x2="21" y2="3" stroke="currentColor" id="hideLine" />
+            </svg>
+        </button>
         <button id="btnUndo" title="Undo">
             <svg viewBox="0 0 24 24" style="transform: matrix(-1.2, 0, 0, 1.2, 0, -1);">
                 <path d="M14.6644 5.47875L18.6367 9.00968C20.2053 10.404 20.9896 11.1012 20.9896 11.9993C20.9896 12.8975 20.2053 13.5946 18.6367 14.989L14.6644 18.5199C13.9484 19.1563 13.5903 19.4746 13.2952 19.342C13 19.2095 13 18.7305 13 17.7725V15.4279C9.4 15.4279 5.5 17.1422 4 19.9993C4 10.8565 9.33333 8.57075 13 8.57075V6.22616C13 5.26817 13 4.78917 13.2952 4.65662C13.5903 4.52407 13.9484 4.8423 14.6644 5.47875Z" 
@@ -296,7 +313,7 @@ button.btn:hover {
         </button>
     <div id="inff" class="tt"
 ><b>Shortcuts</b>
-1-6 : Switch Modes
+1-7 : Switch Modes
 Z   : Undo
 Y   : Redo
 Esc : Cancel
@@ -308,6 +325,7 @@ const btnMove = $("#btnMove");
 const btnPoint = $("#btnPoint");
 const btnLine = $("#btnLine");
 const btnCircle = $("#btnCircle");
+const btnHide = $("#btnHide");
 const btnUndo = $("#btnUndo");
 const btnRedo = $("#btnRedo");
 const btnDefine = $("#btnDefine");
@@ -330,6 +348,7 @@ const Mode = {
     POINT: "point",
     LINE: "line",
     CIRCLE: "circle",
+    HIDE: "hide",
     MACRO_DEFINE :"macro_define",
     MACRO_EXECUTE :"macro_execute"
 };
@@ -598,20 +617,22 @@ function setMode(newMode) {
         macroPanel.style.display="block";
     }
     
-    // 更新按鈕樣式
-    [btnMove, btnPoint, btnLine, btnCircle, btnDefine, btnExecute].forEach(btn => btn.classList.remove("active"));
+    [btnMove, btnPoint, btnLine, btnCircle, btnHide, btnDefine, btnExecute].forEach(btn => btn.classList.remove("active"));
     if(mode === Mode.MOVE) btnMove.classList.add("active");
     if(mode === Mode.POINT) btnPoint.classList.add("active");
     if(mode === Mode.LINE) btnLine.classList.add("active");
     if(mode === Mode.CIRCLE) btnCircle.classList.add("active");
+    if(mode === Mode.HIDE) btnHide.classList.add("active");
     if(mode === Mode.MACRO_DEFINE) btnDefine.classList.add("active");
     if(mode === Mode.MACRO_EXECUTE) btnExecute.classList.add("active");
+    
     draw();
 }
 btnMove.onclick = () => setMode(Mode.MOVE);
 btnPoint.onclick = () => setMode(Mode.POINT);
 btnLine.onclick = () => setMode(Mode.LINE);
 btnCircle.onclick = () => setMode(Mode.CIRCLE);
+btnHide.onclick = () => setMode(Mode.HIDE);
 btnDefine.onclick = () => {
     setMode(Mode.MACRO_DEFINE);
     macroCreator = { stage: 'inputs', inputs: [], outputs: [] };
@@ -731,6 +752,38 @@ btnIO.onclick = () => {
 };
 btnUndo.onclick = undo;
 btnRedo.onclick = redo;
+document.onkeydown = (e) => {
+    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    const key = e.key.toLowerCase();
+    const modeMap = {
+        '1': Mode.MOVE,
+        '2': Mode.POINT,
+        '3': Mode.LINE,
+        '4': Mode.CIRCLE,
+        '5': Mode.HIDE,
+        '6': Mode.MACRO_DEFINE,
+        '7': Mode.MACRO_EXECUTE
+    };
+    if (modeMap[key]) {
+        setMode(modeMap[key]);
+        return;
+    }
+
+    switch (key) {
+        case 'z':
+            e.preventDefault();
+            undo();
+            break;
+        case 'y':
+            e.preventDefault();
+            redo();
+            break;
+        case 'escape':
+            setMode(mode);
+            break;
+    }
+};
 function processImportedJSON(jsonString) {
     try {
         const imported = JSON.parse(jsonString);
@@ -766,38 +819,6 @@ function cancelMacro() {
     draw();
 }
 
-document.onkeydown = (e) => {
-    if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; // 忽略輸入框內的快捷鍵
-    if (e.key === "Escape") {
-        setMode(mode);
-    }
-    if (e.key.toLocaleLowerCase() == 'z') {
-        e.preventDefault();
-        undo();
-    }
-    if (e.key.toLocaleLowerCase() == 'y') {
-        e.preventDefault();
-        redo();
-    }
-    if(e.key==1){
-        setMode(Mode.MOVE);
-    }
-    if(e.key==2){
-        setMode(Mode.POINT);
-    }
-    if(e.key==3){
-        setMode(Mode.LINE);
-    }
-    if(e.key==4){
-        setMode(Mode.CIRCLE);
-    }
-    if(e.key==5){
-        setMode(Mode.MACRO_DEFINE);
-    }
-    if(e.key==6){
-        setMode(Mode.MACRO_EXECUTE);
-    }
-};
 function newPointToActiveMacro(p){
     macroPoints.push(p);
     if(macroPoints.length==activeMacro.inputsCount){
@@ -1008,6 +1029,13 @@ function handleMovingLogic(mx, my) {
         draw();
     }
 }
+function handleHideLogic(mx, my) {
+    const obj = findNearestAny(mx, my);
+    if (obj) {
+        obj.visible = !obj.visible;
+        draw();
+    }
+}
 window.addEventListener("pointermove", (e) => {
     if (isPanning) {
         const dx = e.clientX - panStartX;
@@ -1096,6 +1124,10 @@ window.addEventListener("pointerdown", (e) => {
             handleMovingLogic(mx, my);
             return;
         }
+        if (mode === Mode.HIDE) {
+            handleHideLogic(mx, my);
+            return;
+        }
 
         if (e.pointerType === 'mouse') {
             handleMacroSelection(mx, my);
@@ -1128,6 +1160,7 @@ window.addEventListener("pointerup", (e) => {
         if (mode===Mode.MOVE) handleMovingLogic(canvasPos.x, canvasPos.y);
         if (mode === Mode.POINT) handleDrawingLogic(canvasPos.x, canvasPos.y);
         if (mode === Mode.LINE || mode === Mode.CIRCLE) handleDrawingLogic(canvasPos.x, canvasPos.y);
+        if (mode === Mode.HIDE) handleHideLogic(canvasPos.x, canvasPos.y);
         if (mode === Mode.MACRO_DEFINE || mode === Mode.MACRO_EXECUTE) handleMacroSelection(canvasPos.x, canvasPos.y);
     }
 
@@ -1412,7 +1445,7 @@ function getRank(obj) {
 }
 
 class Point {
-    constructor(x, y, type = PointType.FREE, ref = null, t=0,index = 0) {
+    constructor(x, y, type = PointType.FREE, ref = null, t=0,index = 0,visible = true) {
         this.x = x;
         this.y = y;
         this.type = type;
@@ -1420,7 +1453,7 @@ class Point {
         this.t = t; // 用於參數化位置（線上或圓上）
         this.index = index; // 如果有多个交点，用来区分第几个
         this.isDefined = true;
-        this.visible = true;
+        this.visible = visible;
         this.id = null;
         if (this.type === PointType.FREE) {
             this.rank = 0;
@@ -1481,13 +1514,14 @@ class Point {
     }
 }
 class Line {
-    constructor(p1, p2) {
+    constructor(p1, p2, visible = true) {
         // Ax + By + C = 0
         this.p1 = p1;
         this.p2 = p2;
         this.id = null;
         this.isDefined = true;
         this.rank = Math.max(p1.rank, p2.rank) + 1;
+        this.visible = visible;
     }
     
     get A() {
@@ -1510,12 +1544,13 @@ class Line {
     }
 }
 class Circle {
-    constructor(center, p) {
+    constructor(center, p, visible = true) {
         this.center = center;
         this.p = p;
         this.id = null;
         this.isDefined = true;
         this.rank = Math.max(center.rank, p.rank) + 1;
+        this.visible = visible;
     }
     get r() {
         return dist(this.center, this.p);
@@ -1582,8 +1617,8 @@ function isInputRedundant(newInput, existingInputs) {
 function getMacroSteps(outputs, inputs) {
     const steps = [];
     const visited = new Set();
+    const outputIds = new Set(outputs.map(o => o.id)); // 記錄哪些 ID 是最終輸出的物件
     
-    // 初始化已访问集合：包含输入本身及其组件点
     inputs.forEach(o => {
         visited.add(o.id);
         if (o instanceof Line) {
@@ -1606,13 +1641,13 @@ function getMacroSteps(outputs, inputs) {
             parents = Array.isArray(obj.ref) ? obj.ref : [obj.ref];
         }
 
-        // 先递归追踪父级
         parents.forEach(p => trace(p));
 
-        // 如果父级都处理完了且自己还没被记录，则记录此步骤
         if (!visited.has(obj.id)) {
             visited.add(obj.id);
-            steps.push(serializeObject(obj));
+            const stepData = serializeObject(obj);
+            stepData.isOutput = outputIds.has(obj.id); 
+            steps.push(stepData);
         }
     }
 
@@ -1647,10 +1682,8 @@ function runTool(toolData, currentSelectedObjects) {
     toolData.inputs.forEach((inputInfo, i) => {
         const realObj = currentSelectedObjects[i];
         idMap.set(inputInfo.id, realObj);
-        
-        if (realObj instanceof Point) {
-            macroInternalPoints.push(realObj);
-        } else if (realObj instanceof Line) {
+        if (realObj instanceof Point) macroInternalPoints.push(realObj);
+        else if (realObj instanceof Line) {
             idMap.set(inputInfo.sub[0], realObj.p1);
             idMap.set(inputInfo.sub[1], realObj.p2);
             macroInternalPoints.push(realObj.p1, realObj.p2);
@@ -1664,41 +1697,45 @@ function runTool(toolData, currentSelectedObjects) {
     toolData.steps.forEach(step => {
         const parents = step.parents.map(pid => idMap.get(pid));
         let finalRealObj = null;
+        
+        const isVisible = step.isOutput === true;
 
         if (step.className === "Point") {
             const typeObj = Object.values(PointType).find(t => t.name === step.type);
             const ref = parents.length > 1 ? parents : parents[0];
             
-            let p = new Point(0, 0, typeObj, ref, step.t || 0, step.index || 0);
-            
+            let p = new Point(0, 0, typeObj, ref, step.t || 0, step.index || 0, isVisible);
             p.update(macroInternalPoints, false, true); 
 
             let existing = findExistingPointAt(p.x, p.y);
-            
             if (existing) {
                 finalRealObj = existing;
+                if (isVisible) finalRealObj.visible = true;
             } else {
                 finalRealObj = p;
                 points.push(finalRealObj);
                 recordAction(finalRealObj, points);
             }
-
             macroInternalPoints.push(finalRealObj);
         } 
         else if (step.className === "Line") {
             finalRealObj = findExistingLine(parents[0], parents[1]);
             if (!finalRealObj) {
-                finalRealObj = new Line(parents[0], parents[1]);
+                finalRealObj = new Line(parents[0], parents[1], isVisible);
                 lines.push(finalRealObj);
                 recordAction(finalRealObj, lines);
+            } else if (isVisible) {
+                finalRealObj.visible = true;
             }
         } 
         else if (step.className === "Circle") {
             finalRealObj = findExistingCircle(parents[0], parents[1]);
             if (!finalRealObj) {
-                finalRealObj = new Circle(parents[0], parents[1]);
+                finalRealObj = new Circle(parents[0], parents[1], isVisible);
                 circles.push(finalRealObj);
                 recordAction(finalRealObj, circles);
+            } else if (isVisible) {
+                finalRealObj.visible = true;
             }
         }
         
@@ -2034,8 +2071,20 @@ function draw() {
 
     updateAll();
 
-    for (const l of lines) drawLine(l);
-    for (const c of circles) drawCircle(c);
+    for (const l of lines){
+        if(l.visible==false){
+            drawLine(l, (mode === Mode.HIDE) ? "#444" : "#222");
+            continue;
+        }
+        drawLine(l);
+    }
+    for (const c of circles){
+        if(c.visible==false){
+            drawCircle(c, (mode === Mode.HIDE) ? "#444" : "#222");
+            continue;
+        }
+        drawCircle(c);
+    }
 
     if(mode===Mode.MOVE&&highlightedObject){
         const obj=highlightedObject;
@@ -2107,6 +2156,10 @@ function draw() {
     }
     // 繪製所有點
     for (const p of points){
+        if(p.visible==false){
+            drawPoint(p, "#333");
+            continue;
+        }
         if(p.type.dof==2){
             drawPoint(p, "#ff00ff");
         }else if(p.type.dof==1){
@@ -2182,7 +2235,6 @@ function draw() {
     ctx.strokeRect(0, 0, window.innerWidth, window.innerHeight);
     
 }
-
 function bk() {
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     ctx.save();
