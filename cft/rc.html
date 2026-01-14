@@ -1429,10 +1429,12 @@ class Point {
         }
     }
 
-    update(extraPoints = [], ignoreJump = false) {
+    update(extraPoints = [], ignoreJump = false, contextOnly = false) {
         const isOccupied = (coord) => {
-            const occGlobal = points.some(p => p !== this && p.isDefined && dist(p, coord) < EPS);
-            if (occGlobal) return true;
+            if (!contextOnly) {
+                const occGlobal = points.some(p => p !== this && p.isDefined && dist(p, coord) < EPS);
+                if (occGlobal) return true;
+            }
             const occLocal = extraPoints.some(p => p !== this && p.isDefined && dist(p, coord) < EPS);
             return occLocal;
         };
@@ -1459,7 +1461,6 @@ class Point {
             } else {
                 if (this.index >= results.length) this.index = 0;
 
-                // --- 修正重點：只有在不忽略跳轉時才執行避讓邏輯 ---
                 if (!ignoreJump && results.length > 1) {
                     const occ0 = isOccupied(results[0]);
                     const occ1 = isOccupied(results[1]);
@@ -1641,73 +1642,67 @@ function serializeObject(obj) {
 }
 function runTool(toolData, currentSelectedObjects) {
     const idMap = new Map();
-    
-    // 1. 初始化 Input 映射
+    const macroInternalPoints = [];
+
     toolData.inputs.forEach((inputInfo, i) => {
         const realObj = currentSelectedObjects[i];
         idMap.set(inputInfo.id, realObj);
-        if (realObj instanceof Line) {
+        
+        if (realObj instanceof Point) {
+            macroInternalPoints.push(realObj);
+        } else if (realObj instanceof Line) {
             idMap.set(inputInfo.sub[0], realObj.p1);
             idMap.set(inputInfo.sub[1], realObj.p2);
+            macroInternalPoints.push(realObj.p1, realObj.p2);
         } else if (realObj instanceof Circle) {
             idMap.set(inputInfo.sub[0], realObj.center);
             idMap.set(inputInfo.sub[1], realObj.p);
+            macroInternalPoints.push(realObj.center, realObj.p);
         }
     });
 
-    // 2. 逐步執行並解析每個 Step
     toolData.steps.forEach(step => {
         const parents = step.parents.map(pid => idMap.get(pid));
-        let finalObj = null;
+        let finalRealObj = null;
 
-        if (step.className === "Line") {
-            // 檢查是否已有相同端點的線
-            finalObj = findExistingLine(parents[0], parents[1]);
-            if (!finalObj) {
-                finalObj = new Line(parents[0], parents[1]);
-                lines.push(finalObj);
-                recordAction(finalObj, lines);
-            }
-        } 
-        else if (step.className === "Circle") {
-            // 檢查是否已有相同定義的圓
-            finalObj = findExistingCircle(parents[0], parents[1]);
-            if (!finalObj) {
-                finalObj = new Circle(parents[0], parents[1]);
-                circles.push(finalObj);
-                recordAction(finalObj, circles);
-            }
-        } 
-        else if (step.className === "Point") {
+        if (step.className === "Point") {
             const typeObj = Object.values(PointType).find(t => t.name === step.type);
             const ref = parents.length > 1 ? parents : parents[0];
             
-            // A. 先建立一個「原始意圖」的臨時點 (強制不跳轉)
             let p = new Point(0, 0, typeObj, ref, step.t || 0, step.index || 0);
-            p.update([], true); // ignoreJump = true
+            
+            p.update(macroInternalPoints, false, true); 
 
-            // B. 檢查這個「原始位置」是否已經有點了
             let existing = findExistingPointAt(p.x, p.y);
             
             if (existing) {
-                finalObj = existing; // 找到了，直接用你的手畫點
+                finalRealObj = existing;
             } else {
-                // C. 如果原始位置沒點，才執行正常的 update (允許避讓跳轉)
-                p.update(); 
-                // 避讓後再次檢查新位置是否有點
-                existing = findExistingPointAt(p.x, p.y);
-                if (existing) {
-                    finalObj = existing;
-                } else {
-                    finalObj = p;
-                    points.push(finalObj);
-                    recordAction(finalObj, points);
-                }
+                finalRealObj = p;
+                points.push(finalRealObj);
+                recordAction(finalRealObj, points);
+            }
+
+            macroInternalPoints.push(finalRealObj);
+        } 
+        else if (step.className === "Line") {
+            finalRealObj = findExistingLine(parents[0], parents[1]);
+            if (!finalRealObj) {
+                finalRealObj = new Line(parents[0], parents[1]);
+                lines.push(finalRealObj);
+                recordAction(finalRealObj, lines);
+            }
+        } 
+        else if (step.className === "Circle") {
+            finalRealObj = findExistingCircle(parents[0], parents[1]);
+            if (!finalRealObj) {
+                finalRealObj = new Circle(parents[0], parents[1]);
+                circles.push(finalRealObj);
+                recordAction(finalRealObj, circles);
             }
         }
         
-        // 將確定的實體存入 Map 供後續 Step 引用
-        if (finalObj) idMap.set(step.id, finalObj);
+        if (finalRealObj) idMap.set(step.id, finalRealObj);
     });
 
     draw();
