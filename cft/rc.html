@@ -403,8 +403,8 @@ let activeTool = null;
 
 const EPS = 1e-6;
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
-const BASE_POINT_RADIUS = 10*(1+isMobile*0.3);
-const BASE_SNAP_DIST = BASE_POINT_RADIUS*(1+isMobile*0.3);
+const BASE_POINT_RADIUS = 8;
+const BASE_SNAP_DIST = BASE_POINT_RADIUS*(1+isMobile*0.3)*2;
 const dpr = window.devicePixelRatio || 1;
 
 if(isMobile){
@@ -2002,7 +2002,7 @@ function stickTo(mx,my){
 function drawPoint(p,clr="#f0f") {
     if(!p.isDefined) return;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, BASE_POINT_RADIUS*0.8/camera.scale, 0, Math.PI*2);
+    ctx.arc(p.x, p.y, BASE_POINT_RADIUS/camera.scale, 0, Math.PI*2);
     ctx.fillStyle = clr;
     ctx.strokeStyle = "#000";
     ctx.lineWidth=1/camera.scale;
@@ -2036,7 +2036,10 @@ function drawLine(line, style = "#0f0") {
     
     ctx.save();
     ctx.strokeStyle = style;
-    ctx.lineWidth = 3 * (1 + isMobile * 0.3) / camera.scale;
+    if(line.visible==false){
+        ctx.setLineDash([10 / camera.scale, 10 / camera.scale]);
+    }
+    ctx.lineWidth = BASE_POINT_RADIUS/2 / camera.scale;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
@@ -2045,11 +2048,16 @@ function drawLine(line, style = "#0f0") {
 }
 function drawCircle(circle, style = "#0ff") {
     if(!circle.isDefined) return;
+    ctx.save();
     ctx.strokeStyle = style;
-    ctx.lineWidth = 3*(1+isMobile*0.3)/camera.scale;
+    if(circle.visible==false){
+        ctx.setLineDash([10 / camera.scale, 10 / camera.scale]);
+    }
+    ctx.lineWidth = BASE_POINT_RADIUS/2 / camera.scale;
     ctx.beginPath();
     ctx.arc(circle.center.x, circle.center.y, dist(circle.center, circle.p), 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
 }
 function highlightObj(obj, color) {
     ctx.save();
@@ -2071,14 +2079,14 @@ function draw() {
 
     updateAll();
 
-    for (const l of lines){
+    for (const l of lines.sort((a,b)=>a.visible-b.visible)){
         if(l.visible==false){
             drawLine(l, (mode === Mode.HIDE) ? "#444" : "#222");
             continue;
         }
         drawLine(l);
     }
-    for (const c of circles){
+    for (const c of circles.sort((a,b)=>a.visible-b.visible)){
         if(c.visible==false){
             drawCircle(c, (mode === Mode.HIDE) ? "#444" : "#222");
             continue;
@@ -2155,9 +2163,9 @@ function draw() {
         }
     }
     // 繪製所有點
-    for (const p of points){
+    for (const p of points.sort((a,b)=>a.visible-b.visible)){
         if(p.visible==false){
-            drawPoint(p, "#333");
+            drawPoint(p, (mode === Mode.HIDE) ? "#555" : "#333");
             continue;
         }
         if(p.type.dof==2){
