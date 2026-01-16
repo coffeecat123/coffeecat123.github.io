@@ -1,39 +1,15 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8">
-    <title>draw</title>
+    <title>draw (Wasm Powered)</title>
     <style>
-        body {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -o-user-select: none;
-            user-select: none;
-            font-size: 30px;
-        }
-
-        .qw {
-            width: 50px;
-            display: none;
-        }
-
-        .qe {
-            color: white;
-            display: none;
-        }
-
-        .cc {
-            display: none;
-        }
-
-        #a1 {
-            min-width: 300px;
-            image-rendering: pixelated;
-        }
-        input[type="range"] {
-            width: 200px;
-        }
+        body { -webkit-user-select: none; -moz-user-select: none; user-select: none; font-size: 30px; }
+        .qw { width: 50px; display: none; }
+        .qe { color: white; display: none; }
+        .cc { display: none; }
+        #a1 { min-width: 300px; image-rendering: pixelated; }
+        input[type="range"] { width: 200px; }
     </style>
 </head>
 
@@ -49,21 +25,20 @@
     <span id="b4" style="font-size:15px;color:white;">255</span>
     <br>
     容差:<input id="a5" type="range" min=1 max=255 step=1>
-    <span id="b5" style="font-size:15px;color:white;">255</span>
+    <span id="b5" style="font-size:15px;color:white;">10</span>
     <br>
     大小:<input id="a6" type="range" min=1 max=100 step=1>
     <span id="b6" style="font-size:15px;color:white;">1</span>
-    <br>
     <br>
     修改畫布:
     <br>
     背景色:<input id="a4" type="color">
     <br>
-    <input type="file" name="fl" id="ed" accept="image/*" onchange="loadFile(event)">
+    <input type="file" name="fl" id="ed" accept="image/*" onchange="window.loadFile(event)">
     <br>
     x:<input id="ax" type="number" style="width:50px;">
     y:<input id="ay" type="number" style="width:50px;">
-    <button onclick="qz()">Change!</button>
+    <button onclick="window.qz()">Change!</button>
     <br>
     <br class="cc">
     <span class="qe">走迷宮:</span>
@@ -73,19 +48,19 @@
     <input id="c1" type="number" class="qw">
     <span class="qe">y:</span>
     <input id="c2" type="number" class="qw">
-    <button class="cc" onclick="qr()">Go!</button>
+    <button class="cc" onclick="window.qr()">Go!</button>
     <br class="cc">
     <span class="qe" style="width:60px;">end </span>
     <span class="qe">x:</span>
     <input id="c3" type="number" class="qw">
     <span class="qe">y:</span>
     <input id="c4" type="number" class="qw">
-    <button class="cc" onclick="qd()">cls</button>
+    <button class="cc" onclick="window.qd()">cls</button>
     <br class="cc">
     <span id="cq" class="qe">q:走法(1)</span>
     <br class="cc">
     <span class="qe">cr:</span>
-    <input id="c5" class="qw" type="color">
+    <input id="c5" class="qw" type="color" value="#ff0000">
     <pre>
 圖片上點右鍵可存檔!
 a:走迷宮
@@ -104,552 +79,99 @@ v:倒汁
 z:復原
 y:取消復原
 </pre>
-    <script>
-        var a1 = document.getElementById("a1");
-        var a2 = document.getElementById("a2");
-        var a3 = document.getElementById("a3");
-        var a4 = document.getElementById("a4");
-        var a5 = document.getElementById("a5");
-        var ax = document.getElementById("ax");
-        var ay = document.getElementById("ay");
-        var b1 = document.getElementById("b1");
-        var b2 = document.getElementById("b2");
-        var b3 = document.getElementById("b3");
-        var b4 = document.getElementById("b4");
-        var b5 = document.getElementById("b5");
-        var c1 = document.getElementById("c1");
-        var c2 = document.getElementById("c2");
-        var c3 = document.getElementById("c3");
-        var c4 = document.getElementById("c4");
-        var c5 = document.getElementById("c5");
-        var cq = document.getElementById("cq");
-        var qw = document.querySelectorAll('.qw');
-        var qe = document.querySelectorAll('.qe');
-        var cc = document.querySelectorAll('.cc');
+
+    <script type="module">
+         import init, { wasm_flood_fill, wasm_find_path, wasm_generate_maze } from './pkg/mirage_wasm.js';
+
+        // --- 變數定義 ---
+        var a1 = document.getElementById("a1"), a2 = document.getElementById("a2"), a3 = document.getElementById("a3"),
+            a4 = document.getElementById("a4"), a5 = document.getElementById("a5"), a6 = document.getElementById("a6"),
+            ax = document.getElementById("ax"), ay = document.getElementById("ay"), b1 = document.getElementById("b1"),
+            b2 = document.getElementById("b2"), b4 = document.getElementById("b4"), b5 = document.getElementById("b5"), 
+            b6 = document.getElementById("b6"), c1 = document.getElementById("c1"), c2 = document.getElementById("c2"), 
+            c3 = document.getElementById("c3"), c4 = document.getElementById("c4"), c5 = document.getElementById("c5"), 
+            cq = document.getElementById("cq");
+        var qw = document.querySelectorAll('.qw'), qe = document.querySelectorAll('.qe'), cc = document.querySelectorAll('.cc');
         var ctx = a1.getContext("2d", { willReadFrequently: true });
-        var qo = 1;
-        var qo1 = 0;
-        var step = -1;
-        var hist = [];
-        var qqe = 0;
-        var ti = 0;
-        var ww = 1;
-        var q = 1;//每格像素大小
-        var isMouseDown = false;
-        var xy = 500;//範圍
-        var ea = 1;//畫?
-        var va = 0, vv2, vv3;//填滿?
-        var ma = 0;//對稱方式
-        var rgb1r = 0;//色
-        var rgb1g = 0;//色
-        var rgb1b = 0;//色
-        var rgb1a = 255;//色
-        var xx = -1, yy = -1;
-        var wx, wy, wz = 0;
-        var qa = 0;
-        var sx, sy;
-        var weq = 0;
-        var tol = 10;//容差
+        
+        var qo = 1, qo1 = 0, step = -1, hist = [], qqe = 0, ti = 0, ww = 1, q = 1, isMouseDown = false, ea = 1, va = 0, ma = 0;
+        var rgb1r = 0, rgb1g = 0, rgb1b = 0, rgb1a = 255, xx = -1, yy = -1, wx = [], wy = [], wz = 0, qa = 0, sx, sy, weq = 0, tol = 10;
         var lastDrawX = null, lastDrawY = null;
-        a3.value = 255;
-        b4.textContent = a3.value;
-        a4.value = "#ffffff";
-        a5.value = tol;
-        b5.textContent = tol;
-        a6.value = 1;
-        b6.textContent = a6.value;
 
-        const dbName = location.href;
-        const storeName = 'img';
-        let db;
+        // 初始化 Wasm
+        async function runWasm() {
+            await init();
+            console.log("Wasm Ready");
+            window.qz = qz;
+            window.qr = qr_wasm;
+            window.qd = qd;
+            window.wea = wea_wasm;
+            window.loadFile = loadFile;
+        }
+        runWasm();
 
-        // 打开或创建数据库
-        const openRequest = indexedDB.open(dbName, 1);
+        // --- 核心 Wasm 提升功能 ---
 
-        openRequest.onupgradeneeded = (event) => {
-            db = event.target.result;
-            // 创建对象存储（Object Store），主键为 'id'
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName, { keyPath: 'id' });
-            }
-        };
-
-        openRequest.onsuccess = (event) => {
-            db = event.target.result;
-            console.log('Database opened successfully');
-            // 尝试从数据库中加载内容
-            loadTextareaContent();
-        };
-
-        openRequest.onerror = (event) => {
-            console.error('Error opening database:', event.target.error);
-        };
-
-        // 保存数据到 IndexedDB
-        function saveimg() {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-
-            store.put({
-                id: 1,
-                img: a1.toDataURL(),
-                bgclr: a4.value,
-                clr: a2.value,
-                q: q,
-                tol: tol,
-            });
-        }
-
-        // 从 IndexedDB 加载数据到 textarea
-        function loadTextareaContent() {
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const request = store.get(1);
-
-            request.onsuccess = (event) => {
-                if (event.target.result) {
-                    const data = event.target.result;
-                    a4.value = data.bgclr;
-                    a2.value = data.clr;
-                    rgb1r = parseInt(data.clr.substr(1, 2), 16);
-                    rgb1g = parseInt(data.clr.substr(3, 2), 16);
-                    rgb1b = parseInt(data.clr.substr(5, 2), 16);
-                    q = data.q;
-                    tol = data.tol;
-                    a5.value = tol;
-                    b5.textContent = tol;
-                    a6.value = q;
-                    b6.textContent = q;
-                    a1.style["background-color"] = data.bgclr;
-                    let lastDraw = new Image;
-                    lastDraw.src = data.img;
-                    lastDraw.onload = () => {
-                        sx = lastDraw.width / q;
-                        sy = lastDraw.height / q;
-                        a1.width = lastDraw.width;
-                        a1.height = lastDraw.height;
-                        ctx.clearRect(0, 0, a1.width, a1.height);
-                        ctx.drawImage(lastDraw, 0, 0);
-                        psh();
-                    };
-                }
-                else {
-                    sx = 50;
-                    sy = 50;
-                    a1.width = sx * q;
-                    a1.height = sy * q;
-                    psh();
-                }
-            };
-
-            request.onerror = (event) => {
-                console.error('Error loading content:', event.target.error);
-            };
-        }
-        function onmd() {
-            isMouseDown = true;
-            ti = 1;
-            enableHistory = false;
-        };
-        a1.addEventListener("mousedown", onmd);
-        a1.addEventListener("touchstart", onmd);
-        function onmu() {
-            isMouseDown = false;
-            setTimeout(() => { ti = 0 }, 100);
-            enableHistory = true;
-            psh();
-        };
-        document.addEventListener("mouseup", onmu);
-        document.addEventListener("touchend", onmu);
-        a2.onchange = () => {
-            rgb1r = parseInt(a2.value.substr(1, 2), 16);
-            rgb1g = parseInt(a2.value.substr(3, 2), 16);
-            rgb1b = parseInt(a2.value.substr(5, 2), 16);
-            saveimg();
-        }
-        a3.oninput = () => {
-            rgb1a = a3.value;
-            b4.textContent = a3.value;
-        }
-        a5.oninput = () => {
-            tol = a5.value;
-            b5.textContent = a5.value;
-        }
-        a4.oninput = () => {
-            a1.style["background-color"] = a4.value;
-        }
-        a4.onchange = () => {
-            a1.style["background-color"] = a4.value;
-            saveimg();
-        }
-        a6.oninput = () => {
-            q = a6.value;
-            b6.textContent = a6.value;
-        }
-        a5.onchange = () => {
-            saveimg();
-        }
-        a6.onchange = () => {
-            saveimg();
-        }
-        function onmv(e) {
-            var x, y;
-            if (e.type == "touchmove") {
-                x = e.changedTouches[0].pageX - a1.offsetLeft;
-                y = e.changedTouches[0].pageY - a1.offsetTop;
-            }
-            if (e.type == "mousemove") {
-                x = e.offsetX;
-                y = e.offsetY;
-            }
-            let tj = a1.width / a1.clientWidth;
-            x *= tj;
-            y *= tj;
-            if (qo == 0) return;
-            let gx = parseInt(x / q);
-            let gy = parseInt(y / q);
-            b1.textContent = 'x:' + gx;
-            b2.textContent = 'y:' + gy;
-            if (srgba(gx, gy)[3] == 0) {
-                b3.textContent = '';
-            }
-            else {
-                b3.textContent = srgba(gx, gy)[0] + ' ' + srgba(gx, gy)[1] + ' ' + srgba(gx, gy)[2] + ' ' + srgba(gx, gy)[3];
-            }
-            if (isMouseDown) {
-                // 線性補點
-                if (lastDrawX !== null && lastDrawY !== null) {
-                    let dx = gx - lastDrawX;
-                    let dy = gy - lastDrawY;
-                    let steps = Math.max(Math.abs(dx), Math.abs(dy));
-                    for (let i = 1; i <= steps; i++) {
-                        let ix = Math.round(lastDrawX + dx * i / steps);
-                        let iy = Math.round(lastDrawY + dy * i / steps);
-                        af(ix, iy);
-                    }
-                } else {
-                    af(gx, gy);
-                }
-                lastDrawX = gx;
-                lastDrawY = gy;
-            } else {
-                lastDrawX = null;
-                lastDrawY = null;
-            }
-        }
-        a1.addEventListener("mousemove", onmv);
-        a1.addEventListener("touchmove", onmv);
-        a1.onclick = (e) => {
-            console.log(e);
-            if (qo == 0) return;
-            if (ti == 0) xx = yy = -1;
-
-            let x = e.offsetX;
-            y = e.offsetY;
-            let tj = a1.width / a1.clientWidth;
-            x *= tj;
-            y *= tj;
-            af(parseInt(x / q), parseInt(y / q),x,y);
-        }
-        function qtw(x, y) {
-            // 取得整張圖像資料
+        // 1. 倒汁 (Flood Fill)
+        function qtw_wasm(x, y) {
             let imgData = ctx.getImageData(0, 0, a1.width, a1.height);
-            let data = imgData.data;
-            let w = a1.width, h = a1.height;
-
-            // 取得起點像素座標
-            let tj = a1.width / a1.clientWidth;
-            let px = x;
-            let py = y;
-
-            // 取得起點像素的顏色
-            let idx = (py * w + px) * 4;
-            let target = [
-                data[idx],
-                data[idx + 1],
-                data[idx + 2],
-                data[idx + 3]
-            ];
-
-            // 填色顏色
-            let fill = [rgb1r, rgb1g, rgb1b, rgb1a];
-
-            // 如果顏色相同就不用填
-
-            if ((target[3] != 0) && (
-                Math.abs(target[0] - fill[0]) <= 0 &&
-                Math.abs(target[1] - fill[1]) <= 0 &&
-                Math.abs(target[2] - fill[2]) <= 0 &&
-                Math.abs(target[3] - fill[3]) <= 0)) {
-                ww=1;
-                return;
-            }
-
-            // flood fill（像素為單位）
-            let visited = new Uint8Array(w * h);
-            let stack = [[px, py]];
-
-            function colorSimilar(idx) {
-                return (
-                    Math.abs(data[idx] - target[0]) <= tol &&
-                    Math.abs(data[idx + 1] - target[1]) <= tol &&
-                    Math.abs(data[idx + 2] - target[2]) <= tol &&
-                    Math.abs(data[idx + 3] - target[3]) <= tol
-                );
-            }
-
-            while (stack.length) {
-                let [cx, cy] = stack.pop();
-                if (cx < 0 || cx >= w || cy < 0 || cy >= h) continue;
-                let cidx = (cy * w + cx) * 4;
-                if (visited[cy * w + cx]) continue;
-                if (colorSimilar(cidx)) {
-                    // 填色
-                    data[cidx] = fill[0];
-                    data[cidx + 1] = fill[1];
-                    data[cidx + 2] = fill[2];
-                    data[cidx + 3] = fill[3];
-                    visited[cy * w + cx] = 1;
-                    // 四方向推進
-                    stack.push([cx + 1, cy]);
-                    stack.push([cx - 1, cy]);
-                    stack.push([cx, cy + 1]);
-                    stack.push([cx, cy - 1]);
-                }
-            }
-
-            // 更新畫布
+            const result = wasm_flood_fill(
+                new Uint8Array(imgData.data), a1.width, a1.height,
+                Math.floor(x), Math.floor(y),
+                rgb1r, rgb1g, rgb1b, rgb1a, parseInt(tol)
+            );
+            imgData.data.set(result);
             ctx.putImageData(imgData, 0, 0);
             ww = 1;
+            psh(); // 倒汁後存檔
         }
-        function af(x, y,ex,ey) {
-            if (x == xx && y == yy&&!va) return 0;
-            xx = x;
-            yy = y;
-            var zxw = 0;
-            if (va) {
-                vv2 = srgba(x, y)[3];
-                if (vv2 > 0) {
-                    vv3 = srgba(x, y);
-                }
-                if (ww) {
-                    isMouseDown = false;
-                    ma = 0;
-                    ww = 0;
-                    wz = 0;
-                    qtw(ex,ey);
-                    zxw = 1;
-                }
-                if (ea) {
-                    if (srgba(x, y)[0] == rgb1r
-                        && srgba(x, y)[1] == rgb1g
-                        && srgba(x, y)[2] == rgb1b
-                        && srgba(x, y)[3] == rgb1a) {
-                        return 0;
-                    }
-                }
-                else {
-                    if (srgba(x, y)[3] == 0) {
-                        return 0;
-                    }
-                }
-            }
-            else {
-                wz = 0;
-                df(x, y, 1);
-                zxw = 1;
-            }
-            if (zxw && enableHistory) {
-                psh();
-            }
-        }
-        function df(x, y, a) {
-            if (a) {
-                if (ma == 1) {
-                    df(x, sy - 1 - y, 0);
-                }
-                if (ma == 2) {
-                    df(sx - 1 - x, y, 0);
-                }
-                if (ma == 3) {
-                    df(sx - 1 - x, sy - 1 - y, 0);
-                }
-                if (ma == 4) {
-                    df(x, sy - 1 - y, 0);
-                    df(sx - 1 - x, y, 0);
-                    df(sx - 1 - x, sy - 1 - y, 0);
-                }
-                if (ma == 5) {
-                    df(sy - 1 - y, x, 0);
-                    df(y, sx - 1 - x, 0);
-                    df(sx - 1 - x, sy - 1 - y, 0);
-                }
-                if (ma == 6) {
-                    df(x, sy - 1 - y, 0);
-                    df(sx - 1 - x, y, 0);
-                    df(sx - 1 - x, sy - 1 - y, 0);
-                    df(y, x, 0);
-                    df(sy - 1 - y, x, 0);
-                    df(y, sx - 1 - x, 0);
-                    df(sy - 1 - y, sx - 1 - x, 0);
-                }
-            }
-            if (ea) {
-                ctx.fillStyle = "rgba(" + rgb1r + "," + rgb1g + "," + rgb1b + "," + rgb1a / 255 + ")";
-                ctx.fillRect(x * q, y * q, q, q);
-                ctx.fill();
-            }
-            else {
-                ctx.clearRect(x * q, y * q, q, q);
-            }
-        }
-        function srgba(x, y) {
-            return ctx.getImageData(x * q, y * q, 1, 1).data;
-        }
-        function qz() {
-            if (ax.value == '') return 0;
-            if (ay.value == '') return 0;
-            sx = parseInt(ax.value);
-            sy = parseInt(ay.value);
-            a1.width = sx;
-            a1.height = sy;
-            psh();
-        }
-        function qr() {
-            var px = [], py = [], pz = [], mm = [];
-            if (c1.value == '') return 0;
-            if (c2.value == '') return 0;
-            if (c3.value == '') return 0;
-            if (c4.value == '') return 0;
-            var x2 = parseInt(c1.value);
-            var y2 = parseInt(c2.value);
-            var x1 = parseInt(c3.value);
-            var y1 = parseInt(c4.value);
-            if (x1 < 0 || x1 >= sx) return 0;
-            if (y1 < 0 || y1 >= sy) return 0;
-            if (x2 < 0 || x2 >= sx) return 0;
-            if (y2 < 0 || y2 >= sy) return 0;
-            if (x1 == x2 && y1 == y2) return;
-            var x, y, h = 0, v = 0;
-            if (qa == 0) {
-                var dx = [0, 1, 0, -1], dy = [1, 0, -1, 0];
-            }
-            if (qa == 1) {
-                var dx = [1, 1, -1, -1], dy = [1, -1, -1, 1];
-            }
-            if (qa == 2) {
-                var dx = [0, 1, 0, -1, 1, 1, -1, -1], dy = [1, 0, -1, 0, 1, -1, -1, 1];
-            }
-            for (var i = 0; i < sx; i++) {
-                var l = [];
-                for (var j = 0; j < sy; j++) {
-                    if (srgba(i, j)[3] == 0) {
-                        l.push(0);
-                    }
-                    else {
-                        l.push(1);
-                    }
-                }
-                mm.push(l);
-            }
-            if (mm[x1][y1] == 1 || mm[x2][y2] == 1) return 0;
-            px.push(x1);
-            py.push(y1);
-            pz.push(-1);
-            mm[x1][y1] = 1;
-            while (h < pz.length) {
-                var dt = [];
-                for (var i = 0; i < dx.length; i++) {
-                    dt.push(i);
-                }
-                for (var i = 0; i < dx.length; i++) {
-                    var dh = parseInt(Math.random() * 100) % (dx.length - i);
-                    x = px[h] + dx[dt[dh]];
-                    y = py[h] + dy[dt[dh]];
-                    dt.splice(dh, 1);
-                    if (x < 0 || x >= sx || y < 0 || y >= sy) continue;
-                    if (mm[x][y] == 1) continue;
-                    px.push(x);
-                    py.push(y);
-                    pz.push(h);
-                    mm[x][y] = 1;
-                    if (x == x2 && y == y2) {
-                        v = 1;
-                        break;
-                    }
-                }
-                if (v) break;
-                h++;
-            }
-            if (v) {
-                h = pz.length - 1;
-                var r1 = rgb1r;
-                var g1 = rgb1g;
-                var b1 = rgb1b;
-                var a1 = rgb1a;
-                var e1 = ea;
-                ea = 1;
+
+        // 2. 走迷宮 (Pathfinding)
+        function qr_wasm() {
+            if (!c1.value || !c2.value || !c3.value || !c4.value) return;
+            let imgData = ctx.getImageData(0, 0, a1.width, a1.height);
+            let path = wasm_find_path(
+                imgData.data, a1.width, a1.height,
+                parseInt(c3.value), parseInt(c4.value),
+                parseInt(c1.value), parseInt(c2.value), qa
+            );
+            if (path.length > 0) {
+                // 備份狀態
+                let r1 = rgb1r, g1 = rgb1g, b1 = rgb1b, a1_v = rgb1a, e1 = ea;
+                ea = 1; rgb1a = 255;
                 rgb1r = parseInt(c5.value.substr(1, 2), 16);
                 rgb1g = parseInt(c5.value.substr(3, 2), 16);
                 rgb1b = parseInt(c5.value.substr(5, 2), 16);
-                rgb1a = 255;
-                wx = [];
-                wy = [];
-                while (h != -1) {
-                    df(px[h], py[h], 0);
-                    psh();
-                    wx.push(px[h]);
-                    wy.push(py[h]);
-                    console.log(px[h] + ',' + py[h] + ',' + pz[h]);
-                    h = pz[h];
+                
+                wx = []; wy = [];
+                // 每一步都繪製並存檔 (應要求)
+                for (let i = 0; i < path.length; i += 2) {
+                    let px = path[i];
+                    let py = path[i+1];
+                    df(px, py, 0);
+                    wx.push(px); wy.push(py);
+                    psh(); // 每一步都存檔到歷史
                 }
-                ea = e1;
-                rgb1r = r1;
-                rgb1g = g1;
-                rgb1b = b1;
-                rgb1a = a1;
-                console.log(mm);
+                
+                ea = e1; rgb1r = r1; rgb1g = g1; rgb1b = b1; rgb1a = a1_v;
                 wz = 1;
-            }
-            else {
-                alert("?");
-            }
+            } else { alert("路不通"); }
         }
-        function qd() {
-            if (wz) {
-                var we = ea, wxx, wyy;
-                ea = 0;
-                xx = -1;
-                yy = -1;
-                var h = wx.length - 1;
-                while (h >= 0) {
-                    df(wx[h], wy[h], 0);
-                    h--;
-                }
-                ea = we;
-                xx = wxx;
-                yy = wyy;
-            }
-        }
-        var loadFile = function (ev) {
-            if (ev.target.files) {
-                let file = ev.target.files[0];
-                var reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onloadend = function (e) {
-                    var image = new Image();
-                    image.src = e.target.result;
-                    image.onload = function (ev) {
-                        sx = image.width / q;
-                        sy = image.height / q;
-                        a1.width = image.width;
-                        a1.height = image.height;
-                        ctx.drawImage(image, 0, 0);
-                        psh();
-                    }
+
+        // 3. 生成迷宮 (Maze Gen)
+        function wea_wasm() {
+            ctx.clearRect(0, 0, a1.width, a1.height);
+            let maze = wasm_generate_maze(sx, sy);
+            let ew = ea; ea = 1;
+            for (let i = 0; i < sy; i++) {
+                for (let j = 0; j < sx; j++) {
+                    if (maze[i * sx + j] === 0) df(j, i, 0);
                 }
             }
+            ea = ew;
+            psh();
         }
+
         function qt() {
             var ste = step;
             step = 0;
@@ -663,11 +185,9 @@ y:取消復原
                     return;
                 }
                 undo(1);
-                if (qo1 == 1) {
+                if (qo1 == 1) { // 快速播放邏輯
                     qo1 = 2;
-                    while (!(step == ste || step == hist.length - 1)) {
-                        step++;
-                    }
+                    while (!(step == ste || step == hist.length - 1)) step++;
                     step--;
                     undo(1);
                     qo = 1;
@@ -676,177 +196,175 @@ y:取消復原
                 qt1(ste);
             }, 10);
         }
+        // --- 保留原本所有的輔助函式與邏輯 ---
+        const dbName = location.href;
+        const storeName = 'img';
+        let db;
+        const openRequest = indexedDB.open(dbName, 1);
+        openRequest.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if (!db.objectStoreNames.contains(storeName)) db.createObjectStore(storeName, { keyPath: 'id' });
+        };
+        openRequest.onsuccess = (e) => { db = e.target.result; loadTextareaContent(); };
+
+        function saveimg() {
+            if (!db) return;
+            const transaction = db.transaction([storeName], 'readwrite');
+            transaction.objectStore(storeName).put({
+                id: 1, img: a1.toDataURL(), bgclr: a4.value, clr: a2.value, q: q, tol: tol,
+            });
+        }
+
+        function loadTextareaContent() {
+            const request = db.transaction([storeName], 'readonly').objectStore(storeName).get(1);
+            request.onsuccess = (event) => {
+                if (event.target.result) {
+                    const data = event.target.result;
+                    a4.value = data.bgclr; a2.value = data.clr;
+                    rgb1r = parseInt(a2.value.substr(1,2),16); rgb1g = parseInt(a2.value.substr(3,2),16); rgb1b = parseInt(a2.value.substr(5,2),16);
+                    q = data.q; tol = data.tol; a5.value = tol; b5.textContent = tol; a6.value = q; b6.textContent = q;
+                    a1.style["background-color"] = data.bgclr;
+                    let lastDraw = new Image; lastDraw.src = data.img;
+                    lastDraw.onload = () => {
+                        sx = lastDraw.width / q; sy = lastDraw.height / q;
+                        a1.width = lastDraw.width; a1.height = lastDraw.height;
+                        ctx.drawImage(lastDraw, 0, 0); psh();
+                    };
+                } else { sx = 50; sy = 50; a1.width = sx * q; a1.height = sy * q; psh(); }
+            };
+        }
+
         function psh() {
             const cur = a1.toDataURL();
-            // 如果和上一步一樣就不存
             if (hist.length > 0 && hist[step] === cur) return;
             step++;
-            if (step < hist.length - 1) hist[step] = cur;
-            else hist.push(cur);
-            if (qqe == 1) hist.length = step + 1;
+            if (step < hist.length) hist.length = step;
+            hist.push(cur);
             saveimg();
         }
+
         function undo(qq) {
-            if (qq == -1 && step == 0) return;
-            if (qq == 1 && step == hist.length - 1) return;
-            if (qq == -1) qqe = 1;
-            let lastDraw = new Image;
+            if (qq == -1 && step <= 0) return;
+            if (qq == 1 && step >= hist.length - 1) return;
             step += qq;
-            lastDraw.src = hist[step];
+            let lastDraw = new Image; lastDraw.src = hist[step];
             lastDraw.onload = () => {
-                sx = lastDraw.width / q;
-                sy = lastDraw.height / q;
-                a1.width = lastDraw.width;
-                a1.height = lastDraw.height;
                 ctx.clearRect(0, 0, a1.width, a1.height);
                 ctx.drawImage(lastDraw, 0, 0);
                 saveimg();
             };
-        };
-        function wea() {
-            ctx.clearRect(0, 0, a1.width, a1.height);
-            var a = [], bx = [], by = [];
-            var dx = [0, 2, 0, -2], dy = [-2, 0, 2, 0];
-            for (let i = 0; i < sx * sy; i++)a.push(0);
-            var x = parseInt(Math.random() * 10000) % sx;
-            var y = parseInt(Math.random() * 10000) % sy;
-            console.log(x, y);
-            a[x + y * sx] = 1;
-            bx.push(x);
-            by.push(y);
-            while (bx.length > 0) {
-                var ad = bx.length - 1;
-                x = bx[ad];
-                y = by[ad];
-                var kh = 0, dd = [];
-                for (let i = 0; i < 4; i++) {
-                    if (x + dx[i] >= sx || x + dx[i] < 0
-                        || y + dy[i] >= sy || y + dy[i] < 0) continue;
-                    if (a[x + dx[i] + (y + dy[i]) * sx] == 1) continue;
-                    dd.push(i);
-                    kh = 1;
-                }
-                if (kh) {
-                    var ac = dd[parseInt(Math.random() * 10000) % dd.length];
-                    a[x + dx[ac] / 2 + (y + dy[ac] / 2) * sx] = 1;
-                    a[x + dx[ac] + (y + dy[ac]) * sx] = 1;
-                    bx.push(x + dx[ac]);
-                    by.push(y + dy[ac]);
-                }
-                else {
-                    bx.splice(ad, 1);
-                    by.splice(ad, 1);
-                }
-            }
-            var ew = ea;
-            ea = 1;
-            for (let i = 0; i < sy; i++)
-                for (let j = 0; j < sx; j++)
-                    if (a[j + i * sx] == 0) df(j, i, 0);
-            ea = ew;
-            psh();
         }
+
+        function df(x, y, sym) {
+            if (sym) {
+                if (ma == 1) df(x, sy - 1 - y, 0);
+                if (ma == 2) df(sx - 1 - x, y, 0);
+                if (ma == 3) df(sx - 1 - x, sy - 1 - y, 0);
+                if (ma == 4) { df(x, sy - 1 - y, 0); df(sx - 1 - x, y, 0); df(sx - 1 - x, sy - 1 - y, 0); }
+                if (ma == 5) { df(sy - 1 - y, x, 0); df(y, sx - 1 - x, 0); df(sx - 1 - x, sy - 1 - y, 0); }
+                if (ma == 6) { df(x, sy - 1 - y, 0); df(sx - 1 - x, y, 0); df(sx - 1 - x, sy - 1 - y, 0); df(y, x, 0); df(sy - 1 - y, x, 0); df(y, sx - 1 - x, 0); df(sy - 1 - y, sx - 1 - x, 0); }
+            }
+            if (ea) {
+                ctx.fillStyle = `rgba(${rgb1r},${rgb1g},${rgb1b},${rgb1a/255})`;
+                ctx.fillRect(x * q, y * q, q, q);
+            } else {
+                ctx.clearRect(x * q, y * q, q, q);
+            }
+        }
+
+        function af(x, y, ex, ey) {
+            if (x == xx && y == yy && !va) return;
+            xx = x; yy = y;
+            if (va) {
+                if (ww) { ww = 0; qtw_wasm(ex, ey); }
+            } else {
+                df(x, y, 1);
+            }
+        }
+
+        function srgba(x, y) { return ctx.getImageData(x * q, y * q, 1, 1).data; }
+
+        // --- 事件綁定 ---
+        a1.addEventListener("mousedown", () => { isMouseDown = true; ti = 1; });
+        a1.addEventListener("touchstart", () => { isMouseDown = true; ti = 1; });
+        document.addEventListener("mouseup", () => { isMouseDown = false; setTimeout(() => ti = 0, 100); psh(); });
+        document.addEventListener("touchend", () => { isMouseDown = false; setTimeout(() => ti = 0, 100); psh(); });
+
+        a1.addEventListener("mousemove", (e) => {
+            let x = e.offsetX, y = e.offsetY;
+            let tj = a1.width / a1.clientWidth; x *= tj; y *= tj;
+            let gx = Math.floor(x / q), gy = Math.floor(y / q);
+            b1.textContent = 'x:' + gx; b2.textContent = 'y:' + gy;
+            if (isMouseDown) {
+                if (lastDrawX !== null) {
+                    let dx = gx - lastDrawX, dy = gy - lastDrawY;
+                    let steps = Math.max(Math.abs(dx), Math.abs(dy));
+                    for (let i = 0; i <= steps; i++) af(Math.round(lastDrawX + dx * i / steps), Math.round(lastDrawY + dy * i / steps), x, y);
+                } else af(gx, gy, x, y);
+                lastDrawX = gx; lastDrawY = gy;
+            } else lastDrawX = null;
+        });
+
+        a1.onclick = (e) => {
+            let x = e.offsetX * (a1.width / a1.clientWidth), y = e.offsetY * (a1.width / a1.clientWidth);
+            af(Math.floor(x / q), Math.floor(y / q), x, y);
+        };
+
+        // UI 連動
+        a2.onchange = () => { rgb1r = parseInt(a2.value.substr(1,2),16); rgb1g = parseInt(a2.value.substr(3,2),16); rgb1b = parseInt(a2.value.substr(5,2),16); saveimg(); };
+        a3.oninput = () => { rgb1a = a3.value; b4.textContent = a3.value; };
+        a5.oninput = () => { tol = a5.value; b5.textContent = tol; };
+        a6.oninput = () => { q = a6.value; b6.textContent = q; };
+        a4.oninput = () => a1.style["background-color"] = a4.value;
+
+        // 鍵盤
         document.body.onkeydown = (k) => {
-            if (k.key == 'a') {
-                if (weq) {
-                    for (var i = 0; i < qw.length; i++) {
-                        qw[i].style.display = "none";
-                    }
-                    for (var i = 0; i < qe.length; i++) {
-                        qe[i].style.display = "none";
-                    }
-                    for (var i = 0; i < cc.length; i++) {
-                        cc[i].style.display = "none";
-                    }
+            if (k.key == 'a') { weq ^= 1; let d = weq ? "inline-block" : "none"; qw.forEach(e=>e.style.display=d); qe.forEach(e=>e.style.display=d); cc.forEach(e=>e.style.display=d); }
+            if (k.key == 'b') { if (qo == 0) { if (qo1 == 1) qo1 = 2; else qo1 = 1; return; } qo1 = 0; qt(); }
+            if (k.key == 'c') { if (qo == 0) return; step = -1; hist = []; psh(); }
+            if (k.key == 'e') { ea ^= 1; }
+            if (k.key == 'f') { if (qo == 0) return; ctx.clearRect(0,0,a1.width,a1.height); psh(); }
+            if (k.key == 'v') va ^= 1;
+            if (k.key == 'z') { if (qo == 0) return; undo(-1); }
+            if (k.key == 'y') { if (qo == 0) return; undo(1); }
+            if (k.key == 'p') { if (qo == 0) return; window.wea(); }
+            if (k.key == 'q') { qa = (qa + 1) % 3; cq.textContent = "q:走法(" + (qa + 1) + ")"; }
+            // 對稱快捷鍵
+            if (['h','i','j','k','l','m'].includes(k.key)) {
+                let map = {h:1, i:2, j:3, k:4, l:5, m:6};
+                ma = (ma == map[k.key] ? 0 : map[k.key]);
+            }
+        };
+
+        function qz() { sx = parseInt(ax.value); sy = parseInt(ay.value); a1.width = sx * q; a1.height = sy * q; psh(); }
+        function qd() {
+            if (wz) { // wz 是標記「目前是否有路徑存在」的變數
+                var we = ea; // 備份目前的畫筆/橡皮擦狀態
+                ea = 0;      // 強制切換到橡皮擦模式
+                
+                // 遍歷路徑陣列，把點過的地方都擦掉
+                for (var h = 0; h < wx.length; h++) {
+                    df(wx[h], wy[h], 0); // 呼叫繪圖函式執行擦除
                 }
-                else {
-                    for (var i = 0; i < qw.length; i++) {
-                        qw[i].style.display = "inline-block";
-                    }
-                    for (var i = 0; i < qe.length; i++) {
-                        qe[i].style.display = "inline-block";
-                    }
-                    for (var i = 0; i < cc.length; i++) {
-                        cc[i].style.display = "inline-block";
-                    }
+                
+                ea = we;     // 還原畫筆狀態
+                wz = 0;      // 標記路徑已消失
+                psh();       // 擦除完後存一個檔
+            }
+        };
+        function loadFile(ev) {
+            let file = ev.target.files[0];
+            let reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = (e) => {
+                let image = new Image(); image.src = e.target.result;
+                image.onload = () => {
+                    sx = image.width / q; sy = image.height / q;
+                    a1.width = image.width; a1.height = image.height;
+                    ctx.drawImage(image, 0, 0); psh();
                 }
-                weq ^= 1;
-            }
-            if (k.key == 'c') {
-                if (qo == 0) return;
-                step = -1;
-                hist = [];
-                qqe = 0;
-                psh();
-            }
-            if (k.key == 'e') {
-                ea ^= 1;
-            }
-            if (k.key == 'v') {
-                va ^= 1;
-            }
-            if (k.key == 'f') {
-                if (qo == 0) return;
-                ctx.clearRect(0, 0, sx * q, sy * q);
-                xx = -1;
-                yy = -1;
-                psh();
-            }
-            if (k.key == 'h') {
-                if (ma != 1) ma = 1;
-                else ma = 0;
-            }
-            if (k.key == 'i') {
-                if (ma != 2) ma = 2;
-                else ma = 0;
-            }
-            if (k.key == 'j') {
-                if (ma != 3) ma = 3;
-                else ma = 0;
-            }
-            if (k.key == 'k') {
-                if (ma != 4) ma = 4;
-                else ma = 0;
-            }
-            if (k.key == 'l') {
-                if (sx == sy) {
-                    if (ma != 5) ma = 5;
-                    else ma = 0;
-                }
-            }
-            if (k.key == 'm') {
-                if (sx == sy) {
-                    if (ma != 6) ma = 6;
-                    else ma = 0;
-                }
-            }
-            if (k.key == 'q') {
-                qa = (qa + 1) % 3;
-                cq.textContent = "q:走法(" + (qa + 1) + ")";
-            }
-            if (k.key == 'z') {
-                if (qo == 0) return;
-                undo(-1);
-            }
-            if (k.key == 'y') {
-                if (qo == 0) return;
-                undo(1);
-            }
-            if (k.key == 'p') {
-                if (qo == 0) return;
-                wea();
-            }
-            if (k.key == 'b') {
-                if (qo == 0) {
-                    if (qo1 == 1) qo1 = 2;
-                    else qo1 = 1;
-                    return;
-                }
-                qo1 = 0;
-                qt();
             }
         }
     </script>
 </body>
-
 </html>

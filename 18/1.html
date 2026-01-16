@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title>^_^</title>
+        <title>Mirage Tank (Wasm Powered) ^_^</title>
         <style>
             .qw{
                 background-color:white;
@@ -33,12 +33,16 @@
         <canvas id="a1" class="qw"></canvas>
         <canvas id="b1" class="qw"></canvas>
         <canvas id="c1" class="qw"></canvas>
-        <script>
+
+        <!-- 修改點 1: 改成 type="module" 以便使用 import -->
+        <script type="module">
+            // 修改點 2: 引入你的 Wasm (確保路徑正確，pkg 資料夾要在 1.html 旁邊)
+            import init, { process_mirage } from './pkg/mirage_wasm.js';
+
             var a1 = document.getElementById("a1");
             var ctxa = a1.getContext('2d');
             var b1 = document.getElementById("b1");
             var ctxb = b1.getContext('2d');
-            var b1 = document.getElementById("b1");
             var c1 = document.getElementById("c1");
             var ctxc = c1.getContext('2d');
             var qw = document.querySelectorAll('.qw');
@@ -48,138 +52,128 @@
             var spnb = document.getElementById("spnb");
             var spnc = document.getElementById("spnc");
             var qe=1;
-            var ax=-1,ay=-1,bx=-1,by=-1;
+            window.ax=-1; window.ay=-1; window.bx=-1; window.by=-1; // 讓這些變數在全域可用
+
             spna.innerText=ipta.value;
             spnb.innerText=iptb.value;
-            ipta.oninput=()=>{
-                spna.innerText=ipta.value;
+            ipta.oninput=()=>{ spna.innerText=ipta.value; }
+            iptb.oninput=()=>{ spnb.innerText=iptb.value; }
+
+            // 初始化 Wasm
+            async function startWasm() {
+                await init();
+                console.log("Wasm Initialized");
             }
-            iptb.oninput=()=>{
-                spnb.innerText=iptb.value;
-            }
-            function qa(){
-                if(ax<0||bx<0)return;
-                spnc.innerText="Processing...";
+            startWasm();
+
+            // 修改點 3: 將原本的函式掛載到 window，這樣 HTML 裡的 onclick="qa()" 才能運作
+            window.qa = function(){
+                if(window.ax<0||window.bx<0) return;
+                spnc.innerText="Processing (Wasm)...";
+                
                 setTimeout(()=>{
-                    var width = Math.max(ax, bx);
-                    var height = Math.max(ay, by);
+                    var width = Math.max(window.ax, window.bx);
+                    var height = Math.max(window.ay, window.by);
                     
-                    function scaleImage(srcCanvas, srcW, srcH, targetW, targetH,c) {
+                    function scaleImage(srcCanvas, srcW, srcH, targetW, targetH, c) {
                         var result = document.createElement('canvas');
                         result.width = targetW;
                         result.height = targetH;
                         var ctx = result.getContext('2d');
                         ctx.fillStyle = c?"black":"white";
                         ctx.fillRect(0, 0, targetW, targetH);
-                        
                         var srcRatio = srcW / srcH;
                         var targetRatio = targetW / targetH;
                         var drawW, drawH, offsetX = 0, offsetY = 0;
-                        
                         if(srcRatio > targetRatio) {
-                            drawW = targetW;
-                            drawH = targetW / srcRatio;
+                            drawW = targetW; drawH = targetW / srcRatio;
                             offsetY = (targetH - drawH) / 2;
                         } else {
-                            drawH = targetH;
-                            drawW = targetH * srcRatio;
+                            drawH = targetH; drawW = targetH * srcRatio;
                             offsetX = (targetW - drawW) / 2;
                         }
-                        
                         ctx.drawImage(srcCanvas, 0, 0, srcW, srcH, offsetX, offsetY, drawW, drawH);
                         return result;
                     }
                     
-                    var resizedA = scaleImage(a1, ax, ay, width, height,0);
-                    var resizedB = scaleImage(b1, bx, by, width, height,1);
+                    var resizedA = scaleImage(a1, window.ax, window.ay, width, height, 0);
+                    var resizedB = scaleImage(b1, window.bx, window.by, width, height, 1);
                     
-                    var ctxResizedA = resizedA.getContext('2d');
-                    var ctxResizedB = resizedB.getContext('2d');
-                    var ca = ctxResizedA.getImageData(0,0,width,height).data;
-                    var cb = ctxResizedB.getImageData(0,0,width,height).data;
-                    var buffer = new Uint8ClampedArray(width * height * 4);
+                    var ca = resizedA.getContext('2d').getImageData(0,0,width,height).data;
+                    var cb = resizedB.getContext('2d').getImageData(0,0,width,height).data;
+
+                    // --- 修改點 4: 刪除原本的迴圈，改用 Wasm 函式 ---
+                    const startTime = performance.now();
                     
-                    for(var y = 0; y < height; y++) {
-                        for(var x = 0; x < width; x++) {
-                            var pos = (y * width + x) * 4;
-                            var grayA = (ca[pos]+ca[pos+1]+ca[pos+2])/3;
-                            var grayB = (cb[pos]+cb[pos+1]+cb[pos+2])/3;
-                            
-                            grayA = parseInt(grayA *parseInt(ipta.value)/100);
-                            grayB = parseInt(grayB *parseInt(iptb.value)/100);
-                            let g=grayB/(1-Math.abs(grayA-grayB)/255);
-                            buffer[pos  ] = g;
-                            buffer[pos+1] = g;
-                            buffer[pos+2] = g;
-                            buffer[pos+3] = Math.max(0, Math.min(255, 255-Math.abs(grayA - grayB)));
-                        }
-                    }
+                    // 呼叫 Rust 函式：傳入兩張圖的資料與滑桿數值
+                    const resultBuffer = process_mirage(
+                        ca, 
+                        cb, 
+                        parseFloat(ipta.value), 
+                        parseFloat(iptb.value)
+                    );
                     
+                    const endTime = performance.now();
+                    console.log(`Wasm 耗時: ${(endTime - startTime).toFixed(2)}ms`);
+                    // ----------------------------------------------
+
                     c1.width = width;
                     c1.height = height;
                     c1.style.visibility="visible";
                     var idata = ctxc.createImageData(width, height);
-                    idata.data.set(buffer);
+                    idata.data.set(resultBuffer);
                     ctxc.putImageData(idata, 0, 0);
-                    spnc.innerText="Done!";
-                },0);
+                    spnc.innerText = "Done! (" + (endTime - startTime).toFixed(2) + "ms)";
+                }, 0);
             }
-            function qb(){
+
+            window.qb = function(){
                 if(qe){
-                    for(let i=0;i<qw.length;i++){
-                        qw[i].style.backgroundColor="black";
-                    }
-                }
-                else{
-                    for(let i=0;i<qw.length;i++){
-                        qw[i].style.backgroundColor="white";
-                    }
+                    for(let i=0;i<qw.length;i++) qw[i].style.backgroundColor="black";
+                } else {
+                    for(let i=0;i<qw.length;i++) qw[i].style.backgroundColor="white";
                 }
                 qe^=1;
             }
-            function dl(){
+
+            window.dl = function(){
                 var link = document.createElement('a');
-                link.download = 'image.png';
+                link.download = 'mirage_image.png';
                 link.href = c1.toDataURL();
                 link.click();
             }
-            var lfa = function(e) {
+
+            window.lfa = function(e) {
                 let file = e.target.files[0];
                 if (file) {
                     var img = new Image;
-                    img.src = URL.createObjectURL(e.target.files[0]);
+                    img.src = URL.createObjectURL(file);
                     img.onload = ()=>{
-                        a1.width=img.width;
-                        a1.height=img.height;
-                        ax = a1.width;
-                        ay = a1.height;
+                        a1.width=img.width; a1.height=img.height;
+                        window.ax = a1.width; window.ay = a1.height;
                         a1.style.visibility="visible";
                         ctxa.drawImage(img, 0,0);
                     }
                 }
             }
-            var lfb = function(e) {
+
+            window.lfb = function(e) {
                 let file = e.target.files[0];
                 if (file) {
                     var img = new Image;
-                    img.src = URL.createObjectURL(e.target.files[0]);
+                    img.src = URL.createObjectURL(file);
                     img.onload = ()=>{
-                        b1.width=img.width;
-                        b1.height=img.height;
-                        bx = b1.width;
-                        by = b1.height;
+                        b1.width=img.width; b1.height=img.height;
+                        window.bx = b1.width; window.by = b1.height;
                         b1.style.visibility="visible";
                         ctxb.drawImage(img, 0,0);
                     }
                 }
             }
+
             document.body.onkeydown=(k)=>{
-                if(k.key=='a'){
-                    qa();
-                }
-                if(k.key=='b'){
-                    qb();
-                }
+                if(k.key=='a') window.qa();
+                if(k.key=='b') window.qb();
             }
         </script>
     </body>
