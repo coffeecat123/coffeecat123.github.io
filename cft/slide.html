@@ -13,7 +13,8 @@
         #cvs {
             /* 建議加上 width: 500px; 讓畫布比例正確 */
             height: 500px; 
-            width: 500px; 
+            width: 500px;
+            touch-action: pinch-zoom; 
         }
         #wl {
             display: flex;
@@ -272,7 +273,7 @@ strengthIpt.oninput = () => {
 
 
 // 鼠標移動時，更新鼠標座標 (保持不變)
-cvs.addEventListener('mousemove', (e) => {
+cvs.addEventListener('pointermove', (e) => {
     const rect = cvs.getBoundingClientRect();
     const scaleX = cvs.width / rect.width;
     const scaleY = cvs.height / rect.height;
@@ -282,13 +283,13 @@ cvs.addEventListener('mousemove', (e) => {
 });
 
 // 鼠標左鍵按下/釋放 (保持不變)
-cvs.addEventListener('mousedown', (e) => {
+cvs.addEventListener('pointerdown', (e) => {
     if (e.button === 0) {
         isMouseLeftDown = true;
     }
 });
 
-cvs.addEventListener('mouseup', (e) => {
+cvs.addEventListener('pointerup', (e) => {
     if (e.button === 0) {
         isMouseLeftDown = false;
     }
