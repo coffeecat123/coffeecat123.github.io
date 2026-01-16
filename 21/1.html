@@ -15,6 +15,7 @@
             .cv{
                 background: black;
                 border: 1px white solid;
+                touch-action: pinch-zoom;
             }
             .ww{
                 border: 0;
@@ -25,6 +26,7 @@
                 position: absolute;
                 color: white;
                 font-size:75px;
+                white-space: pre;
             }
             #qa{
                 display: flex;
@@ -90,7 +92,7 @@
                     }
                 },100);
             }
-            cv.addEventListener(mt_switch("mousedown"),(e)=>{
+            cv.addEventListener("pointerdown",(e)=>{
                 if(isMobile){
                     let sm=0;
                     for(let i=0;i<tch.length;i++){
@@ -102,14 +104,14 @@
                     tch.push(1);
                 }
             });
-            cv.addEventListener(mt_switch("mousemove"),(e)=>{
+            cv.addEventListener("pointermove",(e)=>{
                 if(isMobile){
                     if(tch.length==1){
                         e.preventDefault();
                     }
                 }
             });
-            cv.addEventListener(mt_switch("click"),(e)=>{
+            cv.addEventListener("click",(e)=>{
                 if(isMobile){
                     for(let i=0;i<tch.length;i++){
                         if(tch[i]==1){
@@ -119,83 +121,74 @@
                     }
                 }
             });
-            function mt_switch(a){
-                if(isMobile){
-                    if(a=="mousemove")return "touchmove";
-                    if(a=="mousedown")return "touchstart";
-                    if(a=="mouseup")return "touchend";
-                    if(a=="click")return "touchend";
-                }
-                return a;
-            }
             function qwe(e){
-                if(tch.length>1)return;
-                cv.ontouchend=cv.onmouseup=qsa;
-                var x,y;
-                if(e.type=="touchstart"){
-                    x=e.changedTouches[0].pageX-cv.offsetLeft;
-                    y=e.changedTouches[0].pageY-cv.offsetTop;
-                }
-                if(e.type=="mousedown"){
-                    x=e.pageX-cv.offsetLeft;
-                    y=e.pageY-cv.offsetTop;
-                }
-                x*=kp;
-                y*=kp;
-                var a=-1;
-                if(isMobile){
-                    let minr=Infinity;
-                    for(let i=0;i<qq;i++){
-                        if((x-ax[i])**2+(y-ay[i])**2<((rr+ctx.lineWidth*0.5)*2.5)**2){
-                            if((x-ax[i])**2+(y-ay[i])**2<minr){
-                                minr=(x-ax[i])**2+(y-ay[i])**2;
-                                a=i;
-                            }
-                            break;
-                        }
+                // 如果是多指操作（縮放），直接跳過遊戲邏輯
+                if (e.touches && e.touches.length > 1) return;
+
+                const rect = cv.getBoundingClientRect();
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                // 計算縮放後的座標
+                let x = (clientX - rect.left) * (sx / rect.width);
+                let y = (clientY - rect.top) * (sy / rect.height);
+
+                var a = -1;
+                const hitArea = isMobile ? ((rr+ctx.lineWidth*0.5)*3.5)**2 : (rr+ctx.lineWidth*0.5)**2;
+
+                for(let i=0; i<qq; i++){
+                    if((x-ax[i])**2 + (y-ay[i])**2 < hitArea){
+                        a = i;
+                        break;
                     }
                 }
-                else{
-                    for(let i=0;i<qq;i++){
-                        if((x-ax[i])**2+(y-ay[i])**2<(rr+ctx.lineWidth*0.5)**2){
-                            a=i;
-                            break;
-                        }
-                    }
-                }
-                if(a==-1)return;
-                ba=a;
-                bx=ax[ba]-x;
-                by=ay[ba]-y;
+
+                if(a == -1) return;
+
+                // 如果點中了圓圈，防止單指拖動時畫面滾動
+                if(e.cancelable) e.preventDefault();
+
+                ba = a;
+                bx = ax[ba] - x;
+                by = ay[ba] - y;
+                
                 qaz();
-                cv.ontouchmove=cv.onmousemove=(ev)=>{
-                    var ex,ey;
-                    if(tch.length==1){
-                        ev.preventDefault();
-                    }
-                    else{
+
+                const moveHandler = (ev) => {
+                    // 移動中如果變成多指，立即停止拖拽
+                    if (ev.touches && ev.touches.length > 1) {
+                        upHandler();
                         return;
                     }
-                    if(ev.type=="touchmove"){
-                        ex=ev.changedTouches[0].pageX-cv.offsetLeft;
-                        ey=ev.changedTouches[0].pageY-cv.offsetTop;
-                    }
-                    if(ev.type=="mousemove"){
-                        ex=ev.pageX-cv.offsetLeft;
-                        ey=ev.pageY-cv.offsetTop;
-                    }
-                    ex*=kp;
-                    ey*=kp;
-                    if(ex<0||ex>sx||ey<0||ey>sy){
-                        cv.ontouchmove=cv.onmousemove='';
-                        qsa();
-                    }
-                    ax[ba]=ex+bx;
-                    ay[ba]=ey+by;
+
+                    const mX = ((ev.clientX || ev.touches[0].clientX) - rect.left) * (sx / rect.width);
+                    const mY = ((ev.clientY || ev.touches[0].clientY) - rect.top) * (sy / rect.height);
+                    
+                    // 阻止單指滑動導致頁面滾動
+                    if(ev.cancelable) ev.preventDefault();
+
+                    ax[ba] = mX + bx;
+                    ay[ba] = mY + by;
                     ch1();
                     qaz();
-                }
+                };
+
+                const upHandler = () => {
+                    window.removeEventListener("mousemove", moveHandler);
+                    window.removeEventListener("touchmove", moveHandler);
+                    window.removeEventListener("mouseup", upHandler);
+                    window.removeEventListener("touchend", upHandler);
+                    qsa();
+                };
+
+                // 同時監聽滑鼠與觸控
+                window.addEventListener("mousemove", moveHandler, {passive: false});
+                window.addEventListener("touchmove", moveHandler, {passive: false});
+                window.addEventListener("mouseup", upHandler);
+                window.addEventListener("touchend", upHandler);
             }
+            cv.onmousedown = qwe;
+            cv.ontouchstart = qwe;
             function qaz(){
                 ctx.clearRect(0,0,sx,sy);
                 var b=ll.length;
@@ -416,7 +409,7 @@
                 }
                 setTimeout(()=>{
                     var t=document.querySelector(".t");
-                    t.innerText+=ta[a];
+                    t.innerHTML+=ta[a];
                     pt(a+1);
                 },100);
             }
