@@ -159,52 +159,35 @@ function clearDanmus() {
 }
 
 function getNonOverlappingLine() {
-  if (linePositions.length === 0) {
-    updateLinePositions();
-    if (linePositions.length === 0) return 0;
-  }
-  const RIGHT_EDGE_THRESHOLD=20;
-  const containerWidth = danmuContainer.offsetWidth;
-  const availableLines = [];
-
-  // 遍历所有行，检查是否可用（未被占用且右边缘无冲突）
-  linePositions.forEach((linePos, lineIndex) => {
-    // 1. 检查该行是否有活跃弹幕（行占用检测）
-    const hasActiveDanmuInLine = activeDanmus.some(dm => {
-      const dmTop = parseFloat(dm.style.top);
-      return Math.abs(dmTop - linePos) < 2; // 同一行
-    });
-
-    if (hasActiveDanmuInLine) {
-      // 2. 若有活跃弹幕，检测右边缘是否有冲突
-      const lineDanmus = activeDanmus.filter(dm => {
-        const dmTop = parseFloat(dm.style.top);
-        return Math.abs(dmTop - linePos) < 2;
-      });
-
-      let hasEdgeConflict = false;
-      for (const dm of lineDanmus) {
-        // 获取弹幕当前位置（从transform中提取）
-        
-        const computedStyle = window.getComputedStyle(dm);
-        const matrix = new DOMMatrix(computedStyle.transform);
-        const dmRight = matrix.e+containerWidth;
-        if (dmRight >= (containerWidth - RIGHT_EDGE_THRESHOLD)) {
-          hasEdgeConflict = true;
-          break;
-        }
-      }
-
-      // 若无边缘冲突，该行可用
-      if (!hasEdgeConflict) {
-        availableLines.push(linePos);
-      }
-    } else {
-      // 该行无活跃弹幕，直接可用
-      availableLines.push(linePos);
-    }
+  if (linePositions.length === 0) updateLinePositions();
+  
+  const danmuSize = document.getElementById('danmuSize');
+  const customSize = danmuSize ? parseInt(danmuSize.value) : 24;
+  const RIGHT_EDGE_THRESHOLD = customSize*1.2;
+  const container = document.getElementById('danmu-container');
+  const containerWidth = container.offsetWidth;
+  
+  // 優化：預先過濾出各行的彈幕狀態
+  const occupiedLines = new Map();
+  activeDanmus.forEach(dm => {
+    const top = parseFloat(dm.style.top);
+    if (!occupiedLines.has(top)) occupiedLines.set(top, []);
+    occupiedLines.get(top).push(dm);
   });
-  // 选择可用行（优先随机选，保证分布均匀）
+
+  const availableLines = linePositions.filter(linePos => {
+    const dmsInLine = occupiedLines.get(linePos);
+    if (!dmsInLine) return true;
+
+    // 檢查該行最晚進入的彈幕是否已經騰出空間
+    return dmsInLine.every(dm => {
+      const rect = dm.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      // 判斷彈幕右邊界是否已經離開容器右緣一定距離
+      return (rect.right < containerRect.right - RIGHT_EDGE_THRESHOLD);
+    });
+  });
+
   if (availableLines.length > 0) {
     return availableLines[Math.floor(Math.random() * availableLines.length)];
   }
@@ -282,9 +265,8 @@ function createDanmu({ text, color, size, time: danmuTime }, currentVideoTime) {
   
   // 动画结束移除
   danmu.addEventListener('animationend', () => {
-    const index = activeDanmus.indexOf(danmu);
-    if (index > -1) activeDanmus.splice(index, 1);
-    danmuContainer.removeChild(danmu);
+    danmu.remove();
+    activeDanmus = activeDanmus.filter(d => d !== danmu);
     processBuffer();
   });
   
