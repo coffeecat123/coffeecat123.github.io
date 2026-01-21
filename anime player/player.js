@@ -392,9 +392,13 @@ function updateProgress() {
 
 // 時間格式化
 function formatTime(seconds) {
-  const mins = Math.floor(seconds / 60);
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds%3600) / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  if (hours > 0) {
+    return `${String(hours)}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 volume_btn.addEventListener('click',show_volume_bar);
 volume_btn.addEventListener('pointerover',show_volume_bar);
