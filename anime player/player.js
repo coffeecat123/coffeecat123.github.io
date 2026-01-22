@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initVideoControlAreas();
   initProgressBarDrag();
   initVideoPause();
+  toggleSidebarBtn.click();
 });
 
 // 初始化时确保鼠标移动事件正确绑定
@@ -587,7 +588,40 @@ folderInput.addEventListener('change', (e)=>{
     return;
   }
   const files = Array.from(e.target.files);
-  const maxDepth = Math.max(...Array.from(files).map(f => f.webkitRelativePath.split('/').length));
+  console.log(files)
+  const getCleanPath = (file) => {
+    let path = file.webkitRelativePath;
+    if (!path) return "";
+
+    const isAndroidSystemUri = path.startsWith('tree/') && path.includes('/document/');
+
+    if (isAndroidSystemUri) {
+      try {
+        const parts = path.split('/document/');
+        let virtualPath = parts[parts.length - 1]; 
+        
+        virtualPath = decodeURIComponent(virtualPath);
+        
+        if (virtualPath.includes(':')) {
+          virtualPath = virtualPath.split(':').slice(1).join(':');
+        }
+        
+        return virtualPath;
+      } catch (err) {
+        console.error("Android 路徑解析出錯", err);
+      }
+    }
+    return path;
+  };
+
+  const fileInfos = files.map(f => ({
+    file: f,
+    cleanPath: getCleanPath(f),
+    name: f.name
+  }));
+
+  const depths = fileInfos.map(info => info.cleanPath ? info.cleanPath.split('/').length : 1);
+  const maxDepth = Math.max(...depths);
   if(maxDepth>2)return;
   
   const vidFiles = files.filter(f => f.type.startsWith('video/'));
