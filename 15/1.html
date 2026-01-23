@@ -14,12 +14,12 @@
         </style>
     </head>
     <body style="background-color:rgb(0,0,0);">
-        <input id="a1" type="color" onchange="az()">
-        <input id="a2" type="color" onchange="az()">
-        <input id="a3" type="color" onchange="az()">
-        <input id="a4" type="color" onchange="az()"><br>
-        <span>x:</span><input id="ax" style="width:50vw;" type="range" min="2" max="50" onchange="az()"><span id="ew1"></span><br>
-        <span>y:</span><input id="ay" style="width:50vw;" type="range" min="2" max="50" onchange="az()"><span id="ew2"></span>
+        <input id="a1" type="color" oninput="az()">
+        <input id="a2" type="color" oninput="az()">
+        <input id="a3" type="color" oninput="az()">
+        <input id="a4" type="color" oninput="az()"><br>
+        <span>x:</span><input id="ax" style="width:50vw;" type="range" min="2" max="50" oninput="az()"><span id="ew1"></span><br>
+        <span>y:</span><input id="ay" style="width:50vw;" type="range" min="2" max="50" oninput="az()"><span id="ew2"></span>
         <div id="qw"></div>
         <script>
             var a1=document.getElementById("a1");
@@ -35,51 +35,70 @@
             var y;
             ax.value=5;
             ay.value=5;
-            ew1.textContent=ax.value;
-            ew2.textContent=ay.value;
             az();
             function az(){
-                ew1.textContent=ax.value;
-                ew2.textContent=ay.value;
-                var r1=parseInt(a1.value.substr(1,2),16);
-                var g1=parseInt(a1.value.substr(3,2),16);
-                var b1=parseInt(a1.value.substr(5,2),16);
-                var r2=parseInt(a2.value.substr(1,2),16);
-                var g2=parseInt(a2.value.substr(3,2),16);
-                var b2=parseInt(a2.value.substr(5,2),16);
-                var r3=parseInt(a3.value.substr(1,2),16);
-                var g3=parseInt(a3.value.substr(3,2),16);
-                var b3=parseInt(a3.value.substr(5,2),16);
-                var r4=parseInt(a4.value.substr(1,2),16);
-                var g4=parseInt(a4.value.substr(3,2),16);
-                var b4=parseInt(a4.value.substr(5,2),16);
-                while (qw.firstChild) {
-                  qw.removeChild(qw.firstChild);
-                }
-                x=ax.value;
-                y=ay.value;
-                for(var i=0;i<y;i++){
-                    for(var j=0;j<x;j++){
-                        var w=document.createElement("div");
-                        w.style="display:inline-block";
-                        w.style.backgroundColor="#"
-                            +parseInt(ab(r1,r2,r3,r4,i,j)).toString(16).padStart(2,'0')
-                            +parseInt(ab(g1,g2,g3,g4,i,j)).toString(16).padStart(2,'0')
-                            +parseInt(ab(b1,b2,b3,b4,i,j)).toString(16).padStart(2,'0');
-                        w.style.width=String(80/x)+"vw";
-                        w.style.height=String(80/x)+"vw";
-                        w.style["border-radius"]=String(12/x)+"vw";
+                const x = parseInt(ax.value)+1;
+                const y = parseInt(ay.value)+1;
+                ew1.textContent = x-1;
+                ew2.textContent = y-1;
+
+                const c1 = getRGB(a1.value);
+                const c2 = getRGB(a2.value);
+                const c3 = getRGB(a3.value);
+                const c4 = getRGB(a4.value);
+
+                qw.innerHTML = "";
+
+                for (let i = 0; i < y; i++) {
+                    for (let j = 0; j < x; j++) {
+                        const w = document.createElement("div");
+                        
+                        const r = lerp2D(c1.r, c2.r, c3.r, c4.r, j, i, x, y);
+                        const g = lerp2D(c1.g, c2.g, c3.g, c4.g, j, i, x, y);
+                        const b = lerp2D(c1.b, c2.b, c3.b, c4.b, j, i, x, y);
+
+                        const hex = "#" + 
+                            r.toString(16).padStart(2, '0') +
+                            g.toString(16).padStart(2, '0') +
+                            b.toString(16).padStart(2, '0');
+
+                        w.className = "box";
+                        w.style.display = "inline-block";
+                        w.style.backgroundColor = hex;
+                        w.style.width = (80 / x) + "vw";
+                        w.style.height = (80 / x) + "vw";
+                        w.style.borderRadius = (12 / x) + "vw";
+                        
                         qw.appendChild(w);
                     }
-                    qw.insertAdjacentHTML("beforeend","<br>");
+                    qw.appendChild(document.createElement("br"));
                 }
             }
-            function ab(a,b,c,d,i,j){
-                if((a+j*(b-a)/(x-1)+i*(c-a+j*(d-c-b+a)/(x-1))/(y-1))<0){
-                    return 0;
-                }else{
-                    return (a+j*(b-a)/(x-1)+i*(c-a+j*(d-c-b+a)/(x-1))/(y-1));
-                }
+            function getRGB(hex) {
+                return {
+                    r: parseInt(hex.substr(1, 2), 16),
+                    g: parseInt(hex.substr(3, 2), 16),
+                    b: parseInt(hex.substr(5, 2), 16)
+                };
+            }
+            function lerp2D(v1, v2, v3, v4, j, i, x, y) {
+                const s1 = v1 * v1;
+                const s2 = v2 * v2;
+                const s3 = v3 * v3;
+                const s4 = v4 * v4;
+
+                const u = j / (x - 1);
+                const v = i / (y - 1);
+
+                // 雙線性插值公式: 
+                // TopRow = s1 + u * (s2 - s1)
+                // BottomRow = s3 + u * (s4 - s3)
+                // Result = TopRow + v * (BottomRow - TopRow)
+                const top = s1 + u * (s2 - s1);
+                const bottom = s3 + u * (s4 - s3);
+                const res = top + v * (bottom - top);
+
+                return Math.round(Math.sqrt(Math.max(0, res)));
             }
         </script>
     </body>

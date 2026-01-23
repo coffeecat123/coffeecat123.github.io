@@ -14,9 +14,9 @@
         </style>
     </head>
     <body style="background-color:black;">
-        <span>start:</span><input id="a1" type="color" onchange="az()">
-        <span>end:</span><input id="a2" type="color" onchange="az()">
-        <span>crs:</span><input id="a3" style="width:50vw;" type="range" min="1" max="99" onchange="az()"><span id="ew"></span>
+        <span>start:</span><input id="a1" type="color" oninput="az()">
+        <span>end:</span><input id="a2" type="color" oninput="az()">
+        <span>crs:</span><input id="a3" style="width:50vw;" type="range" min="1" max="99" oninput="az()"><span id="ew"></span>
         <div id="qw"></div>
         <script>
             var a1=document.getElementById("a1");
@@ -27,29 +27,28 @@
             a3.value=9;
             r.textContent=parseInt(a3.value)+1;
             az();
-            function az(){
-                r.textContent=parseInt(a3.value)+1;
-                var r1=parseInt(a1.value.substr(1,2),16);
-                var g1=parseInt(a1.value.substr(3,2),16);
-                var b1=parseInt(a1.value.substr(5,2),16);
-                var r2=parseInt(a2.value.substr(1,2),16);
-                var g2=parseInt(a2.value.substr(3,2),16);
-                var b2=parseInt(a2.value.substr(5,2),16);
-                while (e.firstChild) {
-                  e.removeChild(e.firstChild);
-                }
-                var t=parseInt(a3.value);
-                for(var i=0;i<=t;i++){
-                    var w=document.createElement("div");
-                    w.style="display:inline-block";
-                    w.style.backgroundColor="#"+parseInt(r1+(r2-r1)/t*i).toString(16).padStart(2,'0')+
-                                                parseInt(g1+(g2-g1)/t*i).toString(16).padStart(2,'0')+
-                                                parseInt(b1+(b2-b1)/t*i).toString(16).padStart(2,'0');
-                    w.style.width=String(80/10)+"vw";
-                    w.style.height=String(80/10)+"vw";
-                    w.style["border-radius"]="1.2vw";
+            function az() {
+                r.textContent = parseInt(a3.value) + 1;
+                e.innerHTML = ""; // 簡化清空方式
+                
+                var t = parseInt(a3.value);
+                var color1 = a1.value;
+                var color2 = a2.value;
+
+                for (var i = 0; i <= t; i++) {
+                    var w = document.createElement("div");
+                    w.style.display = "inline-block";
+                    
+                    var percentage = (i / t) * 100;
+                    
+                    w.style.backgroundColor = `color-mix(in oklab, ${color2} ${percentage}%, ${color1})`;
+                    
+                    w.style.width = "8vw";
+                    w.style.height = "8vw";
+                    w.style.borderRadius = "1.2vw";
+                    
                     e.appendChild(w);
-                    if(i%10==9)e.insertAdjacentHTML("beforeend","<br>");
+                    if (i % 10 == 9) e.insertAdjacentHTML("beforeend", "<br>");
                 }
             }
         </script>
