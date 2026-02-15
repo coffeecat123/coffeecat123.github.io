@@ -744,9 +744,6 @@ function initKeyboardShortcuts() {
         e.preventDefault();
         toggleDanmuDisplay();
         break;
-      case 'Tab':
-        e.preventDefault();
-        break;
     }
   });
 }
