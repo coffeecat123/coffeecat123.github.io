@@ -238,7 +238,6 @@ video,.video-control-area{
 
 .control-btn,
 .control-select {
-    outline: 0;
     padding: 6px;
     background: rgba(50, 50, 50, 0.8);
     color: white;
@@ -303,7 +302,6 @@ video,.video-control-area{
     width: 0;
     max-width: calc(100vw - 337px);
     height: 6px;
-    outline: none;
     border-radius: 3px;
     background: linear-gradient(to right, #888 50%, #555 50%);
     transition: background 0.3s,width 0.5s;
@@ -330,7 +328,6 @@ video,.video-control-area{
     -webkit-appearance: none;
     width: 0;
     height: 6px;
-    outline: none;
     border-radius: 3px;
     background: linear-gradient(to right, #888 50%, #555 50%);
     transition: background 0.3s,width 0.5s;
@@ -351,7 +348,6 @@ video,.video-control-area{
 }
 
 .toggle-sidebar-btn {
-    outline: 0;
     background: rgba(50, 50, 50, 0.8);
     color: white;
     border: none;
@@ -558,6 +554,9 @@ font-size: 18px;
 ::-webkit-resizer {
     background: #828282;
     outline: 2px solid #b6b6b6;
+}
+:focus {
+  outline: none;
 }
 @media (orientation: portrait) and (max-width: 768px) {
     #video-panel{

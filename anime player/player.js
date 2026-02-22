@@ -706,6 +706,16 @@ function updateDanmuContainerSize() {
   }
 }
 function initKeyboardShortcuts() {
+  document.addEventListener('focusin', (event) => {
+    const activeEl = document.activeElement;
+    
+    const interactiveTags = ['INPUT', 'TEXTAREA', 'OPTION'];
+    
+    if (!interactiveTags.includes(activeEl.tagName) && activeEl !== document.body) {
+      activeEl.blur();
+      document.body.focus();
+    }
+  }, true);
   document.addEventListener('keydown', (e) => {
     if ((e.target!=volumeInput)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
