@@ -282,13 +282,16 @@ function processBuffer() {
   const currentTime = video.currentTime;
   
   if (now - lastDanmuTime >= densityInterval) {
-    if(getNonOverlappingLine()!=-1){
-      const dl=parseInt(danmuLimit.value);
-      while(1){
-        var nextDanmu = danmuBuffer.shift();
-        if(currentTime-nextDanmu.time<2||danmuBuffer.length<dl)break;
+    if (getNonOverlappingLine() !== -1 && danmuBuffer.length > 0) {
+      
+      const MAX_BUFFER_SIZE = 200; 
+      if (danmuBuffer.length > MAX_BUFFER_SIZE) {
+        danmuBuffer.splice(0, Math.floor(danmuBuffer.length / 2)); 
       }
-      if (createDanmu(nextDanmu, currentTime)) {
+      
+      var nextDanmu = danmuBuffer.pop();
+
+      if (nextDanmu && createDanmu(nextDanmu, currentTime)) {
         lastDanmuTime = now;
       }
     }
@@ -342,7 +345,7 @@ function triggerDanmus(currentTime) {
   
   // 计算合理的时间窗口：只包含应该显示或即将显示的弹幕
   const timeWindowStart = currentTime - 2; // 允许2秒内已经出现的弹幕（避免刚拖动就消失）
-  const timeWindowEnd = currentTime + totalDuration + 1; // 加上1秒缓冲
+  const timeWindowEnd = currentTime; // 加上1秒缓冲
   
   // 只添加当前时间窗口内的弹幕
   danmus.forEach(d => {
