@@ -286,7 +286,7 @@ function processBuffer() {
       const dl=parseInt(danmuLimit.value);
       while(1){
         var nextDanmu = danmuBuffer.shift();
-        if(currentTime-nextDanmu.time<5||danmuBuffer.length<dl)break;
+        if(currentTime-nextDanmu.time<2||danmuBuffer.length<dl)break;
       }
       if (createDanmu(nextDanmu, currentTime)) {
         lastDanmuTime = now;
