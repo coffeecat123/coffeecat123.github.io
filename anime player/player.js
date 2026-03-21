@@ -53,7 +53,9 @@ let isDraggingBar = false;
 let canDraggingVideo=false,
     isDraggingVideo = false,
     DraggingVideoX=null,
-    skippingTime=0;
+    skippingTime=0,
+    hideVolumeBarTimer=null,
+    isPointerInVolumeBar=false;
 let hasWatchedVideos={};
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 
@@ -403,7 +405,13 @@ function formatTime(seconds) {
 }
 volume_btn.addEventListener('click',show_volume_bar);
 volume_btn.addEventListener('pointerover',show_volume_bar);
+volumeControl.addEventListener('pointerover',()=>{
+  isPointerInVolumeBar=true;
+  clearTimeout(hideVolumeBarTimer);
+  show_volume_bar();
+});
 volumeControl.addEventListener('pointerleave',()=>{
+  isPointerInVolumeBar=false;
   hide_volume_bar();
 });
 function show_volume_bar(){
@@ -727,7 +735,6 @@ function initKeyboardShortcuts() {
       document.body.focus();
     }
   }, true);
-  let timer;
   document.addEventListener('keydown', (e) => {
     if ((e.target!=volumeInput)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
@@ -747,15 +754,17 @@ function initKeyboardShortcuts() {
         break;
       case 'ArrowUp':
         e.preventDefault();
+        let a=isPointerInVolumeBar;
         updateVolume(0.05);
-        clearTimeout(timer);
-        timer=setTimeout(hide_volume_bar, 1000);
+        clearTimeout(hideVolumeBarTimer);
+        if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'ArrowDown':
         e.preventDefault();
+        let b=isPointerInVolumeBar;
         updateVolume(-0.05);
-        clearTimeout(timer);
-        timer=setTimeout(hide_volume_bar, 1000);
+        clearTimeout(hideVolumeBarTimer);
+        if(!b)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'f':
       case 'F':
