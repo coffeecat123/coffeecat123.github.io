@@ -47,6 +47,8 @@ const limitValue = document.getElementById('limitValue');
 let videos = [];
 let isDanmuPaused = false;
 let isDanmuEnabled = true;
+let isMuted = false;
+let volume=1.0;
 let danmuContainer;
 let hideControlsTimer;
 let isDraggingBar = false;
@@ -59,20 +61,19 @@ let canDraggingVideo=false,
 let hasWatchedVideos={};
 const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 
-const saved_isDanmuEnabled = localStorage.getItem("isDanmuEnabled") === null 
-    ? true 
-    : localStorage.getItem("isDanmuEnabled") === "true";
-const saved_volume        = parseFloat(localStorage.getItem("volume")) || 1.0;   // 預設音量 1.0
-const saved_danmuSpeed    = parseFloat(localStorage.getItem("danmuSpeed")) || 1.0; // 預設 1.0 倍速
-const saved_danmuSize     = parseFloat(localStorage.getItem("danmuSize")) || 24;  // 預設 1.0 倍大小
-const saved_danmuOpacity  = parseFloat(localStorage.getItem("danmuOpacity")) || 1.0; // 預設不透明
-const saved_danmuRange    = parseFloat(localStorage.getItem("danmuRange")) || 75;   // 預設3/4螢幕範圍
-const saved_danmuLimit    = parseInt(localStorage.getItem("danmuLimit")) || 100;    //預設50
+const saved_isDanmuEnabled  = (localStorage.getItem("isDanmuEnabled") ?? "true") === "true";
+const saved_isMuted         = localStorage.getItem("isMuted") === "true";
+const saved_volume          = parseFloat(localStorage.getItem("volume")) || 1.0;   // 預設音量 1.0
+const saved_danmuSpeed      = parseFloat(localStorage.getItem("danmuSpeed")) || 1.0; // 預設 1.0 倍速
+const saved_danmuSize       = parseFloat(localStorage.getItem("danmuSize")) || 24;  // 預設 1.0 倍大小
+const saved_danmuOpacity    = parseFloat(localStorage.getItem("danmuOpacity")) || 1.0; // 預設不透明
+const saved_danmuRange      = parseFloat(localStorage.getItem("danmuRange")) || 75;   // 預設3/4螢幕範圍
+const saved_danmuLimit      = parseInt(localStorage.getItem("danmuLimit")) || 100;    //預設50
 const save_hasWatchedVideos = JSON.parse(localStorage.getItem("hasWatchedVideos")) || {};    //預設{}
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
-  volumeInput.value=saved_volume;
+  volume=saved_volume;
   danmuSpeed.value=saved_danmuSpeed;
   danmuSize.value=saved_danmuSize;
   danmuOpacity.value=saved_danmuOpacity;
@@ -80,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
   danmuLimit.value=saved_danmuLimit;
   hasWatchedVideos=save_hasWatchedVideos;
   isDanmuEnabled=saved_isDanmuEnabled;
+  isMuted=saved_isMuted;
+  video.muted=isMuted;
   updateVolumeControl();
   toggleDanmu_btn(isDanmuEnabled);
   const speed=parseFloat(danmuSpeed.value);
@@ -403,7 +406,12 @@ function formatTime(seconds) {
   }
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
-volume_btn.addEventListener('click',show_volume_bar);
+volume_btn.addEventListener('click',()=>{
+  isMuted=!isMuted;
+  video.muted=isMuted;
+  show_volume_bar();
+  syncVolumeUI();
+});
 volume_btn.addEventListener('pointerover',show_volume_bar);
 volumeControl.addEventListener('pointerover',()=>{
   isPointerInVolumeBar=true;
@@ -429,13 +437,18 @@ volumeInput.addEventListener('keydown', (e)=>{
 });
 // 音量控制
 volumeInput.addEventListener('input', () => {
-  video.volume = volumeInput.value;
+  volume=parseFloat(volumeInput.value);
+  video.volume = volume;
+  video.muted = false;
+  isMuted=(volume===0);
   syncVolumeUI();
 });
 function updateVolume(dv=0){
   let val = Number(volumeInput.value) + dv;
-  volumeInput.value = Math.max(0, Math.min(1, val));
-  video.volume = volumeInput.value;
+  volume = Math.max(0, Math.min(1, val));
+  video.volume = volume;
+  video.muted = false;
+  isMuted=(volume===0);
   syncVolumeUI();
 }
 function syncVolumeUI() {
@@ -445,7 +458,12 @@ function syncVolumeUI() {
   save_status();
 }
 function updateVolumeControl(){
-  const vl=volumeInput.value*100;
+  const vl=(isMuted)?0:volume*100;
+  if(isMuted){
+    volumeInput.value=0;
+  }else{
+    volumeInput.value=volume;
+  }
   volumeInput.style.background = `linear-gradient(to right, #888 ${vl}%, #333 ${vl}%)`;
   if(vl>80){
     volume_max.style.display="block";
@@ -781,7 +799,8 @@ function initKeyboardShortcuts() {
 }
 function save_status(){
   localStorage.setItem("isDanmuEnabled", isDanmuEnabled);
-  localStorage.setItem("volume", volumeInput.value);
+  localStorage.setItem("isMuted", isMuted);
+  localStorage.setItem("volume", volume);
   localStorage.setItem("danmuSpeed", danmuSpeed.value);
   localStorage.setItem("danmuSize", danmuSize.value);
   localStorage.setItem("danmuOpacity", danmuOpacity.value);
