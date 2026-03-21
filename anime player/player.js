@@ -440,6 +440,7 @@ volumeInput.addEventListener('input', () => {
   video.volume = volume;
   video.muted = false;
   isMuted=(volume===0);
+  document.activeElement.blur();
   syncVolumeUI();
 });
 function updateVolume(dv=0){
@@ -753,10 +754,13 @@ function initKeyboardShortcuts() {
     }
   }, true);
   document.addEventListener('keydown', (e) => {
+    console.log(e.target);
     if ((e.target!=volumeInput)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
     }
     let a=isPointerInVolumeBar;
+    let b=e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
+    if(b)return;
     switch(e.key) {
       case ' ':
         e.preventDefault();
@@ -800,6 +804,16 @@ function initKeyboardShortcuts() {
         syncVolumeUI();
         clearTimeout(hideVolumeBarTimer);
         if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
+        break;
+      case 'j':
+      case 'J':
+        e.preventDefault();
+        toggleSidebarBtn.click();
+        break;
+      case 'i':
+      case 'I':
+        e.preventDefault();
+        customFileBtn.click();
         break;
     }
   });
