@@ -409,7 +409,6 @@ function formatTime(seconds) {
 volume_btn.addEventListener('click',()=>{
   isMuted=!isMuted;
   video.muted=isMuted;
-  show_volume_bar();
   syncVolumeUI();
 });
 volume_btn.addEventListener('pointerover',show_volume_bar);
@@ -757,6 +756,7 @@ function initKeyboardShortcuts() {
     if ((e.target!=volumeInput)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
     }
+    let a=isPointerInVolumeBar;
     switch(e.key) {
       case ' ':
         e.preventDefault();
@@ -772,17 +772,15 @@ function initKeyboardShortcuts() {
         break;
       case 'ArrowUp':
         e.preventDefault();
-        let a=isPointerInVolumeBar;
         updateVolume(0.05);
         clearTimeout(hideVolumeBarTimer);
         if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'ArrowDown':
         e.preventDefault();
-        let b=isPointerInVolumeBar;
         updateVolume(-0.05);
         clearTimeout(hideVolumeBarTimer);
-        if(!b)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
+        if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'f':
       case 'F':
@@ -793,6 +791,15 @@ function initKeyboardShortcuts() {
       case 'D':
         e.preventDefault();
         toggleDanmuDisplay();
+        break;
+      case 'm':
+      case 'M':
+        e.preventDefault();
+        isMuted=!isMuted;
+        video.muted=isMuted;
+        syncVolumeUI();
+        clearTimeout(hideVolumeBarTimer);
+        if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
     }
   });
