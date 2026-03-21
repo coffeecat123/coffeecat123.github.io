@@ -420,10 +420,17 @@ volumeInput.addEventListener('keydown', (e)=>{
   e.preventDefault();
 });
 // 音量控制
-volumeInput.addEventListener('input',updateVolume);
-function updateVolume(dv=0){
-  volumeInput.value = Math.max(0, Math.min(1, Number(volumeInput.value) + dv));
+volumeInput.addEventListener('input', () => {
   video.volume = volumeInput.value;
+  syncVolumeUI();
+});
+function updateVolume(dv=0){
+  let val = Number(volumeInput.value) + dv;
+  volumeInput.value = Math.max(0, Math.min(1, val));
+  video.volume = volumeInput.value;
+  syncVolumeUI();
+}
+function syncVolumeUI() {
   show_volume_bar();
   updateVolumeControl();
   handleMouseMovement();
