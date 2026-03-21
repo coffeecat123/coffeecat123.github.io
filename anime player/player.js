@@ -754,11 +754,11 @@ function initKeyboardShortcuts() {
     }
   }, true);
   document.addEventListener('keydown', (e) => {
-    console.log(e.target);
     if ((e.target!=volumeInput)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
     }
     let a=isPointerInVolumeBar;
+    let p=document.querySelectorAll('#videoList li.playing');
     let b=e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
     if(b)return;
     switch(e.key) {
@@ -814,6 +814,24 @@ function initKeyboardShortcuts() {
       case 'I':
         e.preventDefault();
         customFileBtn.click();
+        break;
+      case '[':
+        e.preventDefault();
+        if(p.length>0){
+          let prev=p[0].previousElementSibling;
+          if(prev){
+            prev.click();
+          }
+        }
+        break;
+      case ']':
+        e.preventDefault();
+        if(p.length>0){
+          let next=p[0].nextElementSibling;
+          if(next){
+            next.click();
+          }
+        }
         break;
     }
   });
