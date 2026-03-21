@@ -404,21 +404,25 @@ function formatTime(seconds) {
 volume_btn.addEventListener('click',show_volume_bar);
 volume_btn.addEventListener('pointerover',show_volume_bar);
 volumeControl.addEventListener('pointerleave',()=>{
-    volumeInput.style.width="0";
-    volume_bar.style.transform="translateX(-20px)";
-    volume_bar.style.padding="0";
+  hide_volume_bar();
 });
 function show_volume_bar(){
   volumeInput.style.width="100px";
   volume_bar.style.transform="translateX(-10px)";
   volume_bar.style.padding="0 10px";
 }
+function hide_volume_bar(){
+  volumeInput.style.width="0";
+  volume_bar.style.transform="translateX(-20px)";
+  volume_bar.style.padding="0";
+}
 volumeInput.addEventListener('keydown', (e)=>{
   e.preventDefault();
 });
 // 音量控制
 volumeInput.addEventListener('input',updateVolume);
-function updateVolume(){
+function updateVolume(dv=0){
+  volumeInput.value = Math.max(0, Math.min(1, Number(volumeInput.value) + dv));
   video.volume = volumeInput.value;
   show_volume_bar();
   updateVolumeControl();
@@ -716,11 +720,11 @@ function initKeyboardShortcuts() {
       document.body.focus();
     }
   }, true);
+  let timer;
   document.addEventListener('keydown', (e) => {
     if ((e.target!=volumeInput)&&(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
     }
-
     switch(e.key) {
       case ' ':
         e.preventDefault();
@@ -736,13 +740,15 @@ function initKeyboardShortcuts() {
         break;
       case 'ArrowUp':
         e.preventDefault();
-        volumeInput.value = Math.min(1, Number(volumeInput.value) + 0.05);
-        updateVolume();
+        updateVolume(0.05);
+        clearTimeout(timer);
+        timer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'ArrowDown':
         e.preventDefault();
-        volumeInput.value = Math.max(0, Number(volumeInput.value) - 0.05);
-        updateVolume();
+        updateVolume(-0.05);
+        clearTimeout(timer);
+        timer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'f':
       case 'F':
