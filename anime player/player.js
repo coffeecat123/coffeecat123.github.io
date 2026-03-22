@@ -119,7 +119,7 @@ function initVideoControlAreas() {
     // 当鼠标在视频面板外但在容器内时也触发显示
     if (container.contains(e.target) && !videoPanel.contains(e.target)) {
       showControlAreas();
-      hideControlsTimer = setTimeout(hideControlAreas, 1500);
+      delayHideControlAreas();
     }
   });
   
@@ -249,8 +249,7 @@ function updateProgressFromTouch(e) {
 function handleMouseMovement(e) {
   clearTimeout(hideControlsTimer);
   showControlAreas();
-  
-  hideControlsTimer = setTimeout(hideControlAreas, 1500);
+  delayHideControlAreas();
 }
 // 额外添加侧边栏内部鼠标移动监听（增强兼容性）
 sidebar.addEventListener('mousemove', (e) => {
@@ -263,6 +262,11 @@ function showControlAreas() {
   videoTopArea.classList.remove('hidden');
   videoBottomArea.classList.remove('hidden');
   videoPanel.style.cursor = 'default'; // 恢复鼠标显示
+}
+
+function delayHideControlAreas() {
+  clearTimeout(hideControlsTimer);
+  hideControlsTimer = setTimeout(hideControlAreas, 1500);
 }
 
 // 隐藏上下区域并隐藏鼠标
@@ -328,17 +332,17 @@ function initVideoPause(){
 
 // 側邊欄切換
 toggleSidebarBtn.addEventListener('click', ()=>{
-  sidebar.classList.toggle('expanded');
-  
-  if (sidebar.classList.contains('expanded')) {
-    toggleSidebarBtn.style.transform= 'scaleX(-1)';
-  }else{
-    toggleSidebarBtn.style.transform= 'scaleX(1)';
-  }
-  updateVideoPanelWidth();
-  //updateDanmuContainerSize();
-  showControlAreas();
+  toggleSidebar();
 });
+function toggleSidebar(a) {
+  const isExpanded = (a === undefined) ? !sidebar.classList.contains('expanded') : !!a;
+
+  sidebar.classList.toggle('expanded', isExpanded);
+  toggleSidebarBtn.classList.toggle('flipped', isExpanded);
+
+  updateVideoPanelWidth();
+  showControlAreas();
+}
 
 // 手動更新video-panel寬度
 function updateVideoPanelWidth() {
@@ -358,7 +362,7 @@ playbackSpeed.addEventListener('change', ()=>{
 video.addEventListener('play', ()=>{
   playPauseBtn.textContent = '❚❚';
   // 播放时启动隐藏计时器（但鼠标一动就会立即显示）
-  hideControlsTimer = setTimeout(hideControlAreas, 1500);
+  delayHideControlAreas();
 });
 
 // 视频暂停时强制显示鼠标和控制区
@@ -730,10 +734,7 @@ function playVideo({vid, xml}){
     playPauseBtn.textContent = '❚❚';
     const title = vid.name.replace(/\.[^.]*$/, '');
     videoTitle.textContent = title;
-    toggleSidebarBtn.click();
-    updateVideoPanelWidth();
     showControlAreas();
-    save_status();
   }).catch(err => console.log('播放失敗:', err));
 }
 function updateDanmuContainerSize() {
@@ -808,7 +809,7 @@ function initKeyboardShortcuts() {
       case 'j':
       case 'J':
         e.preventDefault();
-        toggleSidebarBtn.click();
+        toggleSidebar();
         break;
       case 'i':
       case 'I':

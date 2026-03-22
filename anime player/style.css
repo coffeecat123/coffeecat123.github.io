@@ -60,6 +60,12 @@ svg{
     transform: translateX(0);
     z-index: 1005;
 }
+#toggleSidebar svg{
+  transition: transform 0.5s ease;
+}
+#toggleSidebar.flipped svg{
+  transform: scaleX(-1);
+}
 
 .video-control-area {
     position: absolute;
