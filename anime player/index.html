@@ -9,14 +9,14 @@
 <body>
 <div id="container">
   <!-- video -->
-  <div id="video-panel">
+  <div id="video-panel" class="expanded">
     
     <video id="myVideo" controlsList="nodownload noremoteplayback" disablePictureInPicture></video>
     
     <!-- videoTopArea-->
     <div id="videoTopArea" class="video-control-area top-area">
       <div id="videoTitle" class="video-title">select a video</div>
-      <button id="toggleSidebar" class="toggle-sidebar-btn" tabindex="-1">
+      <button id="toggleSidebar" class="toggle-sidebar-btn flipped" tabindex="-1">
         <svg width="40px" viewBox="0 0 24 24">
           <path d="M 16 17 l -5 -5 l 5 -5 l -3 0 l -5 5 l 5 5 z"></path>
         </svg>
@@ -126,7 +126,7 @@
   </div>
 
   <!-- sidebar -->
-  <div id="sidebar" tabindex="-1">
+  <div id="sidebar" class="expanded" tabindex="-1">
     <div id="sidebar_input">
       <button id="customFileBtn" tabindex="-1">
         <svg width="25px" version="1.0" viewBox="0 0 512 512">

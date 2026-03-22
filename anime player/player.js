@@ -105,7 +105,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initVideoControlAreas();
   initProgressBarDrag();
   initVideoPause();
-  toggleSidebarBtn.click();
 });
 
 // 初始化时确保鼠标移动事件正确绑定
@@ -558,7 +557,6 @@ function updateFullscreenUI() {
     toggleFlsc_btn(0);
   }
   updateVideoPanelWidth();
-  //updateDanmuContainerSize();
 }
 
 // 彈幕設置面板切換
@@ -698,44 +696,49 @@ folderInput.addEventListener('change', (e)=>{
   });
 });
 
-// 视频加载时确保弹幕容器可见
-function playVideo({vid, xml}){
+function playVideo({ vid, xml }) {
   const url = URL.createObjectURL(vid);
-  video.src = url;
-  video.name=vid.name;
+  
+  video.name = vid.name;
   window.isDanmuEnabled = isDanmuEnabled;
   window.danmuContainer = danmuContainer;
-  video.onloadeddata= () => {
-    console.log(video.duration);
+
+  video.onloadedmetadata = () => {
     video.playbackRate = parseFloat(playbackSpeed.value);
-    if(hasWatchedVideos.hasOwnProperty(vid.name)){
-      video.currentTime=hasWatchedVideos[vid.name].time;
-    }else{
-      hasWatchedVideos[vid.name]={
-        time:0,
-        duration:video.duration
+    
+    if (hasWatchedVideos.hasOwnProperty(vid.name)) {
+      video.currentTime = hasWatchedVideos[vid.name].time;
+    } else {
+      hasWatchedVideos[vid.name] = {
+        time: 0,
+        duration: video.duration
       };
     }
-    if(window.danmusClear){
-      window.danmusClear();
-    }
-    if(xml){
-      // 确保loadDanmuXML函数可用
-      if (window.loadDanmuXML) {
-        window.loadDanmuXML(xml);
-      } else {
-        console.error('loadDanmuXML函数未定义');
-      }
-    }else{
+  };
+
+  video.onloadeddata = () => {
+    if (window.danmusClear) window.danmusClear();
+    
+    if (xml && window.loadDanmuXML) {
+      window.loadDanmuXML(xml);
+    } else {
       window.clearDanmus && window.clearDanmus();
     }
   };
-  video.play().then(()=>{
-    playPauseBtn.textContent = '❚❚';
-    const title = vid.name.replace(/\.[^.]*$/, '');
-    videoTitle.textContent = title;
-    showControlAreas();
-  }).catch(err => console.log('播放失敗:', err));
+
+  video.src = url;
+
+  const startPlay = () => {
+    video.play().then(() => {
+      playPauseBtn.textContent = '❚❚';
+      videoTitle.textContent = vid.name.replace(/\.[^.]*$/, '');
+      showControlAreas();
+    }).catch(err => console.log('播放失敗:', err));
+    
+    video.removeEventListener('canplaythrough', startPlay);
+  };
+
+  video.addEventListener('canplaythrough', startPlay);
 }
 function updateDanmuContainerSize() {
   if (danmuContainer) {
@@ -811,8 +814,8 @@ function initKeyboardShortcuts() {
         e.preventDefault();
         toggleSidebar();
         break;
-      case 'i':
-      case 'I':
+      case 'o':
+      case 'O':
         e.preventDefault();
         customFileBtn.click();
         break;
