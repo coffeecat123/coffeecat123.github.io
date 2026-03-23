@@ -341,6 +341,7 @@ function toggleSidebar(a) {
 
   updateVideoPanelWidth();
   showControlAreas();
+  delayHideControlAreas();
 }
 
 // 手動更新video-panel寬度
