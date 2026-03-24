@@ -59,7 +59,6 @@ let canDraggingVideo=false,
     hideVolumeBarTimer=null,
     isPointerInVolumeBar=false;
 let hasWatchedVideos={};
-const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
 
 const saved_isDanmuEnabled  = (localStorage.getItem("isDanmuEnabled") ?? "true") === "true";
 const saved_isMuted         = localStorage.getItem("isMuted") === "true";
@@ -143,7 +142,8 @@ function initProgressBarDrag() {
     e.stopPropagation(); // 阻止事件冒泡
   });
   video.addEventListener('pointerdown', (e) => {
-    if(isDraggingBar||!isMobile)return;
+    const isTouch = e.pointerType === 'touch';
+    if(isDraggingBar||!isTouch)return;
     if(isNaN(video.duration))return;
     const rect = video.getBoundingClientRect();
     DraggingVideoX=e.clientX - rect.left;
@@ -153,10 +153,10 @@ function initProgressBarDrag() {
     }
     canDraggingVideo=true;
   });
-  video.addEventListener('contextmenu', (e) => {
+/*   video.addEventListener('contextmenu', (e) => {
     e.preventDefault(); // 阻止右键菜单（桌面端）和长按菜单（移动端）
     e.stopPropagation();
-  });
+  }); */
   video.addEventListener('pointermove', (e) => {
     if(!canDraggingVideo)return;
     const rect = video.getBoundingClientRect();
@@ -295,11 +295,12 @@ function initVideoPause(){
   let clickTimer = null;
   // 點擊影片播放/暫停
   video.addEventListener('pointerdown',(e)=>{
+    const isTouch = e.pointerType === 'touch';
     const now = Date.now();
 
     // 判断是否在阈值内连续点击
     if (now - lastClick < doubleClickDelay) {
-      if(isMobile){
+      if(isTouch){
         e.preventDefault();
         e.stopPropagation();
         clearTimeout(clickTimer);
@@ -310,9 +311,11 @@ function initVideoPause(){
     } else {
       lastClick = now;
     }
-    if(!isMobile){
-      togglePlayPause();
-      handleMouseMovement();
+    if(!isTouch){
+      if(e.button==0){
+        togglePlayPause();
+        handleMouseMovement();
+      }
     }else if(lastClick>0){
       e.preventDefault();
       e.stopPropagation();
