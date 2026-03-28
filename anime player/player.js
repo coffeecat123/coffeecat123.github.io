@@ -44,6 +44,7 @@ const rangeValue = document.getElementById('rangeValue');
 const danmuLimit = document.getElementById('danmuLimit');
 const limitValue = document.getElementById('limitValue');
 
+let currentVideoUrl = null;
 let videos = [];
 let isDanmuPaused = false;
 let isDanmuEnabled = true;
@@ -701,6 +702,9 @@ folderInput.addEventListener('change', (e)=>{
 });
 
 function playVideo({ vid, xml }) {
+  if (currentVideoUrl) {
+    URL.revokeObjectURL(currentVideoUrl);
+  }
   const url = URL.createObjectURL(vid);
   
   video.name = vid.name;
