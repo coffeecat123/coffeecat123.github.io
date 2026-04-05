@@ -105,7 +105,104 @@ document.addEventListener('DOMContentLoaded', () => {
   initVideoControlAreas();
   initProgressBarDrag();
   initVideoPause();
+  initOtherEvents();
+  initDragAndDrop();
 });
+
+function initDragAndDrop() {
+  const dropZone = videoList.parentElement;
+  let li = null;
+  let dragCounter = 0;
+
+  // 封裝移除動畫的邏輯
+  const removeLiWithAnimation = (targetLi) => {
+    if (!targetLi) return;
+    targetLi.classList.add('collapsed');
+    
+    // 監聽動畫結束事件
+    targetLi.addEventListener('transitionend', () => {
+      if (targetLi.parentNode === videoList) {
+        videoList.removeChild(targetLi);
+      }
+    }, { once: true }); // 確保只執行一次
+  };
+
+  dropZone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    dragCounter++;
+    
+    if (dragCounter === 1) {
+      // 如果剛好正在「消失中」，就直接移除舊的重新創一個，或移除 collapsed
+      if (li && videoList.contains(li)) {
+        li.classList.remove('collapsed');
+      } else {
+        li = document.createElement('li');
+        li.classList.add('dropping');
+        li.innerText = "+";
+        videoList.appendChild(li);
+        requestAnimationFrame(() => {
+          // 取得父容器（有捲軸的那一個，假設是 sidebar 或 videoList.parentElement）
+          const container = videoList.parentElement; 
+          
+          // 滾動到容器的總高度
+          container.scrollTo({
+            top: container.scrollHeight,
+            behavior: 'smooth'
+          });
+        });
+      }
+    }
+  });
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dragCounter--;
+    
+    if (dragCounter === 0) {
+      removeLiWithAnimation(li);
+      li = null; // 清空引用，下次進入創新的
+    }
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+  
+    removeLiWithAnimation(li);
+    li = null; // 清空引用，下次進入創新的
+
+    const files = e.dataTransfer.files;
+    handleFiles(files);
+  });
+}
+
+function initOtherEvents() {
+  document.addEventListener("visibilitychange", function() {
+    if (!document.hidden) {
+      console.log("頁面重新獲得焦點，檢查影片狀態...");
+      console.log("readyState:", video.readyState, "paused:", video.paused);
+      
+      // 檢查影片是否處於「播放狀態但畫面不動」的詭異情況
+      if (video.readyState < 2) { 
+        console.log("偵測到回到頁面，執行喚醒機制...");
+
+        // 1. 強制觸發重繪 (改變 1 像素)
+        video.style.filter = "brightness(1.0001)"; 
+        
+        // 2. 核心：微調時間軸來強制解碼器重新對焦
+        const savedTime = video.currentTime;
+        video.currentTime = savedTime + 0.01; 
+        
+        // 3. 確保播放狀態
+        video.play().catch(err => console.log("播放喚醒失敗:", err));
+      }
+    }
+  });
+}
 
 // 初始化时确保鼠标移动事件正确绑定
 function initVideoControlAreas() {
@@ -627,36 +724,38 @@ function checkVideoSupport(videoFile) {
 customFileBtn.addEventListener('click', () => {
   folderInput.click();
 });
+
+
+function getCleanPath(file) {
+  let path = file.webkitRelativePath;
+  if (!path) return "";
+
+  const isAndroidSystemUri = path.startsWith('tree/') && path.includes('/document/');
+
+  if (isAndroidSystemUri) {
+    try {
+      const parts = path.split('/document/');
+      let virtualPath = parts[parts.length - 1]; 
+      
+      virtualPath = decodeURIComponent(virtualPath);
+      
+      if (virtualPath.includes(':')) {
+        virtualPath = virtualPath.split(':').slice(1).join(':');
+      }
+      
+      return virtualPath;
+    } catch (err) {
+      console.error("Android 路徑解析出錯", err);
+    }
+  }
+  return path;
+}
 folderInput.addEventListener('change', (e)=>{
   if (!e.target.files || e.target.files.length === 0) {
     return;
   }
   const files = Array.from(e.target.files);
-  console.log(files)
-  const getCleanPath = (file) => {
-    let path = file.webkitRelativePath;
-    if (!path) return "";
-
-    const isAndroidSystemUri = path.startsWith('tree/') && path.includes('/document/');
-
-    if (isAndroidSystemUri) {
-      try {
-        const parts = path.split('/document/');
-        let virtualPath = parts[parts.length - 1]; 
-        
-        virtualPath = decodeURIComponent(virtualPath);
-        
-        if (virtualPath.includes(':')) {
-          virtualPath = virtualPath.split(':').slice(1).join(':');
-        }
-        
-        return virtualPath;
-      } catch (err) {
-        console.error("Android 路徑解析出錯", err);
-      }
-    }
-    return path;
-  };
+  console.log(files);
 
   const fileInfos = files.map(f => ({
     file: f,
@@ -668,6 +767,13 @@ folderInput.addEventListener('change', (e)=>{
   const maxDepth = Math.max(...depths);
   if(maxDepth>2)return;
   
+  handleFiles(files);
+  
+});
+
+function handleFiles(fileObject) {
+  const files = Array.from(fileObject);
+
   const vidFiles = files.filter(f => f.type.startsWith('video/'));
   vidFiles.forEach(vid=>{
     if (!checkVideoSupport(vid))return;
@@ -676,6 +782,7 @@ folderInput.addEventListener('change', (e)=>{
     });
     if(isDuplicate)return;
     const xml = files.find(f=>f.name.replace('.xml','')===vid.name.replace('.mp4','') && f.name.endsWith('.xml'));
+    
     videos.push({vid, xml});
     const li = document.createElement('li');
     li.name=vid.name;
@@ -699,8 +806,7 @@ folderInput.addEventListener('change', (e)=>{
     videoList.appendChild(li);
     fileNumber.innerText=`${videoList.querySelectorAll("li").length} videos`;
   });
-});
-
+}
 function playVideo({ vid, xml }) {
   if (currentVideoUrl) {
     URL.revokeObjectURL(currentVideoUrl);

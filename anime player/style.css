@@ -441,6 +441,27 @@ video,.video-control-area{
     width: 250px;
     white-space: pre-wrap;
 }
+
+#videoList li.dropping{
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    color: #00ffff;
+    font-size: 60px;
+    height: 70px;
+    transition: height 0.5s ease, opacity 0.5s ease, scale 0.5s ease,padding 0.5s ease;
+}
+#videoList li.dropping.collapsed {
+    padding: 0;
+    height: 0;
+    opacity: 0;
+    scale: 0;
+}
+.dragging-active * {
+    pointer-events: none;
+}
 @media (hover: hover) and (pointer: fine) {
     #videoList li:hover {
         background: #444;
@@ -458,12 +479,9 @@ video,.video-control-area{
     opacity: 0.5;
 }
 #sidebar_input{
-    
-display: flex;
-    
-align-items: baseline;
-    
-margin-bottom: 5px;
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 5px;
 }
 #customFileBtn {
   background: #888;
