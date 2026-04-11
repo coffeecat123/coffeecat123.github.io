@@ -188,17 +188,28 @@ function initOtherEvents() {
       
       // 檢查影片是否處於「播放狀態但畫面不動」的詭異情況
       if (video.readyState < 2) { 
-        console.log("偵測到回到頁面，執行喚醒機制...");
+        console.log("偵測到分頁喚醒，執行強制恢復機制...");
+        
+        // 先暫停再播放，觸發瀏覽器的引擎重新檢查狀態
+        video.pause();
+        
+        // 嘗試重新非同步播放
+        video.play().then(() => {
+          console.log("喚醒成功");
+        }).catch(err => {
+          // 如果連 play 都失敗，這時才考慮使用 load() 作為最後手段
+          console.log("播放喚醒失敗，嘗試強制重載資源...");
+          const savedTime = video.currentTime;
 
-        // 1. 強制觸發重繪 (改變 1 像素)
-        video.style.filter = "brightness(1.0001)"; 
-        
-        // 2. 核心：微調時間軸來強制解碼器重新對焦
-        const savedTime = video.currentTime;
-        video.currentTime = savedTime + 0.01; 
-        
-        // 3. 確保播放狀態
-        video.play().catch(err => console.log("播放喚醒失敗:", err));
+          const seekAfterLoad = () => {
+              video.currentTime = savedTime;
+              video.play();
+              video.removeEventListener('loadedmetadata', seekAfterLoad);
+          };
+
+          video.addEventListener('loadedmetadata', seekAfterLoad);
+          video.load();
+        });
       }
     }
   });
@@ -363,7 +374,7 @@ function showControlAreas() {
 
 function delayHideControlAreas() {
   clearTimeout(hideControlsTimer);
-  hideControlsTimer = setTimeout(hideControlAreas, 1500);
+  hideControlsTimer = setTimeout(hideControlAreas, 1000);
 }
 
 // 隐藏上下区域并隐藏鼠标
