@@ -82,7 +82,7 @@ svg{
 }
 video,.video-control-area{
   will-change: opacity, transform;
-  transform: translateZ(0); /* 或 translate3d(0,0,0) */
+  transform: translateZ(0); /* æˆ– translate3d(0,0,0) */
 }
 .top-area {
     top: 0;
@@ -143,11 +143,11 @@ video,.video-control-area{
 }
 .progress-bar,
 .progress-container {
-  -webkit-user-select: none; /* 禁止文本选中（Safari/Chrome） */
-  user-select: none; /* 禁止文本选中（标准） */
-  -webkit-touch-callout: none; /* 禁止长按弹出菜单（iOS） */
-  -webkit-user-drag: none; /* 禁止拖动元素 */
-  touch-action: none; /* 禁用触摸默认行为（如滑动、缩放） */
+  -webkit-user-select: none; /* ç¦æ­¢æ–‡æœ¬é€‰ä¸­ï¼ˆSafari/Chromeï¼‰ */
+  user-select: none; /* ç¦æ­¢æ–‡æœ¬é€‰ä¸­ï¼ˆæ ‡å‡†ï¼‰ */
+  -webkit-touch-callout: none; /* ç¦æ­¢é•¿æŒ‰å¼¹å‡ºèœå•ï¼ˆiOSï¼‰ */
+  -webkit-user-drag: none; /* ç¦æ­¢æ‹–åŠ¨å…ƒç´  */
+  touch-action: none; /* ç¦ç”¨è§¦æ‘¸é»˜è®¤è¡Œä¸ºï¼ˆå¦‚æ»‘åŠ¨ã€ç¼©æ”¾ï¼‰ */
 }
 
 .progress-container {
@@ -290,7 +290,7 @@ video,.video-control-area{
 .control-select {
     -webkit-appearance: none; /* Safari/Chrome */
     -moz-appearance: none; /* Firefox */
-    appearance: none; /* 标准属性 */
+    appearance: none; /* æ ‡å‡†å±žæ€§ */
     padding: 5px 5px;
     text-align: center;
 }
@@ -423,6 +423,61 @@ video,.video-control-area{
     text-align: right;
     color: #eee;
 }
+
+#info{
+    pointer-events: none;
+    position: absolute;
+    z-index: 10;
+    display: none;
+    align-content: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+.video-meta {
+    background: #888d;
+    padding: 30px;
+    color: #eee;
+    height: max-content;
+    width: 360px;
+    border-radius: 20px;
+    pointer-events: all;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: default;
+}
+.video-meta .value {
+    max-width: 250px;
+    border-radius: 5px;
+    padding: 3px 5px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: max-width 0.5s ease;
+}
+.video-meta .value:hover {
+    max-width: 100%;
+    min-width: fit-content;
+    overflow: visible;
+    background: #00000066;
+}
+.video-meta .value.copied {
+    background: #27ac0d;
+}
+
+.video-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
 
 #videoList {
     list-style: none;

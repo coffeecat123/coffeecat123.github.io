@@ -1,5 +1,6 @@
 const video = document.getElementById('myVideo');
 const videoList = document.getElementById('videoList');
+const videoInfo = document.getElementById('info');
 const customFileBtn = document.getElementById('customFileBtn');
 const fileNumber = document.getElementById('fileNumber');
 const folderInput = document.getElementById('folderInput');
@@ -31,7 +32,12 @@ const volume_min = document.getElementById('volume_min');
 const volume_btn = document.getElementById('volume_btn');
 const volume_bar = document.getElementById('volume_bar');
 const volumeControl = document.getElementById('volume-control');
-
+const nameEl = videoInfo.querySelector('.video-name');
+const pathEl = videoInfo.querySelector('.video-path');
+const widthEl = videoInfo.querySelector('.video-width');
+const heightEl = videoInfo.querySelector('.video-height');
+const sizeEl = videoInfo.querySelector('.video-size');
+const durationEl = videoInfo.querySelector('.video-duration');
 // 彈幕設置控件
 const danmuSpeed = document.getElementById('danmuSpeed');
 const speedValue = document.getElementById('speedValue');
@@ -212,6 +218,29 @@ function initOtherEvents() {
         });
       }
     }
+  });
+  let copyTimers = new Map();
+  document.querySelectorAll('.video-item .value').forEach(input => {
+    input.addEventListener('click', (e) => {
+      const target = e.target;
+      if (copyTimers.has(target))return;
+      const text = target.textContent;
+
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = target.textContent;
+        target.textContent = 'Copied!';
+        target.classList.add('copied');
+        const timer = setTimeout(() => {
+          target.textContent = originalText;
+          target.classList.remove('copied');
+          copyTimers.delete(target);
+        }, 500);
+
+        copyTimers.set(target, timer);
+      }).catch(err => {
+        console.error('複製失敗:', err);
+      });
+    });
   });
 }
 
@@ -795,6 +824,7 @@ function handleFiles(fileObject) {
     const xml = files.find(f=>f.name.replace('.xml','')===vid.name.replace('.mp4','') && f.name.endsWith('.xml'));
     
     videos.push({vid, xml});
+    const size = (vid.size / (1024 * 1024)).toFixed(2);
     const li = document.createElement('li');
     li.name=vid.name;
     li.innerText = vid.name;
@@ -812,7 +842,10 @@ function handleFiles(fileObject) {
         item.classList.remove('playing');
       });
       li.classList.add("playing");
-      playVideo({vid, xml});
+      nameEl.textContent = `${vid.name}`;
+      sizeEl.textContent = `${size} MB`;
+      pathEl.textContent = `${vid.webkitRelativePath}`;
+      playVideo({vid, xml,size});
     });
     videoList.appendChild(li);
     fileNumber.innerText=`${videoList.querySelectorAll("li").length} videos`;
@@ -829,6 +862,9 @@ function playVideo({ vid, xml }) {
   window.danmuContainer = danmuContainer;
 
   video.onloadedmetadata = () => {
+    widthEl.textContent = video.videoWidth;
+    heightEl.textContent = video.videoHeight;
+    durationEl.textContent = formatTime(video.duration);
     video.playbackRate = parseFloat(playbackSpeed.value);
     
     if (hasWatchedVideos.hasOwnProperty(vid.name)) {
@@ -890,43 +926,40 @@ function initKeyboardShortcuts() {
     let p=document.querySelectorAll('#videoList li.playing');
     let b=e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
     if(b)return;
-    switch(e.key) {
+    switch(e.key.toLocaleLowerCase()) {
       case ' ':
         e.preventDefault();
         togglePlayPause();
         break;
-      case 'ArrowRight':
+      case 'arrowright':
         e.preventDefault();
         video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
         break;
-      case 'ArrowLeft':
+      case 'arrowleft':
         e.preventDefault();
         video.currentTime = Math.max(video.currentTime - 5, 0);
         break;
-      case 'ArrowUp':
+      case 'arrowup':
         e.preventDefault();
         updateVolume(0.05);
         clearTimeout(hideVolumeBarTimer);
         if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
-      case 'ArrowDown':
+      case 'arrowdown':
         e.preventDefault();
         updateVolume(-0.05);
         clearTimeout(hideVolumeBarTimer);
         if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'f':
-      case 'F':
         e.preventDefault();
         toggleFullscreen();
         break;
       case 'd':
-      case 'D':
         e.preventDefault();
         toggleDanmuDisplay();
         break;
       case 'm':
-      case 'M':
         e.preventDefault();
         isMuted=!isMuted;
         video.muted=isMuted;
@@ -935,14 +968,16 @@ function initKeyboardShortcuts() {
         if(!a)hideVolumeBarTimer=setTimeout(hide_volume_bar, 1000);
         break;
       case 'j':
-      case 'J':
         e.preventDefault();
         toggleSidebar();
         break;
       case 'o':
-      case 'O':
         e.preventDefault();
         customFileBtn.click();
+        break;
+      case 'i':
+        e.preventDefault();
+        videoInfo.style.display = videoInfo.style.display === 'flex' ? 'none' : 'flex';
         break;
       case '[':
         e.preventDefault();
