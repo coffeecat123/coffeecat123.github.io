@@ -439,7 +439,7 @@ video,.video-control-area{
     flex-wrap: wrap;
 }
 .video-meta {
-    background: #888d;
+    background: #88888888;
     padding: 30px;
     color: #eee;
     height: max-content;
@@ -450,6 +450,7 @@ video,.video-control-area{
     flex-direction: column;
     gap: 10px;
     cursor: default;
+    backdrop-filter: blur(10px);
 }
 .video-meta .value {
     max-width: 250px;
@@ -466,6 +467,7 @@ video,.video-control-area{
     min-width: fit-content;
     overflow: visible;
     background: #00000066;
+    outline: 1px solid #888d;
 }
 .video-meta .value.copied {
     background: #27ac0d;

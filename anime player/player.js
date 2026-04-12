@@ -220,10 +220,18 @@ function initOtherEvents() {
     }
   });
   let copyTimers = new Map();
+  let lastpressed = new Map();
   document.querySelectorAll('.video-item .value').forEach(input => {
-    input.addEventListener('click', (e) => {
+    input.addEventListener('pointerdown', (e) => {
       const target = e.target;
+      const now = Date.now();
+      lastpressed.set(target, now);
+    });
+    input.addEventListener('pointerup', (e) => {
+      const target = e.target;
+      const now = Date.now();
       if (copyTimers.has(target))return;
+      if(lastpressed.get(target) && now - lastpressed.get(target) > 150)return;
       const text = target.textContent;
 
       navigator.clipboard.writeText(text).then(() => {
@@ -240,6 +248,10 @@ function initOtherEvents() {
       }).catch(err => {
         console.error('複製失敗:', err);
       });
+    });
+    input.addEventListener('pointerleave', (e) => {
+      const target = e.target;
+      window.getSelection().removeAllRanges();
     });
   });
 }
