@@ -88,6 +88,87 @@ function updateDensity() {
   densityInterval = maxPerSecond > 0 ? 1000 / maxPerSecond : 1000;
 }
 
+function createWaveform() {
+  const canvas = document.getElementById('waveformCanvas');
+  const video = document.getElementById('myVideo');
+  if (!canvas || !danmus.length || !video || isNaN(video.duration)) return;
+
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  const duration = video.duration;
+
+  // 1. 基礎統計
+  const rawBins = new Array(Math.floor(width)).fill(0);
+  danmus.forEach(d => {
+    const binIndex = Math.floor((d.time / duration) * width);
+    if (binIndex >= 0 && binIndex < rawBins.length) rawBins[binIndex]++;
+  });
+
+  // 2. Gaussian 平滑（取代原本的 Moving Average）
+  const sigma = 6;
+  const radius = Math.ceil(sigma * 3);
+  const kernel = [];
+  let ksum = 0;
+  for (let i = -radius; i <= radius; i++) {
+    const v = Math.exp(-(i * i) / (2 * sigma * sigma));
+    kernel.push(v);
+    ksum += v;
+  }
+  const norm = kernel.map(v => v / ksum);
+
+  const smoothBins = rawBins.map((_, i) => {
+    let sum = 0;
+    for (let k = 0; k < norm.length; k++) {
+      const j = i - radius + k;
+      sum += (j >= 0 && j < rawBins.length ? rawBins[j] : 0) * norm[k];
+    }
+    return sum;
+  });
+
+  const maxDanmus = Math.max(...smoothBins) || 1;
+
+  // 3. 降採樣成控制點（每 3 個取 1 個）
+  const step = 3;
+  const pts = smoothBins
+    .map((val, i) => [i, height - (val / maxDanmus) * (height-5)])
+    .filter((_, i) => i % step === 0);
+
+  // Catmull-Rom 轉貝塞爾曲線
+  function drawCatmullRom() {
+    ctx.lineTo(pts[0][0], pts[0][1]);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(i - 1, 0)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(i + 2, pts.length - 1)];
+      const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+    }
+  }
+
+  // 4. 繪製
+  ctx.clearRect(0, 0, width, height);
+
+  // 填充區域
+  ctx.beginPath();
+  ctx.moveTo(0, height);
+  drawCatmullRom();
+  ctx.lineTo(pts[pts.length - 1][0], height);
+  ctx.closePath();
+  ctx.fillStyle = '#8a8a8a40';
+  ctx.fill();
+
+  // 頂部線條
+  ctx.beginPath();
+  drawCatmullRom();
+  ctx.strokeStyle = '#bcbcbc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
 function loadDanmuXML(xmlFile) {
   if (!danmuContainer) return;
   clearDanmus();
@@ -132,6 +213,7 @@ function loadDanmuXML(xmlFile) {
       
       danmus.sort((a, b) => a.time - b.time);
       console.log(`成功加载 ${danmus.length} 条弹幕`);
+      createWaveform();
     } catch (err) {
       console.error('加载弹幕失败:', err);
     }
