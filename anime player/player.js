@@ -254,6 +254,28 @@ function initOtherEvents() {
       window.getSelection().removeAllRanges();
     });
   });
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.setActionHandler('play', () => {
+      // 只有在頁面可見時才響應耳機播放指令
+      if (document.visibilityState === 'visible') {
+        video.play();
+      } else {
+        console.log('頁面在背景，已忽略耳機播放指令');
+      }
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      video.pause();
+    });
+    
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      previousVideo();
+    });
+    
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      nextVideo();
+    });
+  }
 }
 
 // 初始化时确保鼠标移动事件正确绑定
@@ -430,13 +452,7 @@ function hideControlAreas() {
 // 播放/暫停切換
 function togglePlayPause() {
   if(isNaN(video.duration))return;
-  if (video.paused) {
-    video.play();
-    playPauseBtn.textContent = '❚❚';
-  } else {
-    video.pause();
-    playPauseBtn.textContent = '▶';
-  }
+  video.paused ? video.play() : video.pause();
 }
 function initVideoPause(){
   playPauseBtn.addEventListener('click', togglePlayPause);
@@ -913,6 +929,14 @@ function playVideo({ vid, xml }) {
 
   video.addEventListener('canplaythrough', startPlay);
 }
+function nextVideo() {
+  let p = document.querySelectorAll('#videoList li.playing');
+  if(p.length > 0 && p[0].nextElementSibling) p[0].nextElementSibling.click();
+}
+function previousVideo() {
+  let p = document.querySelectorAll('#videoList li.playing');
+  if(p.length > 0 && p[0].previousElementSibling) p[0].previousElementSibling.click();
+}
 function updateDanmuContainerSize() {
   if (danmuContainer) {
     danmuContainer.style.width = `${videoPanel.offsetWidth}px`;
@@ -935,7 +959,6 @@ function initKeyboardShortcuts() {
       return;
     }
     let a=isPointerInVolumeBar;
-    let p=document.querySelectorAll('#videoList li.playing');
     let b=e.ctrlKey || e.metaKey || e.altKey || e.shiftKey;
     if(b)return;
     switch(e.key.toLocaleLowerCase()) {
@@ -993,21 +1016,11 @@ function initKeyboardShortcuts() {
         break;
       case '[':
         e.preventDefault();
-        if(p.length>0){
-          let prev=p[0].previousElementSibling;
-          if(prev){
-            prev.click();
-          }
-        }
+        previousVideo();
         break;
       case ']':
         e.preventDefault();
-        if(p.length>0){
-          let next=p[0].nextElementSibling;
-          if(next){
-            next.click();
-          }
-        }
+        nextVideo();
         break;
     }
   });
