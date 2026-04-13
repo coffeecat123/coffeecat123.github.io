@@ -66,7 +66,7 @@ function updateLinePositions() {
   const customSize = danmuSize ? parseInt(danmuSize.value) : 24;
   const lineSpacing = 8;
   const totalLineHeight = customSize + lineSpacing;
-  
+
   const maxLines = Math.max(1, Math.floor((availableHeight) / totalLineHeight));
   linePositions = [];
   for (let i = 0; i < maxLines; i++) {
@@ -83,7 +83,7 @@ function updateDensity() {
   const speedMultiplier = parseFloat(danmuSpeed.value) || 1;
   const actualSpeed = BASE_SPEED * speedMultiplier;
   const avgDuration = containerWidth / actualSpeed;
-  
+
   const maxPerSecond = parseInt(danmuLimit.value) / avgDuration;
   densityInterval = maxPerSecond > 0 ? 1000 / maxPerSecond : 1000;
 }
@@ -130,7 +130,7 @@ function createWaveform() {
   // 3. 降採樣成控制點（每 3 個取 1 個）
   const step = 3;
   const pts = smoothBins
-    .map((val, i) => [i, height - (val / maxDanmus) * (height-5)])
+    .map((val, i) => [i, height - (val / maxDanmus) * (height - 5)])
     .filter((_, i) => i % step === 0);
 
   // Catmull-Rom 轉貝塞爾曲線
@@ -174,34 +174,34 @@ function loadDanmuXML(xmlFile) {
   clearDanmus();
   updateDensity();
   updateLinePositions();
-  
+
   const reader = new FileReader();
-  reader.onload = function(evt) {
+  reader.onload = function (evt) {
     try {
       const parser = new DOMParser();
       const xml = parser.parseFromString(evt.target.result, "text/xml");
-      
+
       if (xml.querySelector('parsererror')) {
         console.error('弹幕XML解析错误:', xml.querySelector('parsererror').textContent);
         return;
       }
-      
+
       const dNodes = xml.querySelectorAll('d');
       danmus = [];
-      
+
       if (dNodes.length === 0) {
         console.warn('该视频没有弹幕数据');
         return;
       }
-      
+
       dNodes.forEach(node => {
         const p = node.getAttribute('p')?.split(',');
         if (!p || p.length < 4) return;
-        
+
         const time = parseFloat(p[0]); // 弹幕出现时间（秒）
         const color = '#' + parseInt(p[3]).toString(16).padStart(6, '0');
         const size = parseInt(p[2]) || 24;
-        
+
         danmus.push({
           text: node.textContent || '无内容',
           time,
@@ -210,7 +210,7 @@ function loadDanmuXML(xmlFile) {
           shown: false
         });
       });
-      
+
       danmus.sort((a, b) => a.time - b.time);
       console.log(`成功加载 ${danmus.length} 条弹幕`);
       createWaveform();
@@ -218,11 +218,11 @@ function loadDanmuXML(xmlFile) {
       console.error('加载弹幕失败:', err);
     }
   };
-  
-  reader.onerror = function() {
+
+  reader.onerror = function () {
     console.error('读取弹幕文件失败:', reader.error);
   };
-  
+
   reader.readAsText(xmlFile);
 }
 
@@ -242,13 +242,13 @@ function clearDanmus() {
 
 function getNonOverlappingLine() {
   if (linePositions.length === 0) updateLinePositions();
-  
+
   const danmuSize = document.getElementById('danmuSize');
   const customSize = danmuSize ? parseInt(danmuSize.value) : 24;
-  const RIGHT_EDGE_THRESHOLD = customSize*1.2;
+  const RIGHT_EDGE_THRESHOLD = customSize * 1.2;
   const container = document.getElementById('danmu-container');
   const containerWidth = container.offsetWidth;
-  
+
   // 優化：預先過濾出各行的彈幕狀態
   const occupiedLines = new Map();
   activeDanmus.forEach(dm => {
@@ -277,57 +277,57 @@ function getNonOverlappingLine() {
 }
 
 function createDanmu({ text, color, size, time: danmuTime }, currentVideoTime) {
-  if (!isDanmuEnabled||!danmuContainer) return false;
-  
+  if (!isDanmuEnabled || !danmuContainer) return false;
+
   // 暂停时不新增弹幕
   const video = document.getElementById('myVideo');
   if (video.paused) return false;
-  
+
   const danmuLimit = document.getElementById('danmuLimit');
   if (!danmuLimit) return false;
   const maxActive = parseInt(danmuLimit.value);
-  
+
   if (activeDanmus.length >= maxActive) {
     danmuBuffer.push({ text, color, size, time: danmuTime });
     return false;
   }
-  
+
   const now = Date.now();
   if (now - lastDanmuTime < densityInterval) return false;
-  
+
   // 创建弹幕元素
   const danmu = document.createElement('div');
   danmu.className = 'danmu'; // 初始无暂停类
   temp.innerHTML = text;
   danmu.innerText = temp.value;
   danmu.style.color = color;
-  
+
   const danmuSize = document.getElementById('danmuSize');
   const customSize = danmuSize ? parseInt(danmuSize.value) : size;
   danmu.style.fontSize = `${customSize}px`;
-  
+
   const danmuOpacity = document.getElementById('danmuOpacity');
   if (danmuOpacity) {
     danmu.style.opacity = danmuOpacity.value;
   }
-  
+
   // 获取高度并设置垂直位置
   danmu.style.visibility = 'hidden';
   danmuContainer.appendChild(danmu);
   const top = getNonOverlappingLine();
-  if(top<0){
+  if (top < 0) {
     danmuBuffer.push({ text, color, size, time: danmuTime });
     return false;
   }
   danmu.style.top = `${top}px`;
   danmu.style.visibility = 'visible';
-  
+
   // 计算动画参数（与视频时间绑定）
   const containerWidth = window.innerWidth;
   const speedMultiplier = parseFloat(document.getElementById('danmuSpeed').value) || 1;
   const actualSpeed = BASE_SPEED * speedMultiplier;
-  const totalDuration = (containerWidth+danmu.offsetWidth) / actualSpeed; // 总滚动时间（秒）
-  
+  const totalDuration = (containerWidth + danmu.offsetWidth) / actualSpeed; // 总滚动时间（秒）
+
   // 关键：计算已滚动时间和剩余时间
   const elapsedTime = currentVideoTime - danmuTime; // 已滚动时间（秒）
   const animationDelay = Math.max(0, -elapsedTime).toFixed(1); // 延迟（未到出现时间）
@@ -335,42 +335,42 @@ function createDanmu({ text, color, size, time: danmuTime }, currentVideoTime) {
 
   // 应用 move linear 动画
   danmu.style.animation = `move linear ${remainingDuration}s ${animationDelay}s forwards`;
-  
+
   // 存储关键信息（用于恢复位置）
   danmu.dataset.danmuTime = danmuTime; // 弹幕出现时间
   danmu.dataset.totalDuration = totalDuration; // 总滚动时间
   danmu.dataset.speedMultiplier = speedMultiplier; // 速度倍率
   danmu.dataset.animationParams = `${remainingDuration}s ${animationDelay}s`; // 动画参数备份
-  
+
   activeDanmus.push(danmu);
   lastDanmuTime = now;
-  
+
   // 动画结束移除
   danmu.addEventListener('animationend', () => {
     danmu.remove();
     activeDanmus = activeDanmus.filter(d => d !== danmu);
     processBuffer();
   });
-  
+
   return true;
 }
 
 function processBuffer() {
   if (danmuBuffer.length === 0) return;
-  
+
   const video = document.getElementById('myVideo');
   if (video.paused) return;
   const now = Date.now();
   const currentTime = video.currentTime;
-  
+
   if (now - lastDanmuTime >= densityInterval) {
     if (getNonOverlappingLine() !== -1 && danmuBuffer.length > 0) {
-      
-      const MAX_BUFFER_SIZE = 200; 
+
+      const MAX_BUFFER_SIZE = 200;
       if (danmuBuffer.length > MAX_BUFFER_SIZE) {
-        danmuBuffer.splice(0, Math.floor(danmuBuffer.length / 2)); 
+        danmuBuffer.splice(0, Math.floor(danmuBuffer.length / 2));
       }
-      
+
       var nextDanmu = danmuBuffer.pop();
 
       if (nextDanmu && createDanmu(nextDanmu, currentTime)) {
@@ -378,7 +378,7 @@ function processBuffer() {
       }
     }
   }
-  
+
   if (danmuBuffer.length > 0 && !bufferTimer) {
     const delay = Math.max(0, densityInterval - (now - lastDanmuTime));
     bufferTimer = setTimeout(() => {
@@ -390,25 +390,25 @@ function processBuffer() {
 
 function resetDanmusByTime(currentTime) {
   // 清理旧弹幕
-  danmuContainer.innerHTML='';
+  danmuContainer.innerHTML = '';
   activeDanmus = [];
-  
+
   // 关键：清空并重置缓冲区
   danmuBuffer = [];
   if (bufferTimer) {
     clearTimeout(bufferTimer);
     bufferTimer = null;
   }
-  
+
   // 重置显示状态
   danmus.forEach(d => {
     d.shown = false;
   });
-  
+
   // 重新计算行位置和密度（确保使用最新设置）
   updateLinePositions();
   updateDensity();
-  
+
   // 重新触发弹幕，使用最新的时间参数
   triggerDanmus(currentTime);
   lastDanmuTime = 0;
@@ -416,19 +416,19 @@ function resetDanmusByTime(currentTime) {
 
 function triggerDanmus(currentTime) {
   if (!danmus.length || !isDanmuEnabled || !danmuContainer) return;
-  
+
   const video = document.getElementById('myVideo');
   if (video.paused) return;
-  
+
   const speedMultiplier = parseFloat(document.getElementById('danmuSpeed').value) || 1;
   const actualSpeed = BASE_SPEED * speedMultiplier;
   const containerWidth = window.innerWidth;
   const totalDuration = containerWidth / actualSpeed;
-  
+
   // 计算合理的时间窗口：只包含应该显示或即将显示的弹幕
   const timeWindowStart = currentTime - 2; // 允许2秒内已经出现的弹幕（避免刚拖动就消失）
   const timeWindowEnd = currentTime; // 加上1秒缓冲
-  
+
   // 只添加当前时间窗口内的弹幕
   danmus.forEach(d => {
     const isActive = d.time >= timeWindowStart && d.time <= timeWindowEnd;
@@ -437,22 +437,22 @@ function triggerDanmus(currentTime) {
       d.shown = true;
     }
   });
-  
+
   // 按时间排序缓冲区，确保弹幕按正确顺序显示
   danmuBuffer.sort((a, b) => a.time - b.time);
-  
+
   processBuffer();
 }
 
 // 暂停/恢复弹幕（与隐藏类兼容）
-window.pauseDanmus = function() {
+window.pauseDanmus = function () {
   activeDanmus.forEach(danmu => {
     danmu.classList.add('danmu-paused');
     // 即使隐藏，暂停状态也生效
   });
 };
 
-window.resumeDanmus = function() {
+window.resumeDanmus = function () {
   activeDanmus.forEach(danmu => {
     danmu.classList.remove('danmu-paused');
     // 恢复时无论是否隐藏，动画都继续运行
@@ -460,9 +460,9 @@ window.resumeDanmus = function() {
 };
 
 // 2. 修复关闭再开启弹幕复位问题
-window.danmu_add_class = function() {
+window.danmu_add_class = function () {
   if (!danmuContainer) return;
-  
+
   if (isDanmuEnabled) {
     // 显示弹幕：移除隐藏类，保持动画状态
     activeDanmus.forEach(danmu => {
@@ -476,13 +476,13 @@ window.danmu_add_class = function() {
   }
 };
 
-window.updateDanmuAnimationSpeed = function() {
+window.updateDanmuAnimationSpeed = function () {
   updateDensity();
   const currentTime = document.getElementById('myVideo').currentTime;
   resetDanmusByTime(currentTime);
 };
 
-window.updateDanmuOpacity = function() {
+window.updateDanmuOpacity = function () {
   if (!danmuContainer) return;
   const opacity = document.getElementById('danmuOpacity').value;
   activeDanmus.forEach(danmu => {
@@ -498,17 +498,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!danmuContainer) return;
       triggerDanmus(video.currentTime);
     });
-    
+
     // 暂停时触发弹幕暂停
     video.addEventListener('pause', () => {
       window.pauseDanmus();
     });
-    
+
     // 播放时恢复弹幕
     video.addEventListener('play', () => {
       window.resumeDanmus();
     });
-    
+
     video.addEventListener('seeked', () => {
       resetDanmusByTime(video.currentTime);
     });
