@@ -4,11 +4,7 @@
 
 body {
     margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto,
-        "Microsoft YaHei", "Microsoft YaHei UI",
-        "Noto Sans TC", "Noto Sans SC",
-        "PingFang TC", "PingFang SC",
-        Helvetica, Arial, sans-serif;
+    font-family: "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", Roboto, "Microsoft YaHei UI", "Noto Sans TC", "Noto Sans SC", "PingFang TC", "PingFang SC", Helvetica, Arial, sans-serif;
     background: #000;
     overflow: hidden;
 }
