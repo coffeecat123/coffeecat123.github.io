@@ -481,7 +481,7 @@ canvas#waveformCanvas {
     padding: 30px;
     color: #eee;
     height: max-content;
-    width: 360px;
+    width: 60%;
     border-radius: 20px;
     pointer-events: all;
     display: flex;
@@ -500,6 +500,10 @@ canvas#waveformCanvas {
     overflow: hidden;
     text-overflow: ellipsis;
     transition: max-width 0.5s ease;
+}
+
+.video-meta .value::before {
+    content: "\200b";
 }
 
 .video-meta .value:hover {

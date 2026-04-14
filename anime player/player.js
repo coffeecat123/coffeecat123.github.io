@@ -174,16 +174,79 @@ function initDragAndDrop() {
     }
   });
 
-  dropZone.addEventListener('drop', (e) => {
+  dropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
     dragCounter = 0;
 
     removeLiWithAnimation(li);
-    li = null; // 清空引用，下次進入創新的
+    li = null;
 
-    const files = e.dataTransfer.files;
-    handleFiles(files);
+    const allFiles = [];
+
+    const items = [...e.dataTransfer.items];
+
+    for (const item of items) {
+      if (item.kind !== 'file') continue;
+
+      // 優先用標準 getAsFile()（對單檔最可靠）
+      const file = item.getAsFile();
+      if (file && file.size > 0) {
+        allFiles.push(file);
+        continue;
+      }
+
+      // 備用：如果需要支援資料夾，才用 webkitGetAsEntry
+      const entry = item.webkitGetAsEntry?.();
+      if (entry) {
+        await readEntry(entry, allFiles);
+      }
+    }
+
+    handleFiles(allFiles);
   });
+
+  // 修改 readEntry，讓它接收 allFiles 並處理 Promise
+  async function readEntry(entry, allFiles) {
+    console.log("讀取項目：", entry);
+
+    if (entry.isFile) {
+      // 這裡改用 Promise 包裝，但 file:// 下仍有風險
+      await new Promise((resolve, reject) => {
+        entry.file(
+          (f) => {
+            allFiles.push(f);
+            resolve();
+          },
+          (err) => {
+            console.error("entry.file 失敗：", err);
+            reject(err);
+          }
+        );
+      });
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+
+      await new Promise(resolve => {
+        const readBatch = () => {
+          reader.readEntries(async (entries) => {
+            if (entries.length === 0) {
+              resolve();
+              return;
+            }
+            for (const sub of entries) {
+              await readEntry(sub, allFiles);
+            }
+            readBatch(); // 遞迴讀下一批
+          }, (err) => {
+            console.error("readEntries 錯誤：", err);
+            resolve(); // 避免完全卡死
+          });
+        };
+        readBatch();
+      });
+    }
+  }
+  dropZone.addEventListener('dragover', e => e.preventDefault());
 }
 
 function initOtherEvents() {
@@ -579,6 +642,12 @@ function formatTime(seconds) {
   }
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
 volume_btn.addEventListener('click', () => {
   isMuted = !isMuted;
   video.muted = isMuted;
@@ -825,60 +894,91 @@ folderInput.addEventListener('change', (e) => {
   const files = Array.from(e.target.files);
   console.log(files);
 
-  const fileInfos = files.map(f => ({
-    file: f,
-    cleanPath: getCleanPath(f),
-    name: f.name
-  }));
+  // const fileInfos = files.map(f => ({
+  //   file: f,
+  //   cleanPath: getCleanPath(f),
+  //   name: f.name
+  // }));
 
-  const depths = fileInfos.map(info => info.cleanPath ? info.cleanPath.split('/').length : 1);
-  const maxDepth = Math.max(...depths);
-  if (maxDepth > 2) return;
+  // const depths = fileInfos.map(info => info.cleanPath ? info.cleanPath.split('/').length : 1);
+  // const maxDepth = Math.max(...depths);
+  // if (maxDepth > 2) return;
 
   handleFiles(files);
 
 });
 
-function handleFiles(fileObject) {
+async function handleFiles(fileObject) {
   const files = Array.from(fileObject);
-
   const vidFiles = files.filter(f => f.type.startsWith('video/'));
-  vidFiles.forEach(vid => {
-    if (!checkVideoSupport(vid)) return;
-    const isDuplicate = videos.some(item => {
-      return item.vid.name === vid.name;
-    });
-    if (isDuplicate) return;
-    const xml = files.find(f => f.name.replace('.xml', '') === vid.name.replace('.mp4', '') && f.name.endsWith('.xml'));
 
-    videos.push({ vid, xml });
-    const size = (vid.size / (1024 * 1024)).toFixed(2);
-    const li = document.createElement('li');
-    li.name = vid.name;
-    li.innerText = vid.name;
-    if (hasWatchedVideos.hasOwnProperty(vid.name)) {
-      let d = hasWatchedVideos[vid.name].duration;
-      let t = hasWatchedVideos[vid.name].time;
-      if (t / d > 0.9) {
-        li.classList.add('finished');
+  const BATCH_SIZE = 20;
+
+  for (let i = 0; i < vidFiles.length; i += BATCH_SIZE) {
+    const batch = vidFiles.slice(i, i + BATCH_SIZE);
+    const fragment = document.createDocumentFragment();
+
+    for (const vid of batch) {
+      if (!checkVideoSupport(vid)) continue;
+      const isDuplicate = videos.some(item => item.vid.name === vid.name);
+      if (isDuplicate) continue;
+
+      const xml = files.find(f =>
+        f.name.replace(/\.[^.]+$/, '') === vid.name.replace(/\.[^.]+$/, '') &&
+        f.name.endsWith('.xml')
+      );
+
+      videos.push({ vid, xml });
+      const size = formatSize(vid.size);
+      const li = document.createElement('li');
+      li.name = vid.name;
+      li.innerText = vid.name;
+
+      if (hasWatchedVideos.hasOwnProperty(vid.name)) {
+        let d = hasWatchedVideos[vid.name].duration;
+        let t = hasWatchedVideos[vid.name].time;
+        if (t / d > 0.9) li.classList.add('finished');
+        li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
       }
-      li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
-    }
-    li.addEventListener('click', () => {
-      if (li.classList.contains('playing')) return;
-      videoList.querySelectorAll('li').forEach(item => {
-        item.classList.remove('playing');
+
+      li.addEventListener('click', () => {
+        if (li.classList.contains('playing')) return;
+        videoList.querySelectorAll('li').forEach(item => item.classList.remove('playing'));
+        li.classList.add('playing');
+        clearAll();
+        nameEl.textContent = `${vid.name}`;
+        sizeEl.textContent = size;
+        pathEl.textContent = `${vid.webkitRelativePath}`;
+        playVideo({ vid, xml, size });
       });
-      li.classList.add("playing");
-      nameEl.textContent = `${vid.name}`;
-      sizeEl.textContent = `${size} MB`;
-      pathEl.textContent = `${vid.webkitRelativePath}`;
-      playVideo({ vid, xml, size });
-    });
-    videoList.appendChild(li);
-    fileNumber.innerText = `${videoList.querySelectorAll("li").length} videos`;
-  });
+
+      fragment.appendChild(li);
+    }
+
+    videoList.appendChild(fragment);
+    fileNumber.innerText = `${videoList.querySelectorAll('li').length} videos`;
+
+    // 讓出主執行緒，讓瀏覽器有空渲染畫面
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  console.log('all files processed');
 }
+function clearAll() {
+  if (window.danmusClear) window.danmusClear();
+  if (window.clearDanmus) window.clearDanmus();
+  video.src = '';
+  document.querySelectorAll('.value').forEach(item => {
+    item.textContent = '';
+  });
+
+  const canvas = document.getElementById('waveformCanvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    const { width, height } = canvas;
+    ctx.clearRect(0, 0, width, height);
+  }
+}
+
 function playVideo({ vid, xml }) {
   if (currentVideoUrl) {
     URL.revokeObjectURL(currentVideoUrl);
@@ -896,7 +996,7 @@ function playVideo({ vid, xml }) {
     video.playbackRate = parseFloat(playbackSpeed.value);
 
     const canvas = document.getElementById('waveformCanvas');
-    if(canvas) {
+    if (canvas) {
       const ctx = canvas.getContext('2d');
       const { width, height } = canvas;
       ctx.clearRect(0, 0, width, height);
@@ -913,12 +1013,8 @@ function playVideo({ vid, xml }) {
   };
 
   video.onloadeddata = () => {
-    if (window.danmusClear) window.danmusClear();
-
     if (xml && window.loadDanmuXML) {
       window.loadDanmuXML(xml);
-    } else {
-      window.clearDanmus && window.clearDanmus();
     }
   };
 
