@@ -492,7 +492,7 @@ canvas#waveformCanvas {
 }
 
 .video-meta .value {
-    max-width: 250px;
+    max-width: calc(100% - 160px);
     border-radius: 5px;
     padding: 3px 5px;
     text-align: right;
