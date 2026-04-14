@@ -895,6 +895,13 @@ function playVideo({ vid, xml }) {
     durationEl.textContent = formatTime(video.duration);
     video.playbackRate = parseFloat(playbackSpeed.value);
 
+    const canvas = document.getElementById('waveformCanvas');
+    if(canvas) {
+      const ctx = canvas.getContext('2d');
+      const { width, height } = canvas;
+      ctx.clearRect(0, 0, width, height);
+    }
+
     if (hasWatchedVideos.hasOwnProperty(vid.name)) {
       video.currentTime = hasWatchedVideos[vid.name].time;
     } else {
