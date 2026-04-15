@@ -251,6 +251,7 @@ function initDragAndDrop() {
 
 function initOtherEvents() {
   document.addEventListener("visibilitychange", function () {
+    if(isNaN(video.duration)) return;
     if (!document.hidden) {
       console.log("頁面重新獲得焦點，檢查影片狀態...");
       console.log("readyState:", video.readyState, "paused:", video.paused);
