@@ -21,7 +21,8 @@ const timeDisplay = document.getElementById('timeDisplay');
 const toggleDanmu = document.getElementById('toggleDanmu');
 const videoTitle = document.getElementById('videoTitle');
 const playbackSpeed = document.getElementById('playbackSpeed');
-const container = document.getElementById('container');
+const waveformCanvas = document.getElementById('waveformCanvas');
+const currentSpeedDisplay = document.getElementById('currentSpeedDisplay'); const container = document.getElementById('container');
 const videoTopArea = document.getElementById('videoTopArea');
 const videoBottomArea = document.getElementById('videoBottomArea');
 const flsc_btn1 = document.getElementById('flsc_btn1');
@@ -50,6 +51,9 @@ const rangeValue = document.getElementById('rangeValue');
 const danmuLimit = document.getElementById('danmuLimit');
 const limitValue = document.getElementById('limitValue');
 
+let currentPlaybackRate = 1.0;
+let timeoutId = null;
+let lastSpeed = null;
 let currentVideoUrl = null;
 let videos = [];
 let isDanmuPaused = false;
@@ -251,8 +255,17 @@ function initDragAndDrop() {
 
 function initOtherEvents() {
   document.addEventListener("visibilitychange", function () {
-    if(isNaN(video.duration)) return;
-    if (!document.hidden) {
+    if (isNaN(video.duration)) return;
+    if (document.hidden) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (lastSpeed !== null) {
+        video.playbackRate = lastSpeed;
+        lastSpeed = null;
+      }
+    } else {
       console.log("頁面重新獲得焦點，檢查影片狀態...");
       console.log("readyState:", video.readyState, "paused:", video.paused);
 
@@ -371,6 +384,7 @@ function initVideoControlAreas() {
 function initProgressBarDrag() {
   //in container
   progressContainer.addEventListener('pointerdown', (e) => {
+    if (e.target == waveformCanvas || e.target == timeDisplay) return;
     isDraggingBar = true;
     updateProgressFromMouse(e);
     handleMouseMovement();
@@ -591,6 +605,17 @@ playbackSpeed.addEventListener('change', () => {
   video.playbackRate = parseFloat(playbackSpeed.value);
 });
 
+video.addEventListener('ratechange', () => {
+  const rate = video.playbackRate;
+  currentPlaybackRate = rate;
+  currentSpeedDisplay.innerText = rate.toFixed(2).replace(/0$/, '') + 'x';
+
+  playbackSpeed.value = rate.toString();
+
+  if (playbackSpeed.value === '') {
+    playbackSpeed.selectedIndex = -1;
+  }
+});
 // 视频播放时的处理
 video.addEventListener('play', () => {
   playPauseBtn.textContent = '❚❚';
@@ -972,10 +997,9 @@ function clearAll() {
     item.textContent = '';
   });
 
-  const canvas = document.getElementById('waveformCanvas');
-  if (canvas) {
-    const ctx = canvas.getContext('2d');
-    const { width, height } = canvas;
+  if (waveformCanvas) {
+    const ctx = waveformCanvas.getContext('2d');
+    const { width, height } = waveformCanvas;
     ctx.clearRect(0, 0, width, height);
   }
 }
@@ -994,14 +1018,7 @@ function playVideo({ vid, xml }) {
     widthEl.textContent = video.videoWidth;
     heightEl.textContent = video.videoHeight;
     durationEl.textContent = formatTime(video.duration);
-    video.playbackRate = parseFloat(playbackSpeed.value);
-
-    const canvas = document.getElementById('waveformCanvas');
-    if (canvas) {
-      const ctx = canvas.getContext('2d');
-      const { width, height } = canvas;
-      ctx.clearRect(0, 0, width, height);
-    }
+    video.playbackRate = parseFloat(currentPlaybackRate) || 1;
 
     if (hasWatchedVideos.hasOwnProperty(vid.name)) {
       video.currentTime = hasWatchedVideos[vid.name].time;
@@ -1072,7 +1089,18 @@ function initKeyboardShortcuts() {
         break;
       case 'arrowright':
         e.preventDefault();
-        video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
+        if (timeoutId !== null || lastSpeed !== null) break;
+        if (video.paused) {
+          video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
+          break;
+        }
+        lastKeyTime = Date.now();
+        timeoutId = setTimeout(() => {
+          timeoutId = null;
+          lastSpeed = video.playbackRate;
+          video.playbackRate = 3;
+        }, 200);
+        //video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
         break;
       case 'arrowleft':
         e.preventDefault();
@@ -1126,6 +1154,38 @@ function initKeyboardShortcuts() {
         e.preventDefault();
         nextVideo();
         break;
+      case 'q':
+        e.preventDefault();
+        video.playbackRate = Math.max(0.1, video.playbackRate - 1);
+        break;
+      case 'w':
+        e.preventDefault();
+        video.playbackRate = Math.max(0.1, video.playbackRate - 0.1);
+        break;
+      case 'e':
+        e.preventDefault();
+        video.playbackRate = video.playbackRate + 0.1;
+        break;
+      case 'r':
+        e.preventDefault();
+        video.playbackRate = video.playbackRate + 1;
+        break;
+    }
+  });
+  document.addEventListener('keyup', (e) => {
+    if ((e.target != volumeInput) && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
+      return;
+    }
+    if (e.key.toLocaleLowerCase() === 'arrowright') {
+      if (timeoutId) {
+        video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (lastSpeed !== null) {
+        video.playbackRate = lastSpeed;
+        lastSpeed = null;
+      }
     }
   });
 }
