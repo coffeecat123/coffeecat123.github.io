@@ -171,7 +171,7 @@ svg {
 
 .progress-bar {
     width: 100%;
-    height: 7px;
+    height: 6px;
     background: #95959580;
     border-radius: 3px;
     cursor: pointer;
@@ -179,9 +179,14 @@ svg {
     box-shadow: 0 0 2px 0px;
 }
 
-.progress-bar:hover {
-    height: 9px;
+.progress-container:hover .progress-bar {
+    height: 7.5px;
     background: #b9b9b980;
+}
+
+.progress-container:hover .progress-handle {
+    width: 16px;
+    height: 16px;
 }
 
 .progress-fill {
@@ -193,8 +198,8 @@ svg {
 
 .progress-handle {
     position: absolute;
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: #ff6b6b;
     top: 50%;
@@ -236,6 +241,7 @@ svg {
     padding: 2px 6px;
     border-radius: 2px;
     z-index: 10;
+    pointer-events: none;
 }
 
 #fullscreenBtn {
@@ -333,6 +339,7 @@ canvas#waveformCanvas {
     height: 50px;
     opacity: 0;
     transition: opacity 0.2s;
+    pointer-events: none;
 }
 
 #progressContainer:hover canvas#waveformCanvas {

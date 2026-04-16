@@ -384,7 +384,6 @@ function initVideoControlAreas() {
 function initProgressBarDrag() {
   //in container
   progressContainer.addEventListener('pointerdown', (e) => {
-    if (e.target == waveformCanvas || e.target == timeDisplay) return;
     isDraggingBar = true;
     updateProgressFromMouse(e);
     handleMouseMovement();
