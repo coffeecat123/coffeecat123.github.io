@@ -423,7 +423,7 @@ function initProgressBarDrag() {
   video.addEventListener('pointerup', (e) => {
     if (isDraggingVideo) {
       isDraggingVideo = false;
-      video.currentTime = video.currentTime + skippingTime;
+      adjustVideoTime(skippingTime);
       skipTimeShow.style.opacity = 0;
       togglePlayPause();
     }
@@ -1063,6 +1063,15 @@ function updateDanmuContainerSize() {
     danmuContainer.style.height = `${videoPanel.offsetHeight}px`;
   }
 }
+function adjustVideoTime(seconds) {
+  if (!video) return;
+  if (isNaN(video.duration)) return;
+
+  let newTime = video.currentTime + seconds;
+  const duration = video.duration || 0;
+
+  video.currentTime = Math.min(Math.max(newTime, 0), duration);
+}
 function initKeyboardShortcuts() {
   document.addEventListener('focusin', (event) => {
     const activeEl = document.activeElement;
@@ -1084,13 +1093,14 @@ function initKeyboardShortcuts() {
     switch (e.key.toLocaleLowerCase()) {
       case ' ':
         e.preventDefault();
+        if (e.repeat) break;
         togglePlayPause();
         break;
       case 'arrowright':
         e.preventDefault();
         if (timeoutId !== null || lastSpeed !== null) break;
         if (video.paused) {
-          video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
+          adjustVideoTime(5);
           break;
         }
         lastKeyTime = Date.now();
@@ -1099,11 +1109,10 @@ function initKeyboardShortcuts() {
           lastSpeed = video.playbackRate;
           video.playbackRate = 3;
         }, 200);
-        //video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
         break;
       case 'arrowleft':
         e.preventDefault();
-        video.currentTime = Math.max(video.currentTime - 5, 0);
+        adjustVideoTime(-5);
         break;
       case 'arrowup':
         e.preventDefault();
@@ -1119,14 +1128,17 @@ function initKeyboardShortcuts() {
         break;
       case 'f':
         e.preventDefault();
+        if (e.repeat) break;
         toggleFullscreen();
         break;
       case 'd':
         e.preventDefault();
+        if (e.repeat) break;
         toggleDanmuDisplay();
         break;
       case 'm':
         e.preventDefault();
+        if (e.repeat) break;
         isMuted = !isMuted;
         video.muted = isMuted;
         syncVolumeUI();
@@ -1135,22 +1147,27 @@ function initKeyboardShortcuts() {
         break;
       case 'j':
         e.preventDefault();
+        if (e.repeat) break;
         toggleSidebar();
         break;
       case 'o':
         e.preventDefault();
+        if (e.repeat) break;
         customFileBtn.click();
         break;
       case 'i':
         e.preventDefault();
+        if (e.repeat) break;
         videoInfo.style.display = videoInfo.style.display === 'flex' ? 'none' : 'flex';
         break;
       case '[':
         e.preventDefault();
+        if (e.repeat) break;
         previousVideo();
         break;
       case ']':
         e.preventDefault();
+        if (e.repeat) break;
         nextVideo();
         break;
       case 'q':
@@ -1169,6 +1186,16 @@ function initKeyboardShortcuts() {
         e.preventDefault();
         video.playbackRate = video.playbackRate + 1;
         break;
+      case ',':
+        e.preventDefault();
+        video.pause();
+        adjustVideoTime(-1/60);
+        break;
+      case '.':
+        e.preventDefault();
+        video.pause();
+        adjustVideoTime(1/60);
+        break;
     }
   });
   document.addEventListener('keyup', (e) => {
@@ -1177,7 +1204,7 @@ function initKeyboardShortcuts() {
     }
     if (e.key.toLocaleLowerCase() === 'arrowright') {
       if (timeoutId) {
-        video.currentTime = Math.min(video.currentTime + 5, video.duration || 0);
+        adjustVideoTime(5);
         clearTimeout(timeoutId);
         timeoutId = null;
       }
