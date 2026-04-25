@@ -1,45 +1,55 @@
-const video = document.getElementById('myVideo');
-const videoList = document.getElementById('videoList');
-const videoInfo = document.getElementById('info');
-const customFileBtn = document.getElementById('customFileBtn');
-const fileNumber = document.getElementById('fileNumber');
-const folderInput = document.getElementById('folderInput');
-const toggleSidebarBtn = document.getElementById('toggleSidebar');
-const sidebar = document.getElementById('sidebar');
-const fullscreenBtn = document.getElementById('fullscreenBtn');
-const toggleDanmuSettings = document.getElementById('toggleDanmuSettings');
-const danmuSettings = document.getElementById('danmuSettings');
+const container = document.getElementById('container');
+// video panel
 const videoPanel = document.getElementById('video-panel');
-const volumeInput = document.getElementById('volume_input');
-const playPauseBtn = document.getElementById('playPauseBtn');
+const video = document.getElementById('myVideo');
+
+const videoTopArea = document.getElementById('videoTopArea');
+const videoTitle = document.getElementById('videoTitle');
+const toggleSidebarBtn = document.getElementById('toggleSidebar');
+
+const videoBottomArea = document.getElementById('videoBottomArea');
 const progressContainer = document.getElementById('progressContainer');
+const waveformCanvas = document.getElementById('waveformCanvas');
 const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
 const progressHandle = document.getElementById('progressHandle');
-const skipTimeShow = document.getElementById('skipTimeShow');
 const timeDisplay = document.getElementById('timeDisplay');
-const toggleDanmu = document.getElementById('toggleDanmu');
-const videoTitle = document.getElementById('videoTitle');
+
+const playPauseBtn = document.getElementById('playPauseBtn');
+const currentSpeedDisplay = document.getElementById('currentSpeedDisplay');
 const playbackSpeed = document.getElementById('playbackSpeed');
-const waveformCanvas = document.getElementById('waveformCanvas');
-const currentSpeedDisplay = document.getElementById('currentSpeedDisplay'); const container = document.getElementById('container');
-const videoTopArea = document.getElementById('videoTopArea');
-const videoBottomArea = document.getElementById('videoBottomArea');
-const flsc_btn1 = document.getElementById('flsc_btn1');
-const flsc_btn2 = document.getElementById('flsc_btn2');
+
+const toggleDanmu = document.getElementById('toggleDanmu');
+const toggleDanmuSettings = document.getElementById('toggleDanmuSettings');
+
+const volumeControl = document.getElementById('volume-control');
+const volume_btn = document.getElementById('volume_btn');
 const volume_max = document.getElementById('volume_max');
 const volume_mid = document.getElementById('volume_mid');
 const volume_min = document.getElementById('volume_min');
-const volume_btn = document.getElementById('volume_btn');
 const volume_bar = document.getElementById('volume_bar');
-const volumeControl = document.getElementById('volume-control');
+
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const flsc_btn1 = document.getElementById('flsc_btn1');
+const flsc_btn2 = document.getElementById('flsc_btn2');
+
+const videoList = document.getElementById('videoList');
+const videoInfo = document.getElementById('info');
+const customFileBtn = document.getElementById('customFileBtn');
+const refreshBtn = document.getElementById('refreshBtn');
+const fileNumber = document.getElementById('fileNumber');
+const folderInput = document.getElementById('folderInput');
+const sidebar = document.getElementById('sidebar');
+const danmuSettings = document.getElementById('danmuSettings');
+const volumeInput = document.getElementById('volume_input');
+const skipTimeShow = document.getElementById('skipTimeShow');
 const nameEl = videoInfo.querySelector('.video-name');
 const pathEl = videoInfo.querySelector('.video-path');
 const widthEl = videoInfo.querySelector('.video-width');
 const heightEl = videoInfo.querySelector('.video-height');
 const sizeEl = videoInfo.querySelector('.video-size');
 const durationEl = videoInfo.querySelector('.video-duration');
-// 彈幕設置控件
+// danmu settings
 const danmuSpeed = document.getElementById('danmuSpeed');
 const speedValue = document.getElementById('speedValue');
 const danmuSize = document.getElementById('danmuSize');
@@ -361,22 +371,30 @@ function initVideoControlAreas() {
   showControlAreas();
 
   // 绑定鼠标移动事件 - 确保事件冒泡正确触发
-  videoPanel.addEventListener('mousemove', handleMouseMovement);
-  document.addEventListener('mousemove', (e) => {
-    // 当鼠标在视频面板外但在容器内时也触发显示
-    if (container.contains(e.target) && !videoPanel.contains(e.target)) {
-      showControlAreas();
-      delayHideControlAreas();
+  videoPanel.addEventListener('mousemove', (e) => {
+    if (videoBottomArea.contains(e.target) || videoTopArea.contains(e.target) || danmuSettings.contains(e.target)) {
+      return;
     }
+    showControlAreas();
+    delayHideControlAreas();
+  });
+  document.addEventListener('mouseleave', (e) => {
+    delayHideControlAreas();
   });
 
   // 上下区域点击不触发视频播放
   videoTopArea.addEventListener('click', (e) => {
     e.stopPropagation();
   });
+  videoTopArea.addEventListener('mousemove', (e) => {
+    showControlAreas();
+  });
 
   videoBottomArea.addEventListener('click', (e) => {
     e.stopPropagation();
+  });
+  videoBottomArea.addEventListener('mousemove', (e) => {
+    showControlAreas();
   });
 }
 
@@ -495,7 +513,6 @@ function updateProgressFromTouch(e) {
 }
 // 处理鼠标移动显示控制区域和鼠标
 function handleMouseMovement(e) {
-  clearTimeout(hideControlsTimer);
   showControlAreas();
   delayHideControlAreas();
 }
@@ -507,14 +524,15 @@ sidebar.addEventListener('mousemove', (e) => {
 });
 
 function showControlAreas() {
+  clearTimeout(hideControlsTimer);
   videoTopArea.classList.remove('hidden');
   videoBottomArea.classList.remove('hidden');
   videoPanel.style.cursor = 'default'; // 恢复鼠标显示
 }
 
-function delayHideControlAreas() {
+function delayHideControlAreas(t = 1000) {
   clearTimeout(hideControlsTimer);
-  hideControlsTimer = setTimeout(hideControlAreas, 1000);
+  hideControlsTimer = setTimeout(hideControlAreas, t);
 }
 
 // 隐藏上下区域并隐藏鼠标
@@ -732,19 +750,13 @@ function updateVolumeControl() {
     volumeInput.value = volume;
   }
   volumeInput.style.background = `linear-gradient(to right, #888 ${vl}%, #333 ${vl}%)`;
+  let lv = "mute";
   if (vl > 80) {
-    volume_max.style.display = "block";
-    volume_mid.style.display = "none";
-    volume_min.style.display = "none";
-  } else if (vl == 0) {
-    volume_max.style.display = "none";
-    volume_mid.style.display = "none";
-    volume_min.style.display = "block";
-  } else {
-    volume_max.style.display = "none";
-    volume_mid.style.display = "block";
-    volume_min.style.display = "none";
+    lv = "max";
+  } else if (vl > 0) {
+    lv = "mid";
   }
+  volume_btn.setAttribute('data-level', lv);
 }
 // 彈幕開關
 toggleDanmu.addEventListener('click', toggleDanmuDisplay);
@@ -768,22 +780,10 @@ fullscreenBtn.addEventListener('click', () => {
 });
 
 function toggleDanmu_btn(a) {
-  if (a) {
-    danmu_on.style.display = 'block';
-    danmu_off.style.display = 'none';
-  } else {
-    danmu_on.style.display = 'none';
-    danmu_off.style.display = 'block';
-  }
+  toggleDanmu.classList.toggle('is-on', a);
 }
 function toggleFlsc_btn(a) {
-  if (a) {
-    flsc_btn1.style.display = 'none';
-    flsc_btn2.style.display = 'block';
-  } else {
-    flsc_btn1.style.display = 'block';
-    flsc_btn2.style.display = 'none';
-  }
+  fullscreenBtn.classList.toggle('is-on', a);
 }
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
@@ -886,7 +886,13 @@ function checkVideoSupport(videoFile) {
 customFileBtn.addEventListener('click', () => {
   folderInput.click();
 });
-
+refreshBtn.addEventListener('click', () => {
+  let a = document.querySelector('.playing');
+  if (a) {
+    a.classList.remove('playing');
+    a.click();
+  }
+});
 
 function getCleanPath(file) {
   let path = file.webkitRelativePath;
@@ -981,7 +987,7 @@ async function handleFiles(fileObject) {
     }
 
     videoList.appendChild(fragment);
-    fileNumber.innerText = `${videoList.querySelectorAll('li').length} videos`;
+    fileNumber.innerText = `(${videoList.querySelectorAll('li').length})`;
 
     // 讓出主執行緒，讓瀏覽器有空渲染畫面
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -1040,6 +1046,7 @@ function playVideo({ vid, xml }) {
   const startPlay = () => {
     video.play().then(() => {
       playPauseBtn.textContent = '❚❚';
+      refreshBtn.disabled = false;
       videoTitle.textContent = vid.name.replace(/\.[^.]*$/, '');
       showControlAreas();
     }).catch(err => console.log('播放失敗:', err));
@@ -1189,12 +1196,12 @@ function initKeyboardShortcuts() {
       case ',':
         e.preventDefault();
         video.pause();
-        adjustVideoTime(-1/60);
+        adjustVideoTime(-1 / 60);
         break;
       case '.':
         e.preventDefault();
         video.pause();
-        adjustVideoTime(1/60);
+        adjustVideoTime(1 / 60);
         break;
     }
   });
