@@ -37,6 +37,8 @@ const videoList = document.getElementById('videoList');
 const videoInfo = document.getElementById('info');
 const customFileBtn = document.getElementById('customFileBtn');
 const refreshBtn = document.getElementById('refreshBtn');
+const shuffleBtn = document.getElementById('shuffleBtn');
+const toggleContinuous = document.getElementById('toggleContinuous');
 const fileNumber = document.getElementById('fileNumber');
 const folderInput = document.getElementById('folderInput');
 const sidebar = document.getElementById('sidebar');
@@ -276,9 +278,6 @@ function initOtherEvents() {
         lastSpeed = null;
       }
     } else {
-      console.log("頁面重新獲得焦點，檢查影片狀態...");
-      console.log("readyState:", video.readyState, "paused:", video.paused);
-
       // 檢查影片是否處於「播放狀態但畫面不動」的詭異情況
       if (video.readyState < 2) {
         console.log("偵測到分頁喚醒，執行強制恢復機制...");
@@ -363,6 +362,12 @@ function initOtherEvents() {
       nextVideo();
     });
   }
+  document.querySelectorAll('.switch input[type="checkbox"]').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      e.preventDefault();
+      document.activeElement.blur();
+    });
+  });
 }
 
 // 初始化时确保鼠标移动事件正确绑定
@@ -375,8 +380,10 @@ function initVideoControlAreas() {
     if (videoBottomArea.contains(e.target) || videoTopArea.contains(e.target) || danmuSettings.contains(e.target)) {
       return;
     }
-    showControlAreas();
-    delayHideControlAreas();
+    handleMouseMovement();
+  });
+  sidebar.addEventListener('mousemove', (e) => {
+    handleMouseMovement();
   });
   document.addEventListener('mouseleave', (e) => {
     delayHideControlAreas();
@@ -512,16 +519,10 @@ function updateProgressFromTouch(e) {
 
 }
 // 处理鼠标移动显示控制区域和鼠标
-function handleMouseMovement(e) {
+function handleMouseMovement() {
   showControlAreas();
   delayHideControlAreas();
 }
-// 额外添加侧边栏内部鼠标移动监听（增强兼容性）
-sidebar.addEventListener('mousemove', (e) => {
-  // 当鼠标在侧边栏内时，强制显示控制区
-  showControlAreas();
-  clearTimeout(hideControlsTimer);
-});
 
 function showControlAreas() {
   clearTimeout(hideControlsTimer);
@@ -538,7 +539,7 @@ function delayHideControlAreas(t = 1000) {
 // 隐藏上下区域并隐藏鼠标
 function hideControlAreas() {
   danmuSettings.style.display = "none";
-  if (isNaN(video.duration)) return;
+  if (isNaN(video.duration) || video.videoHeight === 0) return;
   videoTopArea.classList.add('hidden');
   videoBottomArea.classList.add('hidden');
   videoPanel.style.cursor = 'none'; // 隐藏鼠标
@@ -604,8 +605,7 @@ function toggleSidebar(a) {
   toggleSidebarBtn.classList.toggle('flipped', isExpanded);
 
   updateVideoPanelWidth();
-  showControlAreas();
-  delayHideControlAreas();
+  handleMouseMovement();
 }
 
 // 手動更新video-panel寬度
@@ -661,6 +661,11 @@ video.addEventListener('timeupdate', () => {
   li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
   hasWatchedVideos[video.name].time = video.currentTime;
   localStorage.setItem("hasWatchedVideos", JSON.stringify(hasWatchedVideos));
+});
+video.addEventListener('ended', (event) => {
+  if (video.dataset.continuous == "true") {
+    nextVideo();
+  }
 });
 
 function updateProgress() {
@@ -893,6 +898,26 @@ refreshBtn.addEventListener('click', () => {
     a.click();
   }
 });
+shuffleBtn.addEventListener('click', () => {
+  shuffleChildren('videoList');
+  handleMouseMovement();
+});
+toggleContinuous.addEventListener('input', () => {
+  video.dataset.continuous = toggleContinuous.checked;
+});
+
+function shuffleChildren(parentID) {
+  const parent = document.getElementById(parentID);
+
+  const children = Array.from(parent.children);
+
+  for (let i = children.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [children[i], children[j]] = [children[j], children[i]];
+  }
+
+  children.forEach(child => parent.appendChild(child));
+}
 
 function getCleanPath(file) {
   let path = file.webkitRelativePath;
@@ -941,7 +966,7 @@ folderInput.addEventListener('change', (e) => {
 
 async function handleFiles(fileObject) {
   const files = Array.from(fileObject);
-  const vidFiles = files.filter(f => f.type.startsWith('video/'));
+  const vidFiles = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('audio/'));
 
   const BATCH_SIZE = 20;
 
@@ -964,6 +989,7 @@ async function handleFiles(fileObject) {
       const li = document.createElement('li');
       li.name = vid.name;
       li.innerText = vid.name;
+      li.classList.add('video-item');
 
       if (hasWatchedVideos.hasOwnProperty(vid.name)) {
         let d = hasWatchedVideos[vid.name].duration;
@@ -987,7 +1013,7 @@ async function handleFiles(fileObject) {
     }
 
     videoList.appendChild(fragment);
-    fileNumber.innerText = `(${videoList.querySelectorAll('li').length})`;
+    fileNumber.innerText = `(${videoList.querySelectorAll('li.video-item').length})`;
 
     // 讓出主執行緒，讓瀏覽器有空渲染畫面
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -1025,7 +1051,7 @@ function playVideo({ vid, xml }) {
     durationEl.textContent = formatTime(video.duration);
     video.playbackRate = parseFloat(currentPlaybackRate) || 1;
 
-    if (hasWatchedVideos.hasOwnProperty(vid.name)) {
+    if (hasWatchedVideos.hasOwnProperty(vid.name) && video.dataset.continuous !== "true") {
       video.currentTime = hasWatchedVideos[vid.name].time;
     } else {
       hasWatchedVideos[vid.name] = {

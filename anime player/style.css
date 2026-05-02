@@ -103,7 +103,7 @@ svg {
 
 .top-area {
     top: 0;
-    height: 20%;
+    height: auto;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -114,7 +114,7 @@ svg {
 
 .bottom-area {
     bottom: 0;
-    height: 20%;
+    height: auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -640,9 +640,9 @@ canvas#waveformCanvas {
 
 #sidebar_input {
     display: flex;
-    align-items: baseline;
     margin-bottom: 5px;
     gap: 15px;
+    align-items: center;
 }
 
 #sidebar_input button {
@@ -703,6 +703,54 @@ canvas#waveformCanvas {
 .danmu.danmu-hidden {
     opacity: 0 !important;
     pointer-events: none;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    min-height: 34px;
+    max-height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 34px;
+    background-color: #404040;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider::before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked+.slider {
+    background-color: #888;
+}
+
+input:checked+.slider::before {
+    transform: translateX(26px);
 }
 
 @keyframes move {
