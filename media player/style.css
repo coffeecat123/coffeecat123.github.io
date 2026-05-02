@@ -582,9 +582,11 @@ canvas#waveformCanvas {
 #videoList {
     list-style: none;
     padding: 0;
-    margin: 15px 0;
+    margin: 10px 0;
     white-space: nowrap;
     width: fit-content;
+    height: 100%;
+    overflow: auto;
 }
 
 #videoList li {
@@ -595,6 +597,10 @@ canvas#waveformCanvas {
     color: #eee;
     width: calc(var(--sidebar-width) - 50px);
     white-space: pre-wrap;
+}
+
+#videoList li:first-child {
+    border-top: 1px solid #555;
 }
 
 #videoList li.dropping {
@@ -640,7 +646,7 @@ canvas#waveformCanvas {
 
 #sidebar_input {
     display: flex;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     gap: 15px;
     align-items: center;
 }
