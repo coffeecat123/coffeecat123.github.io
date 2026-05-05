@@ -96,6 +96,7 @@ const save_hasWatchedVideos = JSON.parse(localStorage.getItem("hasWatchedVideos"
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
   volume = saved_volume;
+  video.volume = volume;
   danmuSpeed.value = saved_danmuSpeed;
   danmuSize.value = saved_danmuSize;
   danmuOpacity.value = saved_danmuOpacity;
@@ -163,12 +164,8 @@ function initDragAndDrop() {
         li.innerText = "+";
         videoList.appendChild(li);
         requestAnimationFrame(() => {
-          // 取得父容器（有捲軸的那一個，假設是 sidebar 或 videoList.parentElement）
-          const container = videoList.parentElement;
-
-          // 滾動到容器的總高度
-          container.scrollTo({
-            top: container.scrollHeight,
+          videoList.scrollTo({
+            top: videoList.scrollHeight,
             behavior: 'smooth'
           });
         });
@@ -900,6 +897,13 @@ refreshBtn.addEventListener('click', () => {
 });
 shuffleBtn.addEventListener('click', () => {
   shuffleChildren('videoList');
+  const activeLi = videoList.querySelector('li.playing');
+  if (activeLi) {
+    activeLi.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest'
+    });
+  }
   handleMouseMovement();
 });
 toggleContinuous.addEventListener('input', () => {
@@ -1002,6 +1006,10 @@ async function handleFiles(fileObject) {
         if (li.classList.contains('playing')) return;
         videoList.querySelectorAll('li').forEach(item => item.classList.remove('playing'));
         li.classList.add('playing');
+        li.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest'
+        });
         clearAll();
         nameEl.textContent = `${vid.name}`;
         sizeEl.textContent = size;
