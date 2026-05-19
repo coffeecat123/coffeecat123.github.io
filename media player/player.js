@@ -515,7 +515,6 @@ function updateProgressFromTouch(e) {
   skipTimeShow.textContent = `${currentTime} / ${duration}\n${(skippingTime >= 0) ? '+' : '-'}${formatTime(Math.abs(skippingTime))}`;
 
 }
-// 处理鼠标移动显示控制区域和鼠标
 function handleMouseMovement() {
   showControlAreas();
   delayHideControlAreas();
@@ -580,7 +579,6 @@ function initVideoPause() {
       e.stopPropagation();
       clickTimer = setTimeout(() => {
         if (videoBottomArea.classList.contains('hidden')) {
-          showControlAreas();
           handleMouseMovement();
         }
         else {
@@ -803,7 +801,7 @@ function toggleFullscreen() {
     }
     toggleFlsc_btn(0);
   }
-  showControlAreas();
+  handleMouseMovement();
 }
 async function lockToLandscape() {
   try {
@@ -1081,8 +1079,10 @@ function playVideo({ vid, xml }) {
     video.play().then(() => {
       playPauseBtn.textContent = '❚❚';
       refreshBtn.disabled = false;
-      videoTitle.textContent = vid.name.replace(/\.[^.]*$/, '');
-      showControlAreas();
+      const nm=vid.name.replace(/\.[^.]*$/, '');
+      videoTitle.textContent = nm;
+      document.title = nm;
+      handleMouseMovement();
     }).catch(err => console.log('播放失敗:', err));
 
     video.removeEventListener('canplaythrough', startPlay);
