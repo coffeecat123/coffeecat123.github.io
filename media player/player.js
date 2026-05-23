@@ -63,6 +63,7 @@ const rangeValue = document.getElementById('rangeValue');
 const danmuLimit = document.getElementById('danmuLimit');
 const limitValue = document.getElementById('limitValue');
 
+let lastSaveTime = 0;
 let currentPlaybackRate = 1.0;
 let timeoutId = null;
 let lastSpeed = null;
@@ -81,8 +82,6 @@ let canDraggingVideo = false,
   skippingTime = 0,
   hideVolumeBarTimer = null,
   isPointerInVolumeBar = false;
-let hasWatchedVideos = {};
-
 const saved_isDanmuEnabled = (localStorage.getItem("isDanmuEnabled") ?? "true") === "true";
 const saved_isMuted = localStorage.getItem("isMuted") === "true";
 const saved_volume = parseFloat(localStorage.getItem("volume")) || 1.0;   // 預設音量 1.0
@@ -91,7 +90,6 @@ const saved_danmuSize = parseFloat(localStorage.getItem("danmuSize")) || 24;  //
 const saved_danmuOpacity = parseFloat(localStorage.getItem("danmuOpacity")) || 1.0; // 預設不透明
 const saved_danmuRange = parseFloat(localStorage.getItem("danmuRange")) || 75;   // 預設3/4螢幕範圍
 const saved_danmuLimit = parseInt(localStorage.getItem("danmuLimit")) || 100;    //預設50
-const save_hasWatchedVideos = JSON.parse(localStorage.getItem("hasWatchedVideos")) || {};    //預設{}
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
@@ -102,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
   danmuOpacity.value = saved_danmuOpacity;
   danmuRange.value = saved_danmuRange;
   danmuLimit.value = saved_danmuLimit;
-  hasWatchedVideos = save_hasWatchedVideos;
   isDanmuEnabled = saved_isDanmuEnabled;
   isMuted = saved_isMuted;
   video.muted = isMuted;
@@ -266,6 +263,7 @@ function initOtherEvents() {
   document.addEventListener("visibilitychange", function () {
     if (isNaN(video.duration)) return;
     if (document.hidden) {
+      saveVideoProgress(video.name, video.currentTime, video.duration);
       if (timeoutId) {
         clearTimeout(timeoutId);
         timeoutId = null;
@@ -364,6 +362,10 @@ function initOtherEvents() {
       e.preventDefault();
       document.activeElement.blur();
     });
+  });
+  window.addEventListener('pagehide', () => {
+    if (isNaN(video.duration) || !video.name) return;
+    saveVideoProgress(video.name, video.currentTime, video.duration);
   });
 }
 
@@ -639,6 +641,7 @@ video.addEventListener('play', () => {
 video.addEventListener('pause', () => {
   playPauseBtn.textContent = '▶';
   showControlAreas(); // 暂停时显示控制区和鼠标
+  saveVideoProgress(video.name, video.duration, video.duration);
 });
 
 // 1. 進度條更新（包含圓點位置）
@@ -654,10 +657,13 @@ video.addEventListener('timeupdate', () => {
     li.classList.remove('finished');
   }
   li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
-  hasWatchedVideos[video.name].time = video.currentTime;
-  localStorage.setItem("hasWatchedVideos", JSON.stringify(hasWatchedVideos));
+  if (Date.now() - lastSaveTime > 3000) {
+    lastSaveTime = Date.now();
+    saveVideoProgress(video.name, t, d);
+  }
 });
 video.addEventListener('ended', (event) => {
+  saveVideoProgress(video.name, video.duration, video.duration);
   if (video.dataset.continuous == "true") {
     nextVideo();
   }
@@ -993,9 +999,9 @@ async function handleFiles(fileObject) {
       li.innerText = vid.name;
       li.classList.add('video-item');
 
-      if (hasWatchedVideos.hasOwnProperty(vid.name)) {
-        let d = hasWatchedVideos[vid.name].duration;
-        let t = hasWatchedVideos[vid.name].time;
+      const savedProgress = loadVideoProgress(vid.name);
+      if (savedProgress) {
+        let { time: t, duration: d } = savedProgress;
         if (t / d > 0.9) li.classList.add('finished');
         li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
       }
@@ -1027,6 +1033,9 @@ async function handleFiles(fileObject) {
   console.log('all files processed');
 }
 function clearAll() {
+  if (!isNaN(video.duration) && video.name) {
+    saveVideoProgress(video.name, video.currentTime, video.duration);
+  }
   if (window.danmusClear) window.danmusClear();
   if (window.clearDanmus) window.clearDanmus();
   video.src = '';
@@ -1057,13 +1066,13 @@ function playVideo({ vid, xml }) {
     durationEl.textContent = formatTime(video.duration);
     video.playbackRate = parseFloat(currentPlaybackRate) || 1;
 
-    if (hasWatchedVideos.hasOwnProperty(vid.name) && video.dataset.continuous !== "true") {
-      video.currentTime = hasWatchedVideos[vid.name].time;
-    } else {
-      hasWatchedVideos[vid.name] = {
-        time: 0,
-        duration: video.duration
-      };
+    if (video.dataset.continuous !== "true") {
+      const saved = loadVideoProgress(vid.name);
+      if (saved) {
+        video.currentTime = saved.time;
+      } else {
+        saveVideoProgress(vid.name, 0, video.duration);
+      }
     }
   };
 
@@ -1079,7 +1088,7 @@ function playVideo({ vid, xml }) {
     video.play().then(() => {
       playPauseBtn.textContent = '❚❚';
       refreshBtn.disabled = false;
-      const nm=vid.name.replace(/\.[^.]*$/, '');
+      const nm = vid.name.replace(/\.[^.]*$/, '');
       videoTitle.textContent = nm;
       document.title = nm;
       handleMouseMovement();
@@ -1265,5 +1274,15 @@ function save_status() {
   localStorage.setItem("danmuOpacity", danmuOpacity.value);
   localStorage.setItem("danmuRange", danmuRange.value);
   localStorage.setItem("danmuLimit", danmuLimit.value);
-  localStorage.setItem("hasWatchedVideos", JSON.stringify(hasWatchedVideos));
+}
+
+function saveVideoProgress(name, time, duration) {
+  if (!name) return;
+  localStorage.setItem(`video:${name}`, JSON.stringify({ time, duration }));
+}
+
+function loadVideoProgress(name) {
+  if (!name) return null;
+  const raw = localStorage.getItem(`video:${name}`);
+  return raw ? JSON.parse(raw) : null;
 }
