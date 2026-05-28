@@ -63,6 +63,9 @@ const rangeValue = document.getElementById('rangeValue');
 const danmuLimit = document.getElementById('danmuLimit');
 const limitValue = document.getElementById('limitValue');
 
+let lastCurrentTime = -1;
+let stalledCount = 0;
+let isWatchdogRecovering = false;
 let lastSaveTime = 0;
 let currentPlaybackRate = 1.0;
 let timeoutId = null;
@@ -90,6 +93,29 @@ const saved_danmuSize = parseFloat(localStorage.getItem("danmuSize")) || 24;  //
 const saved_danmuOpacity = parseFloat(localStorage.getItem("danmuOpacity")) || 1.0; // 預設不透明
 const saved_danmuRange = parseFloat(localStorage.getItem("danmuRange")) || 75;   // 預設3/4螢幕範圍
 const saved_danmuLimit = parseInt(localStorage.getItem("danmuLimit")) || 100;    //預設50
+
+const watchdog = setInterval(() => {
+  if (video.paused || isNaN(video.duration)) return;
+
+  if (video.currentTime === lastCurrentTime) {
+    stalledCount++;
+    console.warn(`卡住偵測 ${stalledCount}次, currentTime=${video.currentTime}`);
+
+    if (stalledCount >= 2) {
+      stalledCount = 0;
+      isWatchdogRecovering = true;
+      const t = video.currentTime;
+      video.pause();
+      video.currentTime = t + 0.001;
+      video.play().catch(() => { });
+      setTimeout(() => isWatchdogRecovering = false, 500);
+    }
+  } else {
+    stalledCount = 0;
+  }
+
+  lastCurrentTime = video.currentTime;
+}, 1000);
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
@@ -274,7 +300,7 @@ function initOtherEvents() {
       }
     } else {
       // 檢查影片是否處於「播放狀態但畫面不動」的詭異情況
-      if (video.readyState < 2) {
+      if (!isWatchdogRecovering && video.readyState < 2) {
         console.log("偵測到分頁喚醒，執行強制恢復機制...");
 
         // 先暫停再播放，觸發瀏覽器的引擎重新檢查狀態
@@ -1051,16 +1077,20 @@ function clearAll() {
 }
 
 function playVideo({ vid, xml }) {
-  if (currentVideoUrl) {
-    URL.revokeObjectURL(currentVideoUrl);
-  }
+  const oldUrl = currentVideoUrl;
+
   const url = URL.createObjectURL(vid);
+  currentVideoUrl = url;  // ✅ 記錄新 URL
 
   video.name = vid.name;
   window.isDanmuEnabled = isDanmuEnabled;
   window.danmuContainer = danmuContainer;
 
   video.onloadedmetadata = () => {
+    // ✅ 確認新影片載入成功後，才撤銷舊的 blob URL
+    if (oldUrl) {
+      URL.revokeObjectURL(oldUrl);
+    }
     widthEl.textContent = video.videoWidth;
     heightEl.textContent = video.videoHeight;
     durationEl.textContent = formatTime(video.duration);
@@ -1080,6 +1110,11 @@ function playVideo({ vid, xml }) {
     if (xml && window.loadDanmuXML) {
       window.loadDanmuXML(xml);
     }
+  };
+
+  video.onerror = (e) => {
+    const err = video.error;
+    console.error('video error:', err?.code, err?.message);
   };
 
   video.src = url;
