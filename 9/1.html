@@ -1,0 +1,101 @@
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>time</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                background: #181818;
+                overflow: hidden;
+                user-select: none;
+                -moz-user-select: none;
+                -webkit-user-select: none;
+                -ms-user-select: none;
+                font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+            }
+            .container {
+                width: 100vw;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 1.5rem;
+            }
+            .label {
+                font-size: 1rem;
+                letter-spacing: 0.4em;
+                text-transform: uppercase;
+                color: #888;
+                font-weight: 700;
+            }
+            .time {
+                font-size: clamp(1.5rem, 6vw, 5rem);
+                font-weight: 900;
+                color: #ffffff;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .time .ch {
+                display: inline-block;
+                width: 0.62em;
+                text-align: center;
+            }
+            .time .sep {
+                display: inline-block;
+                width: 0.4em;
+                text-align: center;
+                color: #555;
+            }
+            .date {
+                font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+                color: #888;
+                letter-spacing: 0.2em;
+                font-weight: 700;
+            }
+            .divider {
+                width: 40px;
+                height: 1px;
+                background: #333;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <span class="label">Current Time</span>
+            <div class="divider"></div>
+            <span class="time" id="time"></span>
+            <span class="date" id="date"></span>
+        </div>
+        <script>
+        function makeChars(str) {
+            return str.split('').map(function(c) {
+                if (c === ' ') return '<span class="sep"> </span>';
+                if (c === ':') return '<span class="sep">:</span>';
+                return '<span class="ch">' + c + '</span>';
+            }).join('');
+        }
+
+        function displayTime() {
+            var now = new Date();
+            var h = String(now.getHours()).padStart(2, '0');
+            var m = String(now.getMinutes()).padStart(2, '0');
+            var s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('time').innerHTML = makeChars(h + ' : ' + m + ' : ' + s);
+
+            var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            document.getElementById('date').innerText =
+                days[now.getDay()] + '  ·  ' +
+                now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+        }
+        displayTime();
+        setInterval(displayTime, 1000);
+        </script>
+    </body>
+</html>
