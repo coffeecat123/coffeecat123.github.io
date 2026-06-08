@@ -104,10 +104,7 @@ const watchdog = setInterval(() => {
     if (stalledCount >= 2) {
       stalledCount = 0;
       isWatchdogRecovering = true;
-      const t = video.currentTime;
-      video.pause();
-      video.currentTime = t + 0.001;
-      video.play().catch(() => { });
+      retryPlay();
       setTimeout(() => isWatchdogRecovering = false, 500);
     }
   } else {
@@ -115,7 +112,7 @@ const watchdog = setInterval(() => {
   }
 
   lastCurrentTime = video.currentTime;
-}, 1000);
+}, 500);
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
@@ -302,27 +299,7 @@ function initOtherEvents() {
       // 檢查影片是否處於「播放狀態但畫面不動」的詭異情況
       if (!isWatchdogRecovering && video.readyState < 2) {
         console.log("偵測到分頁喚醒，執行強制恢復機制...");
-
-        // 先暫停再播放，觸發瀏覽器的引擎重新檢查狀態
-        video.pause();
-
-        // 嘗試重新非同步播放
-        video.play().then(() => {
-          console.log("喚醒成功");
-        }).catch(err => {
-          // 如果連 play 都失敗，這時才考慮使用 load() 作為最後手段
-          console.log("播放喚醒失敗，嘗試強制重載資源...");
-          const savedTime = video.currentTime;
-
-          const seekAfterLoad = () => {
-            video.currentTime = savedTime;
-            video.play();
-            video.removeEventListener('loadedmetadata', seekAfterLoad);
-          };
-
-          video.addEventListener('loadedmetadata', seekAfterLoad);
-          video.load();
-        });
+        retryPlay();
       }
     }
   });
@@ -392,6 +369,28 @@ function initOtherEvents() {
   window.addEventListener('pagehide', () => {
     if (isNaN(video.duration) || !video.name) return;
     saveVideoProgress(video.name, video.currentTime, video.duration);
+  });
+}
+function retryPlay() {
+  // 先暫停再播放，觸發瀏覽器的引擎重新檢查狀態
+  video.pause();
+
+  // 嘗試重新非同步播放
+  video.play().then(() => {
+    console.log("喚醒成功");
+  }).catch(err => {
+    // 如果連 play 都失敗，這時才考慮使用 load() 作為最後手段
+    console.log("播放喚醒失敗，嘗試強制重載資源...");
+    const savedTime = video.currentTime;
+
+    const seekAfterLoad = () => {
+      video.currentTime = savedTime;
+      video.play();
+      video.removeEventListener('loadedmetadata', seekAfterLoad);
+    };
+
+    video.addEventListener('loadedmetadata', seekAfterLoad);
+    video.load();
   });
 }
 
