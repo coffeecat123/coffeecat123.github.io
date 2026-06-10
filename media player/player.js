@@ -399,9 +399,13 @@ function initVideoControlAreas() {
   // 初始状态显示控制区和鼠标
   showControlAreas();
 
+  danmuSettings.addEventListener('mouseleave', (e) => {
+    danmuSettings.style.display = "none";
+  });
   // 绑定鼠标移动事件 - 确保事件冒泡正确触发
   videoPanel.addEventListener('mousemove', (e) => {
     if (videoBottomArea.contains(e.target) || videoTopArea.contains(e.target) || danmuSettings.contains(e.target)) {
+      showControlAreas();
       return;
     }
     handleMouseMovement();
@@ -435,7 +439,7 @@ function initProgressBarDrag() {
   progressContainer.addEventListener('pointerdown', (e) => {
     isDraggingBar = true;
     updateProgressFromMouse(e);
-    handleMouseMovement();
+    showControlAreas();
     e.preventDefault(); // 阻止默认行为
     e.stopPropagation(); // 阻止事件冒泡
   });
@@ -482,7 +486,7 @@ function initProgressBarDrag() {
     if (isDraggingBar) {
       e.preventDefault();
       updateProgressFromMouse(e);
-      handleMouseMovement();
+      showControlAreas();
     }
   });
   document.addEventListener('pointerup', () => {
@@ -770,7 +774,7 @@ function updateVolume(dv = 0) {
 function syncVolumeUI() {
   show_volume_bar();
   updateVolumeControl();
-  handleMouseMovement();
+  showControlAreas();
   save_status();
 }
 function updateVolumeControl() {
@@ -872,7 +876,7 @@ danmuSpeed.addEventListener('input', () => {
   speedValue.textContent = `${speed.toFixed(1)}x`;
   updateInputBG(danmuSpeed);
   window.updateDanmuAnimationSpeed();
-  handleMouseMovement();
+  showControlAreas();
   save_status();
 });
 
@@ -880,7 +884,7 @@ danmuSize.addEventListener('input', () => {
   const size = parseFloat(danmuSize.value);
   sizeValue.textContent = `${size}px`;
   updateInputBG(danmuSize);
-  handleMouseMovement();
+  showControlAreas();
   save_status();
 });
 
@@ -889,14 +893,14 @@ danmuOpacity.addEventListener('input', () => {
   opacityValue.textContent = `${Math.round(opacity * 100)}%`;
   updateInputBG(danmuOpacity);
   window.updateDanmuOpacity();
-  handleMouseMovement();
+  showControlAreas();
   save_status();
 });
 
 danmuRange.addEventListener('input', () => {
   rangeValue.textContent = `${danmuRange.value}%`;
   updateInputBG(danmuRange);
-  handleMouseMovement();
+  showControlAreas();
   save_status();
 });
 
@@ -904,7 +908,7 @@ danmuLimit.addEventListener('input', () => {
   limitValue.textContent = `${danmuLimit.value}`;
   updateInputBG(danmuLimit);
   window.updateDanmuAnimationSpeed();
-  handleMouseMovement();
+  showControlAreas();
   save_status();
 });
 function checkVideoSupport(videoFile) {
