@@ -1216,7 +1216,7 @@ function initKeyboardShortcuts() {
         clearTimeout(hideVolumeBarTimer);
         if (!a){
           hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
-          delayHideControlAreas(1500);
+          if(isPointerInMiddleArea) delayHideControlAreas(1500);
         }
         break;
       case 'arrowdown':
@@ -1225,7 +1225,7 @@ function initKeyboardShortcuts() {
         clearTimeout(hideVolumeBarTimer);
         if (!a){
           hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
-          delayHideControlAreas(1500);
+          if(isPointerInMiddleArea) delayHideControlAreas(1500);
         }
         break;
       case 'f':
@@ -1247,7 +1247,7 @@ function initKeyboardShortcuts() {
         clearTimeout(hideVolumeBarTimer);
         if (!a){
           hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
-          delayHideControlAreas(1500);
+          if(isPointerInMiddleArea) delayHideControlAreas(1500);
         }
         break;
       case 'j':
