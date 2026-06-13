@@ -84,7 +84,8 @@ let canDraggingVideo = false,
   DraggingVideoX = null,
   skippingTime = 0,
   hideVolumeBarTimer = null,
-  isPointerInVolumeBar = false;
+  isPointerInVolumeBar = false,
+  isPointerInMiddleArea = false;
 const saved_isDanmuEnabled = (localStorage.getItem("isDanmuEnabled") ?? "true") === "true";
 const saved_isMuted = localStorage.getItem("isMuted") === "true";
 const saved_volume = parseFloat(localStorage.getItem("volume")) || 1.0;   // 預設音量 1.0
@@ -406,9 +407,11 @@ function initVideoControlAreas() {
   videoPanel.addEventListener('mousemove', (e) => {
     if (videoBottomArea.contains(e.target) || videoTopArea.contains(e.target) || danmuSettings.contains(e.target)) {
       showControlAreas();
+      isPointerInMiddleArea = false;
       return;
     }
     handleMouseMovement();
+    isPointerInMiddleArea = true;
   });
   sidebar.addEventListener('mousemove', (e) => {
     handleMouseMovement();
@@ -420,16 +423,20 @@ function initVideoControlAreas() {
   // 上下区域点击不触发视频播放
   videoTopArea.addEventListener('click', (e) => {
     e.stopPropagation();
+    isPointerInMiddleArea = false;
   });
   videoTopArea.addEventListener('mousemove', (e) => {
     showControlAreas();
+    isPointerInMiddleArea = false;
   });
 
   videoBottomArea.addEventListener('click', (e) => {
     e.stopPropagation();
+    isPointerInMiddleArea = false;
   });
   videoBottomArea.addEventListener('mousemove', (e) => {
     showControlAreas();
+    isPointerInMiddleArea = false;
   });
 }
 
@@ -670,6 +677,7 @@ video.addEventListener('play', () => {
 video.addEventListener('pause', () => {
   playPauseBtn.textContent = '▶';
   showControlAreas(); // 暂停时显示控制区和鼠标
+  delayHideControlAreas(1500);
   saveVideoProgress(video.name, video.duration, video.duration);
 });
 
@@ -1206,13 +1214,19 @@ function initKeyboardShortcuts() {
         e.preventDefault();
         updateVolume(0.05);
         clearTimeout(hideVolumeBarTimer);
-        if (!a) hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
+        if (!a){
+          hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
+          delayHideControlAreas(1500);
+        }
         break;
       case 'arrowdown':
         e.preventDefault();
         updateVolume(-0.05);
         clearTimeout(hideVolumeBarTimer);
-        if (!a) hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
+        if (!a){
+          hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
+          delayHideControlAreas(1500);
+        }
         break;
       case 'f':
         e.preventDefault();
@@ -1231,7 +1245,10 @@ function initKeyboardShortcuts() {
         video.muted = isMuted;
         syncVolumeUI();
         clearTimeout(hideVolumeBarTimer);
-        if (!a) hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
+        if (!a){
+          hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
+          delayHideControlAreas(1500);
+        }
         break;
       case 'j':
         e.preventDefault();
