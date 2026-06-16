@@ -297,10 +297,15 @@ function initOtherEvents() {
         lastSpeed = null;
       }
     } else {
-      // 檢查影片是否處於「播放狀態但畫面不動」的詭異情況
-      if (!isWatchdogRecovering && video.readyState < 2) {
-        console.log("偵測到分頁喚醒，執行強制恢復機制...");
-        retryPlay();
+      if (!isWatchdogRecovering && !video.paused) {
+        setTimeout(() => {
+          if (!video.paused && video.currentTime === lastCurrentTime) {
+            console.log("分頁喚醒後偵測到凍結，強制恢復...");
+            isWatchdogRecovering = true;
+            retryPlay();
+            setTimeout(() => isWatchdogRecovering = false, 1000);
+          }
+        }, 800);
       }
     }
   });
@@ -373,26 +378,30 @@ function initOtherEvents() {
   });
 }
 function retryPlay() {
-  // 先暫停再播放，觸發瀏覽器的引擎重新檢查狀態
   video.pause();
+  console.log("播放失敗，嘗試強制重載資源...");
 
-  // 嘗試重新非同步播放
-  video.play().then(() => {
-    console.log("喚醒成功");
-  }).catch(err => {
-    // 如果連 play 都失敗，這時才考慮使用 load() 作為最後手段
-    console.log("播放喚醒失敗，嘗試強制重載資源...");
-    const savedTime = video.currentTime;
+  const savedTime = video.currentTime;
+  let handled = false;
 
-    const seekAfterLoad = () => {
-      video.currentTime = savedTime;
-      video.play();
-      video.removeEventListener('loadedmetadata', seekAfterLoad);
-    };
+  const seekAfterLoad = () => {
+    if (handled) return;
+    handled = true;
+    video.currentTime = savedTime;
+    video.removeEventListener('loadedmetadata', seekAfterLoad);
+    video.removeEventListener('canplay', seekAfterLoad);
+    video.play().then(() => {
+      console.log("喚醒成功");
+    }).catch(err => {
+      console.log("喚醒失敗：", err);
+      setTimeout(() => retryPlay(), 2000);
+    });
+  };
 
-    video.addEventListener('loadedmetadata', seekAfterLoad);
-    video.load();
-  });
+  // 同時監聽兩個事件，先到先處理
+  video.addEventListener('loadedmetadata', seekAfterLoad);
+  video.addEventListener('canplay', seekAfterLoad);
+  video.load();
 }
 
 // 初始化时确保鼠标移动事件正确绑定
@@ -704,6 +713,14 @@ video.addEventListener('ended', (event) => {
   if (video.dataset.continuous == "true") {
     nextVideo();
   }
+});
+
+video.addEventListener('waiting', () => {
+  // console.warn('影片 waiting');
+});
+
+video.addEventListener('stalled', () => {
+  console.warn('影片 stalled');
 });
 
 function updateProgress() {
@@ -1214,18 +1231,18 @@ function initKeyboardShortcuts() {
         e.preventDefault();
         updateVolume(0.05);
         clearTimeout(hideVolumeBarTimer);
-        if (!a){
+        if (!a) {
           hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
-          if(isPointerInMiddleArea) delayHideControlAreas(1500);
+          if (isPointerInMiddleArea) delayHideControlAreas(1500);
         }
         break;
       case 'arrowdown':
         e.preventDefault();
         updateVolume(-0.05);
         clearTimeout(hideVolumeBarTimer);
-        if (!a){
+        if (!a) {
           hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
-          if(isPointerInMiddleArea) delayHideControlAreas(1500);
+          if (isPointerInMiddleArea) delayHideControlAreas(1500);
         }
         break;
       case 'f':
@@ -1245,9 +1262,9 @@ function initKeyboardShortcuts() {
         video.muted = isMuted;
         syncVolumeUI();
         clearTimeout(hideVolumeBarTimer);
-        if (!a){
+        if (!a) {
           hideVolumeBarTimer = setTimeout(hide_volume_bar, 1000);
-          if(isPointerInMiddleArea) delayHideControlAreas(1500);
+          if (isPointerInMiddleArea) delayHideControlAreas(1500);
         }
         break;
       case 'j':
