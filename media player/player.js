@@ -106,7 +106,7 @@ const watchdog = setInterval(() => {
       stalledCount = 0;
       isWatchdogRecovering = true;
       retryPlay();
-      setTimeout(() => isWatchdogRecovering = false, 500);
+      setTimeout(() => isWatchdogRecovering = false, 3000);
     }
   } else {
     stalledCount = 0;
@@ -687,7 +687,7 @@ video.addEventListener('pause', () => {
   playPauseBtn.textContent = '▶';
   showControlAreas(); // 暂停时显示控制区和鼠标
   delayHideControlAreas(1500);
-  saveVideoProgress(video.name, video.duration, video.duration);
+  saveVideoProgress(video.name, video.currentTime, video.duration);
 });
 
 // 1. 進度條更新（包含圓點位置）
@@ -1143,6 +1143,13 @@ function playVideo({ vid, xml }) {
   video.onerror = (e) => {
     const err = video.error;
     console.error('video error:', err?.code, err?.message);
+
+    if (err?.code === 3 && !isWatchdogRecovering) {
+      console.warn("Decoder crash，嘗試恢復...");
+      isWatchdogRecovering = true;
+      retryPlay();
+      setTimeout(() => isWatchdogRecovering = false, 1000);
+    }
   };
 
   video.src = url;
