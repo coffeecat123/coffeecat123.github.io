@@ -202,8 +202,11 @@ function loadDanmuXML(xmlFile) {
         const color = '#' + parseInt(p[3]).toString(16).padStart(6, '0');
         const size = parseInt(p[2]) || 24;
 
+        const cleanedText = (node.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!cleanedText) return;
+
         danmus.push({
-          text: node.textContent || '无内容',
+          text: cleanedText,
           time,
           color: color === "#00000f" ? "#ffffff" : color,
           size,
