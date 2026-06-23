@@ -410,7 +410,9 @@ function initVideoControlAreas() {
   showControlAreas();
 
   danmuSettings.addEventListener('mouseleave', (e) => {
-    danmuSettings.style.display = "none";
+    setTimeout(() => {
+      danmuSettings.style.display = "none";
+    }, 500);
   });
   // 绑定鼠标移动事件 - 确保事件冒泡正确触发
   videoPanel.addEventListener('mousemove', (e) => {
