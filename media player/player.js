@@ -346,7 +346,6 @@ function initOtherEvents() {
   });
   if ('mediaSession' in navigator) {
     navigator.mediaSession.setActionHandler('play', () => {
-      // 只有在頁面可見時才響應耳機播放指令
       if (document.visibilityState === 'visible') {
         video.play();
       } else {
@@ -359,11 +358,19 @@ function initOtherEvents() {
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
-      previousVideo();
+      if (document.visibilityState === 'visible') {
+        previousVideo();
+      } else {
+        console.log('頁面在背景，已忽略上一首指令');
+      }
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
-      nextVideo();
+      if (document.visibilityState === 'visible') {
+        nextVideo();
+      } else {
+        console.log('頁面在背景，已忽略下一首指令');
+      }
     });
   }
   document.querySelectorAll('.switch input[type="checkbox"]').forEach(input => {
