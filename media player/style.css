@@ -239,6 +239,51 @@ svg {
     opacity: 0;
 }
 
+.progress-preview {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    transform: translateX(-50%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.progress-preview.show {
+    display: flex;
+}
+
+.progress-preview canvas {
+    display: block;
+    width: 160px;
+    height: 90px;
+    background: #000;
+    border-radius: 6px;
+    border: 2px solid #2b2b2b;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.preview-time {
+    margin-top: 4px;
+    color: #eee;
+    font-size: 12px;
+    background: rgba(30, 30, 30, 0.85);
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.preview-video-el {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+    width: 160px;
+    height: 90px;
+    pointer-events: none;
+}
+
 .time-display {
     position: absolute;
     right: 0;

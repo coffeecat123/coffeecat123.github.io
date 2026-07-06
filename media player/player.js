@@ -14,6 +14,10 @@ const progressBar = document.getElementById('progressBar');
 const progressFill = document.getElementById('progressFill');
 const progressHandle = document.getElementById('progressHandle');
 const timeDisplay = document.getElementById('timeDisplay');
+const progressPreview = document.getElementById('progressPreview');
+const previewCanvas = document.getElementById('previewCanvas');
+const previewTimeEl = document.getElementById('previewTime');
+const previewVideoEl = document.getElementById('previewVideoEl');
 
 const playPauseBtn = document.getElementById('playPauseBtn');
 const currentSpeedDisplay = document.getElementById('currentSpeedDisplay');
@@ -63,6 +67,9 @@ const rangeValue = document.getElementById('rangeValue');
 const danmuLimit = document.getElementById('danmuLimit');
 const limitValue = document.getElementById('limitValue');
 
+let previewCtx = null;
+let previewSeekPending = false;
+let previewPendingTime = null;
 let lastCurrentTime = -1;
 let stalledCount = 0;
 let isWatchdogRecovering = false;
@@ -148,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboardShortcuts();
   initVideoControlAreas();
   initProgressBarDrag();
+  initProgressPreview();
   initVideoPause();
   initOtherEvents();
   initDragAndDrop();
@@ -517,6 +525,22 @@ function initProgressBarDrag() {
   document.addEventListener('pointerup', () => {
     isDraggingBar = false;
     isDraggingVideo = false;
+    hidePreview();
+  });
+
+  // 滑鼠 hover 在進度條上時顯示畫面預覽（拖曳中的預覽已在 updateProgressFromMouse 內處理）
+  progressContainer.addEventListener('pointermove', (e) => {
+    if (isDraggingBar) return;
+    if (e.pointerType === 'touch') return; // 觸控裝置沒有 hover，交給拖曳邏輯處理
+    if (isNaN(video.duration) || !video.duration) return;
+    const rect = progressBar.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const time = pos * video.duration;
+    showPreviewAt(e.clientX, time);
+  });
+  progressContainer.addEventListener('pointerleave', (e) => {
+    if (isDraggingBar) return;
+    hidePreview();
   });
 }
 
@@ -538,7 +562,91 @@ function updateProgressFromMouse(e) {
   const duration = video.duration ? formatTime(video.duration) : '00:00';
   timeDisplay.textContent = `${currentTime} / ${duration}`;
 
+  // 拖曳進度條時同步顯示畫面預覽
+  showPreviewAt(e.clientX, newTime);
 }
+
+function initProgressPreview() {
+  if (!progressPreview || !previewCanvas || !previewVideoEl) return;
+  previewCtx = previewCanvas.getContext('2d');
+
+  previewVideoEl.addEventListener('seeked', () => {
+    drawPreviewFrame();
+    previewSeekPending = false;
+    if (previewPendingTime !== null) {
+      const nextTime = previewPendingTime;
+      previewPendingTime = null;
+      seekPreviewTo(nextTime);
+    }
+  });
+
+  previewVideoEl.addEventListener('error', () => {
+    previewSeekPending = false;
+    previewPendingTime = null;
+  });
+}
+
+function drawPreviewFrame() {
+  if (!previewCtx) return;
+  const cw = previewCanvas.width;
+  const ch = previewCanvas.height;
+  try {
+    const vw = previewVideoEl.videoWidth;
+    const vh = previewVideoEl.videoHeight;
+
+    previewCtx.fillStyle = '#000';
+    previewCtx.fillRect(0, 0, cw, ch);
+
+    if (!vw || !vh) return;
+
+    const scale = Math.min(cw / vw, ch / vh);
+    const drawW = vw * scale;
+    const drawH = vh * scale;
+    const offsetX = (cw - drawW) / 2;
+    const offsetY = (ch - drawH) / 2;
+
+    previewCtx.drawImage(previewVideoEl, offsetX, offsetY, drawW, drawH);
+  } catch (err) {
+    // 影片尚未就緒時忽略
+  }
+}
+
+function seekPreviewTo(time) {
+  if (!previewVideoEl || !previewVideoEl.src) return;
+  if (isNaN(previewVideoEl.duration) || !previewVideoEl.duration) return;
+  const safeTime = Math.max(0, Math.min(time, previewVideoEl.duration - 0.05));
+
+  if (previewSeekPending) {
+    previewPendingTime = safeTime;
+    return;
+  }
+  previewSeekPending = true;
+  previewVideoEl.currentTime = safeTime;
+}
+
+function showPreviewAt(clientX, time) {
+  if (!progressPreview) return;
+  if (!video.duration || isNaN(video.duration)) return;
+
+  const containerRect = progressContainer.getBoundingClientRect();
+  const previewWidth = progressPreview.offsetWidth || 160;
+  const minLeft = previewWidth / 2 + 4;
+  const maxLeft = containerRect.width - previewWidth / 2 - 4;
+  let left = clientX - containerRect.left;
+  left = Math.max(minLeft, Math.min(maxLeft, left));
+
+  progressPreview.style.left = `${left}px`;
+  progressPreview.classList.add('show');
+  previewTimeEl.textContent = formatTime(time);
+
+  seekPreviewTo(time);
+}
+
+function hidePreview() {
+  if (!progressPreview) return;
+  progressPreview.classList.remove('show');
+}
+
 function updateProgressFromTouch(e) {
   const rect = video.getBoundingClientRect();
   let newx = e.clientX - rect.left;
@@ -1111,6 +1219,10 @@ function clearAll() {
     const { width, height } = waveformCanvas;
     ctx.clearRect(0, 0, width, height);
   }
+  if (previewCtx && previewCanvas) {
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+  }
+  hidePreview();
 }
 
 function playVideo({ vid, xml }) {
@@ -1118,6 +1230,11 @@ function playVideo({ vid, xml }) {
 
   const url = URL.createObjectURL(vid);
   currentVideoUrl = url;  // ✅ 記錄新 URL
+
+  hidePreview();
+  previewSeekPending = false;
+  previewPendingTime = null;
+  if (previewVideoEl) previewVideoEl.src = url;
 
   video.name = vid.name;
   window.isDanmuEnabled = isDanmuEnabled;
