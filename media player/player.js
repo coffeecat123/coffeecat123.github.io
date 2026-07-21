@@ -73,10 +73,12 @@ let previewPendingTime = null;
 let lastCurrentTime = -1;
 let stalledCount = 0;
 let isWatchdogRecovering = false;
+let isRetryingPlay = false;
 let lastSaveTime = 0;
 let currentPlaybackRate = 1.0;
 let timeoutId = null;
 let lastSpeed = null;
+let lastKeyTime = null;
 let currentVideoUrl = null;
 let videos = [];
 let isDanmuPaused = false;
@@ -393,6 +395,11 @@ function initOtherEvents() {
   });
 }
 function retryPlay() {
+  if (isRetryingPlay) {
+    console.log("恢復流程已在進行中，略過本次觸發");
+    return;
+  }
+  isRetryingPlay = true;
   video.pause();
   console.log("播放失敗，嘗試強制重載資源...");
 
@@ -407,8 +414,10 @@ function retryPlay() {
     video.removeEventListener('canplay', seekAfterLoad);
     video.play().then(() => {
       console.log("喚醒成功");
+      isRetryingPlay = false;
     }).catch(err => {
       console.log("喚醒失敗：", err);
+      isRetryingPlay = false;
       setTimeout(() => retryPlay(), 2000);
     });
   };
