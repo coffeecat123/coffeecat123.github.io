@@ -67,6 +67,8 @@ const rangeValue = document.getElementById('rangeValue');
 const danmuLimit = document.getElementById('danmuLimit');
 const limitValue = document.getElementById('limitValue');
 
+let lastSavedTime = null;
+let lastSavedAt = null;
 let previewCtx = null;
 let previewSeekPending = false;
 let previewPendingTime = null;
@@ -1181,9 +1183,12 @@ async function handleFiles(fileObject) {
 
       const savedProgress = loadVideoProgress(vid.name);
       if (savedProgress) {
-        let { time: t, duration: d } = savedProgress;
+        let { time: t, duration: d, updatedAt: u } = savedProgress;
         if (t / d > 0.9) li.classList.add('finished');
         li.innerText = `${li.name}\n${formatTime(t)} / ${formatTime(d)}`;
+        if (u) {
+          li.title = `last updated: ${formatDateTime(u)}`;
+        }
       }
 
       li.addEventListener('click', () => {
@@ -1263,7 +1268,11 @@ function playVideo({ vid, xml }) {
       const saved = loadVideoProgress(vid.name);
       if (saved) {
         video.currentTime = saved.time;
+        lastSavedTime = saved.time;
+        lastSavedAt = saved.updatedAt ?? Date.now();
       } else {
+        lastSavedTime = 0;
+        lastSavedAt = Date.now();
         saveVideoProgress(vid.name, 0, video.duration);
       }
     }
@@ -1492,11 +1501,20 @@ function save_status() {
 
 function saveVideoProgress(name, time, duration) {
   if (!name) return;
-  localStorage.setItem(`video:${name}`, JSON.stringify({ time, duration }));
+  if (lastSavedTime !== time) {
+    lastSavedAt = Date.now();
+    lastSavedTime = time;
+  }
+  localStorage.setItem(`video:${name}`, JSON.stringify({ time, duration, updatedAt: lastSavedAt }));
 }
 
 function loadVideoProgress(name) {
   if (!name) return null;
   const raw = localStorage.getItem(`video:${name}`);
   return raw ? JSON.parse(raw) : null;
+}
+
+function formatDateTime(time) {
+  if (!time) return '';
+  return new Date(time).toLocaleString(undefined, { hour12: false });
 }
