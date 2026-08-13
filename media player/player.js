@@ -1504,6 +1504,11 @@ function saveVideoProgress(name, time, duration) {
   if (lastSavedTime !== time) {
     lastSavedAt = Date.now();
     lastSavedTime = time;
+
+    const li = videoList.querySelector('.playing');
+    if (li && li.name === name) {
+      li.title = `last updated: ${formatDateTime(lastSavedAt)}`;
+    }
   }
   localStorage.setItem(`video:${name}`, JSON.stringify({ time, duration, updatedAt: lastSavedAt }));
 }
