@@ -428,6 +428,10 @@ function retryPlay() {
   video.addEventListener('loadedmetadata', seekAfterLoad);
   video.addEventListener('canplay', seekAfterLoad);
   video.load();
+
+  if (previewVideoEl && currentVideoUrl) {
+    previewVideoEl.src = currentVideoUrl;
+  }
 }
 
 // 初始化时确保鼠标移动事件正确绑定
