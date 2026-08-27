@@ -178,8 +178,13 @@ function loadDanmuXML(xmlFile) {
   const reader = new FileReader();
   reader.onload = function (evt) {
     try {
+      const sanitizedXML = evt.target.result.replace(
+        /[\x00-\x08\x0B\x0C\x0E-\x1F]/g,
+        ''
+      );
+
       const parser = new DOMParser();
-      const xml = parser.parseFromString(evt.target.result, "text/xml");
+      const xml = parser.parseFromString(sanitizedXML, "text/xml");
 
       if (xml.querySelector('parsererror')) {
         console.error('弹幕XML解析错误:', xml.querySelector('parsererror').textContent);
