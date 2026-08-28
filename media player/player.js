@@ -67,6 +67,8 @@ const rangeValue = document.getElementById('rangeValue');
 const danmuLimit = document.getElementById('danmuLimit');
 const limitValue = document.getElementById('limitValue');
 
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 let lastSavedTime = null;
 let lastSavedAt = null;
 let previewCtx = null;
@@ -100,12 +102,12 @@ let canDraggingVideo = false,
   isPointerInMiddleArea = false;
 const saved_isDanmuEnabled = (localStorage.getItem("isDanmuEnabled") ?? "true") === "true";
 const saved_isMuted = localStorage.getItem("isMuted") === "true";
-const saved_volume = parseFloat(localStorage.getItem("volume")) || 1.0;   // 預設音量 1.0
-const saved_danmuSpeed = parseFloat(localStorage.getItem("danmuSpeed")) || 1.0; // 預設 1.0 倍速
-const saved_danmuSize = parseFloat(localStorage.getItem("danmuSize")) || 24;  // 預設 1.0 倍大小
-const saved_danmuOpacity = parseFloat(localStorage.getItem("danmuOpacity")) || 1.0; // 預設不透明
-const saved_danmuRange = parseFloat(localStorage.getItem("danmuRange")) || 75;   // 預設3/4螢幕範圍
-const saved_danmuLimit = parseInt(localStorage.getItem("danmuLimit")) || 100;    //預設50
+const saved_volume = parseFloat(localStorage.getItem("volume")) || 1.0;
+const saved_danmuSpeed = parseFloat(localStorage.getItem("danmuSpeed")) || 1.0;
+const saved_danmuSize = parseFloat(localStorage.getItem("danmuSize")) || 24;
+const saved_danmuOpacity = parseFloat(localStorage.getItem("danmuOpacity")) || 1.0;
+const saved_danmuRange = parseFloat(localStorage.getItem("danmuRange")) || 75;
+const saved_danmuLimit = parseInt(localStorage.getItem("danmuLimit")) || 100;
 
 const watchdog = setInterval(() => {
   if (video.paused || isNaN(video.duration)) return;
@@ -114,7 +116,7 @@ const watchdog = setInterval(() => {
     stalledCount++;
     console.warn(`卡住偵測 ${stalledCount}次, currentTime=${video.currentTime}`);
 
-    if (stalledCount >= 2) {
+    if ((stalledCount >= 2 && !isMobileDevice) || (stalledCount >= 5 && isMobileDevice)) {
       stalledCount = 0;
       isWatchdogRecovering = true;
       retryPlay();
@@ -126,6 +128,7 @@ const watchdog = setInterval(() => {
 
   lastCurrentTime = video.currentTime;
 }, 500);
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   danmuContainer = document.getElementById('danmu-container');
@@ -171,17 +174,15 @@ function initDragAndDrop() {
   let li = null;
   let dragCounter = 0;
 
-  // 封裝移除動畫的邏輯
   const removeLiWithAnimation = (targetLi) => {
     if (!targetLi) return;
     targetLi.classList.add('collapsed');
 
-    // 監聽動畫結束事件
     targetLi.addEventListener('transitionend', () => {
       if (targetLi.parentNode === videoList) {
         videoList.removeChild(targetLi);
       }
-    }, { once: true }); // 確保只執行一次
+    }, { once: true });
   };
 
   dropZone.addEventListener('dragenter', (e) => {
@@ -189,7 +190,6 @@ function initDragAndDrop() {
     dragCounter++;
 
     if (dragCounter === 1) {
-      // 如果剛好正在「消失中」，就直接移除舊的重新創一個，或移除 collapsed
       if (li && videoList.contains(li)) {
         li.classList.remove('collapsed');
       } else {
@@ -217,7 +217,7 @@ function initDragAndDrop() {
 
     if (dragCounter === 0) {
       removeLiWithAnimation(li);
-      li = null; // 清空引用，下次進入創新的
+      li = null;
     }
   });
 
@@ -229,20 +229,17 @@ function initDragAndDrop() {
     li = null;
 
     const allFiles = [];
-
     const items = [...e.dataTransfer.items];
 
     for (const item of items) {
       if (item.kind !== 'file') continue;
 
-      // 優先用標準 getAsFile()（對單檔最可靠）
       const file = item.getAsFile();
       if (file && file.size > 0) {
         allFiles.push(file);
         continue;
       }
 
-      // 備用：如果需要支援資料夾，才用 webkitGetAsEntry
       const entry = item.webkitGetAsEntry?.();
       if (entry) {
         await readEntry(entry, allFiles);
@@ -252,12 +249,10 @@ function initDragAndDrop() {
     handleFiles(allFiles);
   });
 
-  // 修改 readEntry，讓它接收 allFiles 並處理 Promise
   async function readEntry(entry, allFiles) {
     console.log("讀取項目：", entry);
 
     if (entry.isFile) {
-      // 這裡改用 Promise 包裝，但 file:// 下仍有風險
       await new Promise((resolve, reject) => {
         entry.file(
           (f) => {
@@ -283,10 +278,10 @@ function initDragAndDrop() {
             for (const sub of entries) {
               await readEntry(sub, allFiles);
             }
-            readBatch(); // 遞迴讀下一批
+            readBatch();
           }, (err) => {
             console.error("readEntries 錯誤：", err);
-            resolve(); // 避免完全卡死
+            resolve();
           });
         };
         readBatch();
@@ -400,6 +395,7 @@ function initOtherEvents() {
     saveVideoProgress(video.name, video.currentTime, video.duration);
   });
 }
+
 function retryPlay() {
   if (isRetryingPlay) {
     console.log("恢復流程已在進行中，略過本次觸發");
@@ -428,19 +424,17 @@ function retryPlay() {
     });
   };
 
-  // 同時監聽兩個事件，先到先處理
   video.addEventListener('loadedmetadata', seekAfterLoad);
   video.addEventListener('canplay', seekAfterLoad);
   video.load();
 
-  if (previewVideoEl && currentVideoUrl) {
+  // ✅ 手機不加載預覽影片
+  if (!isMobileDevice && previewVideoEl && currentVideoUrl) {
     previewVideoEl.src = currentVideoUrl;
   }
 }
 
-// 初始化时确保鼠标移动事件正确绑定
 function initVideoControlAreas() {
-  // 初始状态显示控制区和鼠标
   showControlAreas();
 
   danmuSettings.addEventListener('mouseleave', (e) => {
@@ -448,7 +442,7 @@ function initVideoControlAreas() {
       danmuSettings.style.display = "none";
     }, 500);
   });
-  // 绑定鼠标移动事件 - 确保事件冒泡正确触发
+
   videoPanel.addEventListener('mousemove', (e) => {
     if (videoBottomArea.contains(e.target) || videoTopArea.contains(e.target) || danmuSettings.contains(e.target)) {
       showControlAreas();
@@ -465,7 +459,6 @@ function initVideoControlAreas() {
     delayHideControlAreas();
   });
 
-  // 上下区域点击不触发视频播放
   videoTopArea.addEventListener('click', (e) => {
     e.stopPropagation();
     isPointerInMiddleArea = false;
@@ -485,15 +478,13 @@ function initVideoControlAreas() {
   });
 }
 
-// 2. 初始化进度条拖動功能
 function initProgressBarDrag() {
-  //in container
   progressContainer.addEventListener('pointerdown', (e) => {
     isDraggingBar = true;
     updateProgressFromMouse(e);
     showControlAreas();
-    e.preventDefault(); // 阻止默认行为
-    e.stopPropagation(); // 阻止事件冒泡
+    e.preventDefault();
+    e.stopPropagation();
   });
   video.addEventListener('pointerdown', (e) => {
     const isTouch = e.pointerType === 'touch';
@@ -547,10 +538,9 @@ function initProgressBarDrag() {
     hidePreview();
   });
 
-  // 滑鼠 hover 在進度條上時顯示畫面預覽（拖曳中的預覽已在 updateProgressFromMouse 內處理）
   progressContainer.addEventListener('pointermove', (e) => {
     if (isDraggingBar) return;
-    if (e.pointerType === 'touch') return; // 觸控裝置沒有 hover，交給拖曳邏輯處理
+    if (e.pointerType === 'touch' || isMobileDevice) return; // ✅ 手機或觸控時直接忽略預覽
     if (isNaN(video.duration) || !video.duration) return;
     const rect = progressBar.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -563,29 +553,32 @@ function initProgressBarDrag() {
   });
 }
 
-// 2. 根据鼠标位置更新进度
 function updateProgressFromMouse(e) {
   const rect = progressBar.getBoundingClientRect();
-  const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)); // 限制在0-1之间
+  const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
   const newTime = pos * (video.duration || 0);
 
-  // 更新视频进度
   video.currentTime = newTime;
 
-  // 手动更新进度条更新时间显示显示（避免视频timeupdate延迟）
   progressFill.style.width = `${pos * 100}%`;
   progressHandle.style.left = `${pos * 100}%`;
 
-  // 更新时间显示
   const currentTime = formatTime(newTime);
   const duration = video.duration ? formatTime(video.duration) : '00:00';
   timeDisplay.textContent = `${currentTime} / ${duration}`;
 
-  // 拖曳進度條時同步顯示畫面預覽
-  showPreviewAt(e.clientX, newTime);
+  if (!isMobileDevice && e.pointerType !== 'touch') {
+    showPreviewAt(e.clientX, newTime);
+  }
 }
 
 function initProgressPreview() {
+  if (isMobileDevice) {
+    if (progressPreview) progressPreview.remove();
+    if (previewVideoEl) previewVideoEl.remove();
+    return;
+  }
+
   if (!progressPreview || !previewCanvas || !previewVideoEl) return;
   previewCtx = previewCanvas.getContext('2d');
 
@@ -606,7 +599,7 @@ function initProgressPreview() {
 }
 
 function drawPreviewFrame() {
-  if (!previewCtx) return;
+  if (isMobileDevice || !previewCtx) return;
   const cw = previewCanvas.width;
   const ch = previewCanvas.height;
   try {
@@ -631,7 +624,7 @@ function drawPreviewFrame() {
 }
 
 function seekPreviewTo(time) {
-  if (!previewVideoEl || !previewVideoEl.src) return;
+  if (isMobileDevice || !previewVideoEl || !previewVideoEl.src) return;
   if (isNaN(previewVideoEl.duration) || !previewVideoEl.duration) return;
   const safeTime = Math.max(0, Math.min(time, previewVideoEl.duration - 0.05));
 
@@ -644,7 +637,7 @@ function seekPreviewTo(time) {
 }
 
 function showPreviewAt(clientX, time) {
-  if (!progressPreview) return;
+  if (isMobileDevice || !progressPreview) return; // ✅ 手機直接 return
   if (!video.duration || isNaN(video.duration)) return;
 
   const containerRect = progressContainer.getBoundingClientRect();
@@ -662,14 +655,14 @@ function showPreviewAt(clientX, time) {
 }
 
 function hidePreview() {
-  if (!progressPreview) return;
+  if (isMobileDevice || !progressPreview) return;
   progressPreview.classList.remove('show');
 }
 
 function updateProgressFromTouch(e) {
   const rect = video.getBoundingClientRect();
   let newx = e.clientX - rect.left;
-  const xpos = Math.max(0, Math.min(1, (Math.abs(newx - DraggingVideoX)) / rect.width)); // 限制在0-1之间
+  const xpos = Math.max(0, Math.min(1, (Math.abs(newx - DraggingVideoX)) / rect.width));
   const t = xpos * 120;
   if (newx - DraggingVideoX > 0) {
     if (video.currentTime + t > video.duration) {
@@ -685,19 +678,17 @@ function updateProgressFromTouch(e) {
     }
   }
   const newTime = video.currentTime + skippingTime
-  const pos = Math.max(0, Math.min(1, newTime / (video.duration || 1))); // 限制在0-1之间
+  const pos = Math.max(0, Math.min(1, newTime / (video.duration || 1)));
 
-  // 手动更新进度条更新时间显示显示（避免视频timeupdate延迟）
   progressFill.style.width = `${pos * 100}%`;
   progressHandle.style.left = `${pos * 100}%`;
 
-  // 更新时间显示
   const currentTime = formatTime(newTime);
   const duration = video.duration ? formatTime(video.duration) : '00:00';
   timeDisplay.textContent = `${currentTime} / ${duration}`;
   skipTimeShow.textContent = `${currentTime} / ${duration}\n${(skippingTime >= 0) ? '+' : '-'}${formatTime(Math.abs(skippingTime))}`;
-
 }
+
 function handleMouseMovement() {
   showControlAreas();
   delayHideControlAreas();
@@ -707,7 +698,7 @@ function showControlAreas() {
   clearTimeout(hideControlsTimer);
   videoTopArea.classList.remove('hidden');
   videoBottomArea.classList.remove('hidden');
-  videoPanel.style.cursor = 'default'; // 恢复鼠标显示
+  videoPanel.style.cursor = 'default';
 }
 
 function delayHideControlAreas(t = 1000) {
@@ -715,21 +706,19 @@ function delayHideControlAreas(t = 1000) {
   hideControlsTimer = setTimeout(hideControlAreas, t);
 }
 
-// 隐藏上下区域并隐藏鼠标
 function hideControlAreas() {
   danmuSettings.style.display = "none";
   if (isNaN(video.duration) || video.videoHeight === 0) return;
   videoTopArea.classList.add('hidden');
   videoBottomArea.classList.add('hidden');
-  videoPanel.style.cursor = 'none'; // 隐藏鼠标
+  videoPanel.style.cursor = 'none';
 }
 
-// 播放/暫停切換
 function togglePlayPause() {
   if (isNaN(video.duration)) return;
   video.paused ? video.play() : video.pause();
 }
-// 進入/離開 PIP（畫中畫）模式
+
 async function togglePictureInPicture() {
   if (!document.pictureInPictureEnabled) {
     console.warn('瀏覽器不支援 PIP');
@@ -746,7 +735,6 @@ async function togglePictureInPicture() {
   }
 }
 
-// 進入 PIP 時自動關閉彈幕，離開時還原成進入前的狀態
 video.addEventListener('enterpictureinpicture', () => {
   danmuStateBeforePip = isDanmuEnabled;
   if (isDanmuEnabled) setDanmuEnabled(false);
@@ -755,17 +743,17 @@ video.addEventListener('leavepictureinpicture', () => {
   if (danmuStateBeforePip) setDanmuEnabled(true);
   danmuStateBeforePip = null;
 });
+
 function initVideoPause() {
   playPauseBtn.addEventListener('click', togglePlayPause);
   let lastClick = 0;
-  const doubleClickDelay = 300; // 双击时间阈值(ms)
+  const doubleClickDelay = 300;
   let clickTimer = null;
-  // 點擊影片播放/暫停
+
   video.addEventListener('pointerdown', (e) => {
     const isTouch = e.pointerType === 'touch';
     const now = Date.now();
 
-    // 判断是否在阈值内连续点击
     if (now - lastClick < doubleClickDelay) {
       if (isTouch) {
         e.preventDefault();
@@ -774,7 +762,7 @@ function initVideoPause() {
         togglePlayPause();
         handleMouseMovement();
       }
-      lastClick = 0; // 重置避免多击
+      lastClick = 0;
     } else {
       lastClick = now;
     }
@@ -798,7 +786,6 @@ function initVideoPause() {
   });
 }
 
-// 側邊欄切換
 toggleSidebarBtn.addEventListener('click', () => {
   toggleSidebar();
 });
@@ -812,7 +799,6 @@ function toggleSidebar(a) {
   handleMouseMovement();
 }
 
-// 手動更新video-panel寬度
 function updateVideoPanelWidth() {
   if (sidebar.classList.contains('expanded')) {
     videoPanel.classList.add('expanded');
@@ -821,7 +807,6 @@ function updateVideoPanelWidth() {
   }
 }
 
-// 倍速控制
 playbackSpeed.addEventListener('change', () => {
   video.playbackRate = parseFloat(playbackSpeed.value);
 });
@@ -837,22 +822,19 @@ video.addEventListener('ratechange', () => {
     playbackSpeed.selectedIndex = -1;
   }
 });
-// 视频播放时的处理
+
 video.addEventListener('play', () => {
   playPauseBtn.textContent = '❚❚';
-  // 播放时启动隐藏计时器（但鼠标一动就会立即显示）
   delayHideControlAreas();
 });
 
-// 视频暂停时强制显示鼠标和控制区
 video.addEventListener('pause', () => {
   playPauseBtn.textContent = '▶';
-  showControlAreas(); // 暂停时显示控制区和鼠标
+  showControlAreas();
   delayHideControlAreas(1500);
   saveVideoProgress(video.name, video.currentTime, video.duration);
 });
 
-// 1. 進度條更新（包含圓點位置）
 video.addEventListener('timeupdate', () => {
   updateProgress();
   const li = videoList.querySelector('.playing');
@@ -870,6 +852,7 @@ video.addEventListener('timeupdate', () => {
     saveVideoProgress(video.name, t, d);
   }
 });
+
 video.addEventListener('ended', (event) => {
   saveVideoProgress(video.name, video.duration, video.duration);
   if (video.dataset.continuous == "true") {
@@ -877,27 +860,23 @@ video.addEventListener('ended', (event) => {
   }
 });
 
-video.addEventListener('waiting', () => {
-  // console.warn('影片 waiting');
-});
-
+video.addEventListener('waiting', () => { });
 video.addEventListener('stalled', () => {
   console.warn('影片 stalled');
 });
 
 function updateProgress() {
-  if (!progressFill || isDraggingBar) return; // 拖動時跳過自動更新
+  if (!progressFill || isDraggingBar) return;
 
   const percent = (video.currentTime / (video.duration || 1)) * 100;
   progressFill.style.width = `${percent}%`;
-  progressHandle.style.left = `${percent}%`; // 1. 更新圓點位置
+  progressHandle.style.left = `${percent}%`;
 
   const currentTime = formatTime(video.currentTime);
   const duration = video.duration ? formatTime(video.duration) : '00:00';
   timeDisplay.textContent = `${currentTime} / ${duration}`;
 }
 
-// 時間格式化
 function formatTime(seconds) {
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
@@ -907,12 +886,14 @@ function formatTime(seconds) {
   }
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
+
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
+
 volume_btn.addEventListener('click', () => {
   isMuted = !isMuted;
   video.muted = isMuted;
@@ -928,20 +909,23 @@ volumeControl.addEventListener('pointerleave', () => {
   isPointerInVolumeBar = false;
   hide_volume_bar();
 });
+
 function show_volume_bar() {
   volumeInput.style.width = "100px";
   volume_bar.style.transform = "translateX(-10px)";
   volume_bar.style.padding = "0 10px";
 }
+
 function hide_volume_bar() {
   volumeInput.style.width = "0";
   volume_bar.style.transform = "translateX(-20px)";
   volume_bar.style.padding = "0";
 }
+
 volumeInput.addEventListener('keydown', (e) => {
   e.preventDefault();
 });
-// 音量控制
+
 volumeInput.addEventListener('input', () => {
   volume = parseFloat(volumeInput.value);
   video.volume = volume;
@@ -950,6 +934,7 @@ volumeInput.addEventListener('input', () => {
   document.activeElement.blur();
   syncVolumeUI();
 });
+
 function updateVolume(dv = 0) {
   let val = Number(volumeInput.value) + dv;
   volume = Math.max(0, Math.min(1, val));
@@ -958,12 +943,14 @@ function updateVolume(dv = 0) {
   isMuted = (volume === 0);
   syncVolumeUI();
 }
+
 function syncVolumeUI() {
   show_volume_bar();
   updateVolumeControl();
   showControlAreas();
   save_status();
 }
+
 function updateVolumeControl() {
   const vl = (isMuted) ? 0 : volume * 100;
   if (isMuted) {
@@ -980,7 +967,7 @@ function updateVolumeControl() {
   }
   volume_btn.setAttribute('data-level', lv);
 }
-// 彈幕開關
+
 toggleDanmu.addEventListener('click', toggleDanmuDisplay);
 
 function toggleDanmuDisplay() {
@@ -990,14 +977,11 @@ function toggleDanmuDisplay() {
 function setDanmuEnabled(enabled) {
   isDanmuEnabled = enabled;
   toggleDanmu_btn(isDanmuEnabled);
-
-  // 保存状态到全局，供danmu.js使用
   window.isDanmuEnabled = isDanmuEnabled;
   window.danmu_add_class();
   save_status();
 }
 
-// 全屏功能
 fullscreenBtn.addEventListener('click', () => {
   toggleFullscreen();
   if (!document.fullscreenElement) {
@@ -1036,7 +1020,7 @@ async function lockToLandscape() {
     console.warn("無法鎖定橫向：", err);
   }
 }
-// 監聽全屏狀態變化
+
 document.addEventListener('fullscreenchange', updateFullscreenUI);
 document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
 
@@ -1049,11 +1033,11 @@ function updateFullscreenUI() {
   updateVideoPanelWidth();
 }
 
-// 彈幕設置面板切換
 toggleDanmuSettings.addEventListener('click', () => {
   danmuSettings.style.display = danmuSettings.style.display === 'block' ? 'none' : 'block';
   showControlAreas();
 });
+
 function updateInputBG(input_element) {
   const min = parseFloat(input_element.min);
   const max = parseFloat(input_element.max);
@@ -1061,7 +1045,7 @@ function updateInputBG(input_element) {
   const percent = ((value - min) / (max - min)) * 100;
   input_element.style.background = `linear-gradient(to right, #888 ${percent}%, #333 ${percent}%)`;
 }
-// 同步設置值顯示
+
 danmuSpeed.addEventListener('input', () => {
   const speed = parseFloat(danmuSpeed.value);
   speedValue.textContent = `${speed.toFixed(1)}x`;
@@ -1102,13 +1086,13 @@ danmuLimit.addEventListener('input', () => {
   showControlAreas();
   save_status();
 });
+
 function checkVideoSupport(videoFile) {
   const tempVideo = document.createElement('video');
-  // 检测 MIME 类型支持度（返回 ""、"maybe"、"probably"）
   const support = tempVideo.canPlayType(videoFile.type);
-  // "probably" 表示高度支持，"maybe" 表示可能支持，"" 表示不支持
   return support !== "";
 }
+
 customFileBtn.addEventListener('click', () => {
   folderInput.click();
 });
@@ -1136,7 +1120,6 @@ toggleContinuous.addEventListener('input', () => {
 
 function shuffleChildren(parentID) {
   const parent = document.getElementById(parentID);
-
   const children = Array.from(parent.children);
 
   for (let i = children.length - 1; i > 0; i--) {
@@ -1171,6 +1154,7 @@ function getCleanPath(file) {
   }
   return path;
 }
+
 folderInput.addEventListener('change', (e) => {
   if (!e.target.files || e.target.files.length === 0) {
     return;
@@ -1189,7 +1173,6 @@ folderInput.addEventListener('change', (e) => {
   // if (maxDepth > 2) return;
 
   handleFiles(files);
-
 });
 
 async function handleFiles(fileObject) {
@@ -1250,11 +1233,11 @@ async function handleFiles(fileObject) {
     videoList.appendChild(fragment);
     fileNumber.innerText = `(${videoList.querySelectorAll('li.video-item').length})`;
 
-    // 讓出主執行緒，讓瀏覽器有空渲染畫面
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   console.log('all files processed');
 }
+
 function clearAll() {
   if (!isNaN(video.duration) && video.name) {
     saveVideoProgress(video.name, video.currentTime, video.duration);
@@ -1281,19 +1264,21 @@ function playVideo({ vid, xml }) {
   const oldUrl = currentVideoUrl;
 
   const url = URL.createObjectURL(vid);
-  currentVideoUrl = url;  // ✅ 記錄新 URL
+  currentVideoUrl = url;
 
   hidePreview();
   previewSeekPending = false;
   previewPendingTime = null;
-  if (previewVideoEl) previewVideoEl.src = url;
+
+  if (!isMobileDevice && previewVideoEl) {
+    previewVideoEl.src = url;
+  }
 
   video.name = vid.name;
   window.isDanmuEnabled = isDanmuEnabled;
   window.danmuContainer = danmuContainer;
 
   video.onloadedmetadata = () => {
-    // ✅ 確認新影片載入成功後，才撤銷舊的 blob URL
     if (oldUrl) {
       URL.revokeObjectURL(oldUrl);
     }
@@ -1351,20 +1336,24 @@ function playVideo({ vid, xml }) {
 
   video.addEventListener('canplaythrough', startPlay);
 }
+
 function nextVideo() {
   let p = document.querySelectorAll('#videoList li.playing');
   if (p.length > 0 && p[0].nextElementSibling) p[0].nextElementSibling.click();
 }
+
 function previousVideo() {
   let p = document.querySelectorAll('#videoList li.playing');
   if (p.length > 0 && p[0].previousElementSibling) p[0].previousElementSibling.click();
 }
+
 function updateDanmuContainerSize() {
   if (danmuContainer) {
     danmuContainer.style.width = `${videoPanel.offsetWidth}px`;
     danmuContainer.style.height = `${videoPanel.offsetHeight}px`;
   }
 }
+
 function adjustVideoTime(seconds) {
   if (!video) return;
   if (isNaN(video.duration)) return;
@@ -1374,10 +1363,10 @@ function adjustVideoTime(seconds) {
 
   video.currentTime = Math.min(Math.max(newTime, 0), duration);
 }
+
 function initKeyboardShortcuts() {
   document.addEventListener('focusin', (event) => {
     const activeEl = document.activeElement;
-
     const interactiveTags = ['INPUT', 'TEXTAREA', 'OPTION'];
 
     if (!interactiveTags.includes(activeEl.tagName) && activeEl !== document.body) {
@@ -1385,6 +1374,7 @@ function initKeyboardShortcuts() {
       document.body.focus();
     }
   }, true);
+
   document.addEventListener('keydown', (e) => {
     if ((e.target != volumeInput) && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
@@ -1514,6 +1504,7 @@ function initKeyboardShortcuts() {
         break;
     }
   });
+
   document.addEventListener('keyup', (e) => {
     if ((e.target != volumeInput) && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) {
       return;
@@ -1531,6 +1522,7 @@ function initKeyboardShortcuts() {
     }
   });
 }
+
 function save_status() {
   localStorage.setItem("isDanmuEnabled", isDanmuEnabled);
   localStorage.setItem("isMuted", isMuted);
