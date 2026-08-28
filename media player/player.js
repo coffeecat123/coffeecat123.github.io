@@ -84,6 +84,7 @@ let lastKeyTime = null;
 let currentVideoUrl = null;
 let videos = [];
 let isDanmuPaused = false;
+let danmuStateBeforePip = null;
 let isDanmuEnabled = true;
 let isMuted = false;
 let volume = 1.0;
@@ -358,10 +359,11 @@ function initOtherEvents() {
   });
   if ('mediaSession' in navigator) {
     navigator.mediaSession.setActionHandler('play', () => {
-      if (document.visibilityState === 'visible') {
+      const isInPip = document.pictureInPictureElement === video;
+      if (isInPip || document.visibilityState === 'visible') {
         video.play();
       } else {
-        console.log('頁面在背景，已忽略耳機播放指令');
+        console.log('頁面在背景且非PIP，已忽略耳機播放指令');
       }
     });
 
@@ -370,18 +372,20 @@ function initOtherEvents() {
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
-      if (document.visibilityState === 'visible') {
+      const isInPip = document.pictureInPictureElement === video;
+      if (isInPip || document.visibilityState === 'visible') {
         previousVideo();
       } else {
-        console.log('頁面在背景，已忽略上一首指令');
+        console.log('頁面在背景且非PIP，已忽略上一首指令');
       }
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
-      if (document.visibilityState === 'visible') {
+      const isInPip = document.pictureInPictureElement === video;
+      if (isInPip || document.visibilityState === 'visible') {
         nextVideo();
       } else {
-        console.log('頁面在背景，已忽略下一首指令');
+        console.log('頁面在背景且非PIP，已忽略下一首指令');
       }
     });
   }
@@ -725,6 +729,32 @@ function togglePlayPause() {
   if (isNaN(video.duration)) return;
   video.paused ? video.play() : video.pause();
 }
+// 進入/離開 PIP（畫中畫）模式
+async function togglePictureInPicture() {
+  if (!document.pictureInPictureEnabled) {
+    console.warn('瀏覽器不支援 PIP');
+    return;
+  }
+  try {
+    if (document.pictureInPictureElement === video) {
+      await document.exitPictureInPicture();
+    } else {
+      await video.requestPictureInPicture();
+    }
+  } catch (err) {
+    console.warn('PIP 切換失敗:', err);
+  }
+}
+
+// 進入 PIP 時自動關閉彈幕，離開時還原成進入前的狀態
+video.addEventListener('enterpictureinpicture', () => {
+  danmuStateBeforePip = isDanmuEnabled;
+  if (isDanmuEnabled) setDanmuEnabled(false);
+});
+video.addEventListener('leavepictureinpicture', () => {
+  if (danmuStateBeforePip) setDanmuEnabled(true);
+  danmuStateBeforePip = null;
+});
 function initVideoPause() {
   playPauseBtn.addEventListener('click', togglePlayPause);
   let lastClick = 0;
@@ -954,7 +984,11 @@ function updateVolumeControl() {
 toggleDanmu.addEventListener('click', toggleDanmuDisplay);
 
 function toggleDanmuDisplay() {
-  isDanmuEnabled = !isDanmuEnabled;
+  setDanmuEnabled(!isDanmuEnabled);
+}
+
+function setDanmuEnabled(enabled) {
+  isDanmuEnabled = enabled;
   toggleDanmu_btn(isDanmuEnabled);
 
   // 保存状态到全局，供danmu.js使用
@@ -1436,6 +1470,11 @@ function initKeyboardShortcuts() {
         e.preventDefault();
         if (e.repeat) break;
         videoInfo.style.display = videoInfo.style.display === 'flex' ? 'none' : 'flex';
+        break;
+      case 'p':
+        e.preventDefault();
+        if (e.repeat) break;
+        togglePictureInPicture();
         break;
       case '[':
         e.preventDefault();
