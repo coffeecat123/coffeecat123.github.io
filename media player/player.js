@@ -428,9 +428,11 @@ function retryPlay() {
   video.addEventListener('canplay', seekAfterLoad);
   video.load();
 
-  // ✅ 手機不加載預覽影片
   if (!isMobileDevice && previewVideoEl && currentVideoUrl) {
     previewVideoEl.src = currentVideoUrl;
+    previewVideoEl.load();
+    previewSeekPending = false;
+    previewPendingTime = null;
   }
 }
 
@@ -540,7 +542,7 @@ function initProgressBarDrag() {
 
   progressContainer.addEventListener('pointermove', (e) => {
     if (isDraggingBar) return;
-    if (e.pointerType === 'touch' || isMobileDevice) return; // ✅ 手機或觸控時直接忽略預覽
+    if (e.pointerType === 'touch' || isMobileDevice) return;
     if (isNaN(video.duration) || !video.duration) return;
     const rect = progressBar.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -637,7 +639,7 @@ function seekPreviewTo(time) {
 }
 
 function showPreviewAt(clientX, time) {
-  if (isMobileDevice || !progressPreview) return; // ✅ 手機直接 return
+  if (isMobileDevice || !progressPreview) return;
   if (!video.duration || isNaN(video.duration)) return;
 
   const containerRect = progressContainer.getBoundingClientRect();
