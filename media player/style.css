@@ -363,7 +363,7 @@ svg {
 #volume_bar {
     display: flex;
     align-items: center;
-    height: -webkit-fill-available;
+    align-self: stretch;
     background: rgb(50, 50, 50);
     border-top-right-radius: 25px;
     border-bottom-right-radius: 25px;

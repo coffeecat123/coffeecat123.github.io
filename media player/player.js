@@ -809,8 +809,14 @@ function updateVideoPanelWidth() {
   }
 }
 
-playbackSpeed.addEventListener('change', () => {
+playbackSpeed.addEventListener('change', (e) => {
   video.playbackRate = parseFloat(playbackSpeed.value);
+  e.target.blur();
+  document.body.focus();
+});
+
+playbackSpeed.addEventListener('blur', () => {
+  document.body.focus();
 });
 
 video.addEventListener('ratechange', () => {
@@ -1369,7 +1375,7 @@ function adjustVideoTime(seconds) {
 function initKeyboardShortcuts() {
   document.addEventListener('focusin', (event) => {
     const activeEl = document.activeElement;
-    const interactiveTags = ['INPUT', 'TEXTAREA', 'OPTION'];
+    const interactiveTags = ['INPUT', 'TEXTAREA', 'OPTION', 'SELECT'];
 
     if (!interactiveTags.includes(activeEl.tagName) && activeEl !== document.body) {
       activeEl.blur();
