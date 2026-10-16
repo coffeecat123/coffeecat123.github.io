@@ -181,16 +181,7 @@ svg {
     cursor: pointer;
     z-index: 5;
     box-shadow: 0 0 2px 0px;
-}
-
-.progress-container:hover .progress-bar {
-    height: 7.5px;
-    background: #b9b9b980;
-}
-
-.progress-container:hover .progress-handle {
-    width: 16px;
-    height: 16px;
+    transition: height 0.15s ease, background 0.15s ease;
 }
 
 .progress-fill {
@@ -208,11 +199,11 @@ svg {
     background: #ff6b6b;
     top: 50%;
     box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.3);
-    transform: translateX(-50%);
-    transform: translateY(-50%);
+    transform: translate(-50%, -50%);
     z-index: 12;
     cursor: pointer;
     margin-left: -8px;
+    transition: width 0.15s ease, height 0.15s ease;
 }
 
 #skipTimeShow {
@@ -327,11 +318,18 @@ svg {
     user-select: none;
     font-size: 14px;
     height: 32px;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.1s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2;
+}
+
+.control-btn:active,
+.toggle-sidebar-btn:active,
+#sidebar_input button:active:not(:disabled) {
+    background: rgb(90, 90, 90);
+    transform: scale(0.95);
 }
 
 .icon-on {
@@ -400,11 +398,6 @@ svg {
     justify-content: center;
 }
 
-.control-btn:hover,
-.toggle-sidebar-btn:hover {
-    background: rgb(70, 70, 70);
-}
-
 .control-select {
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -422,10 +415,6 @@ canvas#waveformCanvas {
     opacity: 0;
     transition: opacity 0.2s;
     pointer-events: none;
-}
-
-#progressContainer:hover canvas#waveformCanvas {
-    opacity: 1;
 }
 
 #volume-control {
@@ -459,22 +448,6 @@ canvas#waveformCanvas {
     transition: background 0.2s, border 0.2s;
 }
 
-#volume_input::-webkit-slider-thumb:hover,
-#danmuSettings input::-webkit-slider-thumb:hover {
-    background: #888;
-}
-
-#danmuSettings input {
-    bottom: calc(50% + 16px);
-    -webkit-appearance: none;
-    appearance: none;
-    width: 0;
-    height: 6px;
-    border-radius: 3px;
-    background: linear-gradient(to right, #888 50%, #555 50%);
-    transition: background 0.3s, width 0.5s;
-}
-
 .fullscreen-btn {
     position: absolute;
     bottom: 20px;
@@ -494,7 +467,7 @@ canvas#waveformCanvas {
     border: none;
     cursor: pointer;
     z-index: 1010;
-    transition: right 0.3s ease;
+    transition: right 0.3s ease, background 0.2s, transform 0.1s ease;
     height: 40px;
     width: 40px;
     padding: 0;
@@ -602,14 +575,6 @@ canvas#waveformCanvas {
     content: "\200b";
 }
 
-.video-meta .value:hover {
-    max-width: 100%;
-    min-width: fit-content;
-    overflow: visible;
-    background: #00000066;
-    outline: 1px solid #888d;
-}
-
 .video-meta .value.copied {
     background: #27ac0d;
 }
@@ -619,8 +584,6 @@ canvas#waveformCanvas {
     justify-content: space-between;
     align-items: center;
 }
-
-
 
 #videoList {
     list-style: none;
@@ -669,16 +632,6 @@ canvas#waveformCanvas {
     pointer-events: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-    #videoList li:hover {
-        background: #444;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: #6c6c6c;
-    }
-}
-
 #videoList li.playing {
     background: #555;
 }
@@ -698,25 +651,20 @@ canvas#waveformCanvas {
     background: #888;
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 50%;
     cursor: pointer;
     width: 40px;
     height: 40px;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s, transform 0.1s ease;
 }
 
 #sidebar_input button:disabled {
     background: #404040;
     cursor: not-allowed;
 }
-
-#sidebar_input button:hover:not(:disabled) {
-    background: #555;
-}
-
 
 #sibebar_info {
     color: #eee;
@@ -731,6 +679,22 @@ canvas#waveformCanvas {
     color: #eee;
     margin-bottom: 15px;
     display: none;
+}
+
+#sortBtn .icon-desc {
+    display: none;
+}
+
+#sortBtn .icon-asc {
+    display: block;
+}
+
+#sortBtn.desc .icon-asc {
+    display: none;
+}
+
+#sortBtn.desc .icon-desc {
+    display: block;
 }
 
 .danmu {
@@ -851,6 +815,53 @@ input:checked+.slider::before {
 
 :focus {
     outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+
+    .control-btn:hover,
+    .toggle-sidebar-btn:hover {
+        background: rgb(70, 70, 70);
+    }
+
+    #sidebar_input button:hover:not(:disabled) {
+        background: #555;
+    }
+
+    .progress-container:hover .progress-bar {
+        height: 7.5px;
+        background: #b9b9b980;
+    }
+
+    .progress-container:hover .progress-handle {
+        width: 16px;
+        height: 16px;
+    }
+
+    #progressContainer:hover canvas#waveformCanvas {
+        opacity: 1;
+    }
+
+    #volume_input::-webkit-slider-thumb:hover,
+    #danmuSettings input::-webkit-slider-thumb:hover {
+        background: #888;
+    }
+
+    .video-meta .value:hover {
+        max-width: 100%;
+        min-width: fit-content;
+        overflow: visible;
+        background: #00000066;
+        outline: 1px solid #888d;
+    }
+
+    #videoList li:hover {
+        background: #444;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #6c6c6c;
+    }
 }
 
 @media (orientation: portrait) and (max-width: 768px) {

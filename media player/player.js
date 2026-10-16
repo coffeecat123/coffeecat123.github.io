@@ -42,6 +42,7 @@ const videoInfo = document.getElementById('info');
 const customFileBtn = document.getElementById('customFileBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 const shuffleBtn = document.getElementById('shuffleBtn');
+const sortBtn = document.getElementById('sortBtn');
 const toggleContinuous = document.getElementById('toggleContinuous');
 const fileNumber = document.getElementById('fileNumber');
 const folderInput = document.getElementById('folderInput');
@@ -69,6 +70,7 @@ const limitValue = document.getElementById('limitValue');
 
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+let isSortAscending = false;
 let lastSavedTime = null;
 let lastSavedAt = null;
 let previewCtx = null;
@@ -597,6 +599,7 @@ function initProgressPreview() {
   previewVideoEl.addEventListener('error', () => {
     previewSeekPending = false;
     previewPendingTime = null;
+    console.warn('預覽影片載入失敗，可能是影片格式不支援或檔案損毀');
   });
 }
 
@@ -1111,8 +1114,17 @@ refreshBtn.addEventListener('click', () => {
     a.click();
   }
 });
+sortBtn.addEventListener('click', () => {
+  isSortAscending = !isSortAscending;
+  sortBtn.classList.toggle('desc', isSortAscending);
+  sortVideoList(isSortAscending);
+  scrollToActiveVideo();
+});
 shuffleBtn.addEventListener('click', () => {
   shuffleChildren('videoList');
+  scrollToActiveVideo();
+});
+function scrollToActiveVideo() {
   const activeLi = videoList.querySelector('li.playing');
   if (activeLi) {
     activeLi.scrollIntoView({
@@ -1120,11 +1132,25 @@ shuffleBtn.addEventListener('click', () => {
       block: 'nearest'
     });
   }
-  handleMouseMovement();
-});
+}
 toggleContinuous.addEventListener('input', () => {
   video.dataset.continuous = toggleContinuous.checked;
 });
+function sortVideoList(ascending = true) {
+  const items = Array.from(videoList.querySelectorAll('li.video-item'));
+  if (items.length === 0) return;
+
+  items.sort((a, b) => {
+    const nameA = a.name || a.innerText || '';
+    const nameB = b.name || b.innerText || '';
+    const res = nameA.localeCompare(nameB, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+    return ascending ? res : -res;
+  });
+  items.forEach(item => videoList.appendChild(item));
+}
 
 function shuffleChildren(parentID) {
   const parent = document.getElementById(parentID);
