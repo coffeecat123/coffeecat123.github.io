@@ -576,7 +576,7 @@ canvas#waveformCanvas {
 }
 
 .video-meta .value.copied {
-    background: #27ac0d;
+    background: #27ac0d !important;
 }
 
 .video-item {
